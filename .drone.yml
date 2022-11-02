@@ -1,0 +1,130 @@
+kind: template
+load: hostbutter.jsonnet
+data:
+  projectName: ${DRONE_REPO}
+  gitSshKey: default
+  ciImageRegistry: "registry.lokalhost.net"
+  domains: >-
+    ["lokalhost.net"]
+  domainContexts: >-
+    {}
+  domainTriggers: >-
+    {
+      "lokalhost.net": {
+        "ref": ["refs/heads/dev", "refs/heads/main", "refs/tags/*"]
+      }
+    }
+  pushRemotes: >-
+    {
+      "codeberg": {
+        "url": "git@codeberg.org:fresh2dev",
+        "when": {
+          "ref": ["refs/heads/main", "refs/tags/*"]
+        }
+      }
+    }
+  imageTags: ""
+  useDinD: false
+  dockerHubUser: ""
+  deployStack: true
+  deployCommands: >-
+    {}
+  secrets: >-
+    []
+  secretFiles: >-
+    {
+      "ENV_FILE": ".env"
+    }
+  volumes: >-
+    []
+  domainVars: >-
+    {}
+  beforeSteps: >-
+    [
+      {
+        "name": "build-reports",
+        "image": "registry.lokalhost.net/fresh2dev/docker:0.0.4",
+        "commands": [
+          "myke requirements",
+          "myke reports"
+        ]
+      }
+    ]
+  afterSteps: >-
+    []
+  finalSteps: >-
+    [
+      {
+        "name": "py-build-package",
+        "image": "registry.lokalhost.net/fresh2dev/docker:0.0.4",
+        "environment": {
+          "PYPI_CREDS": {"from_secret": "PYPI_CREDS"}
+        },
+        "commands": [
+          "echo \"$PYPI_CREDS\" > ~/.pypirc",
+          "myke requirements -e build",
+          "myke build --repository lokalhost"
+        ],
+        "when": {}
+      },
+      {
+        "name": "py-publish-dev",
+        "image": "registry.lokalhost.net/fresh2dev/docker:0.0.4",
+        "environment": {
+          "PYPI_CREDS": {"from_secret": "PYPI_CREDS"},
+          "TWINE_CERT": "/etc/ssl/certs/ca-certificates.crt"
+        },
+        "commands": [
+          "echo \"$PYPI_CREDS\" > ~/.pypirc",
+          "myke requirements -e build",
+          "myke publish --repository lokalhost"
+        ],
+        "when": {
+          "ref": ["refs/heads/dev", "refs/heads/main", "refs/tags/*"]
+        }
+      },
+      {
+        "name": "py-publish-test",
+        "image": "registry.lokalhost.net/fresh2dev/docker:0.0.4",
+        "environment": {
+          "PYPI_CREDS": {"from_secret": "PYPI_CREDS"},
+          "TWINE_CERT": "/etc/ssl/certs/ca-certificates.crt"
+        },
+        "commands": [
+          "echo \"$PYPI_CREDS\" > ~/.pypirc",
+          "myke requirements -e build",
+          "myke publish --repository testpypi"
+        ],
+        "when": {
+          "ref": ["refs/heads/main", "refs/tags/*"]
+        }
+      },
+      {
+        "name": "py-publish-prod",
+        "image": "registry.lokalhost.net/fresh2dev/docker:0.0.4",
+        "environment": {
+          "PYPI_CREDS": {"from_secret": "PYPI_CREDS"},
+          "TWINE_CERT": "/etc/ssl/certs/ca-certificates.crt"
+        },
+        "commands": [
+          "echo \"$PYPI_CREDS\" > ~/.pypirc",
+          "myke requirements -e build",
+          "myke publish --repository codeberg",
+          "myke publish --repository pypi"
+        ],
+        "when": {
+          "ref": ["refs/tags/*"]
+        }
+      }
+    ]
+  extraObjects: >-
+    [
+      {
+        "kind": "secret",
+        "name": "PYPI_CREDS",
+        "get": {
+          "path": "secret/data/3p",
+          "name": "PYPI_CREDS"
+        }
+      }
+    ]

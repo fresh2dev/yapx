@@ -1,0 +1,10 @@
+# Changes here will be overwritten by Copier; NEVER EDIT MANUALLY
+_commit: 43dbd3d
+_src_path: https://fresh2.dev/code/r/copier-python.git
+author_email: hello@fresh2.dev
+author_name: donald
+ci_domain_name: lokalhost.net
+package_name: yapx
+project_name: yapx
+public_url: https://www.fresh2.dev/code/r/yapx
+python_version: '3.7'

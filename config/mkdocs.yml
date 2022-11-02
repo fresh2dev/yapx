@@ -1,0 +1,17 @@
+site_name: "yapx"
+site_description: "yapx documentation"
+site_url: "https://www.fresh2.dev/code/r/yapx/docs"
+repo_url: "https://www.fresh2.dev/code/r/yapx"
+repo_name: "Gitea"
+edit_uri_template: "src/branch/main/{path}"
+docs_dir: "../docs"
+site_dir: "../public/docs"
+strict: true
+
+theme:
+  name: readthedocs
+
+## https://www.mkdocs.org/user-guide/writing-your-docs/#configure-pages-and-navigation
+# nav:
+#   - Home: index.md
+#   ...
