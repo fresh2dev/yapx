@@ -62,8 +62,9 @@ data:
         },
         "commands": [
           "echo \"$PYPI_CREDS\" > ~/.pypirc",
+          "myke set-version --repository lokalhost",
           "myke requirements -e build",
-          "myke build --repository lokalhost"
+          "myke build"
         ],
         "when": {}
       },
