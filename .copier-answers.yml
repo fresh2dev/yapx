@@ -1,10 +1,12 @@
-# Changes here will be overwritten by Copier; NEVER EDIT MANUALLY
-_commit: f6ddf91
-_src_path: https://fresh2.dev/code/r/copier-python.git
+# Changes here will be overwritten by Copier
+_commit: c5226bf
+_src_path: https://codeberg.org/fresh2dev/copier-python.git
 author_email: hello@fresh2.dev
 author_name: donald
 ci_domain_name: lokalhost.net
+docs_url: https://www.Fresh2.dev/code/r/yapx/i
+funding_url: https://www.Fresh2.dev/tip
 package_name: yapx
 project_name: yapx
-public_url: https://www.fresh2.dev/code/r/yapx
 python_version: '3.7'
+repo_url: https://codeberg.org/Fresh2dev/yapx

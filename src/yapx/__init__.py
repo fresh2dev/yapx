@@ -14,11 +14,7 @@ __all__ = [
 import os
 
 from . import actions, exceptions, types, utils
+from .__version__ import __version__
 from .arg import arg
 from .argparse_action import argparse_action
 from .argument_parser import ArgumentParser, run, run_command
-
-with open(
-    os.path.join(os.path.dirname(__file__), "VERSION"), mode="r", encoding="utf-8"
-) as f:
-    __version__: str = f.read().strip()

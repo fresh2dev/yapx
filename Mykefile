@@ -2,18 +2,12 @@
 # type: ignore
 
 import myke
+from mykefiles import hostbutter, py_pkg
 
 # @myke.task(root=True)
 # def setup():
 #     ...
 
-
-myke.import_module(
-    "https://www.fresh2.dev/code/r/mykefiles/raw/branch/dev"
-    "/src/mykefiles/hostbutter.py",
-    "https://www.fresh2.dev/code/r/mykefiles/raw/branch/dev"
-    "/src/mykefiles/python-package.py",
-)
 
 if __name__ == "__main__":
     myke.main(__file__)
