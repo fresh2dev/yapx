@@ -5,13 +5,16 @@ data:
   gitSshKey: default
   ciImageRegistry: "registry.lokalhost.net"
   domains: >-
-    ["lokalhost.net"]
+    ["lokalhost.net", "fresh2.dev"]
   domainContexts: >-
     {}
   domainTriggers: >-
     {
       "lokalhost.net": {
         "ref": ["refs/heads/dev", "refs/heads/main", "refs/tags/*"]
+      },
+      "fresh2.dev": {
+        "ref": ["refs/heads/main", "refs/tags/*"]
       }
     }
   pushRemotes: >-
@@ -62,8 +65,9 @@ data:
         },
         "commands": [
           "echo \"$PYPI_CREDS\" > ~/.pypirc",
+          "myke set-version --repository lokalhost",
           "myke requirements -e build",
-          "myke build --repository lokalhost"
+          "myke build"
         ],
         "when": {}
       },

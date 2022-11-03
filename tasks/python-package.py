@@ -42,6 +42,25 @@ def x_get_version(_echo: bool = True) -> str:
     return value
 
 
+def _assert_unpublished(
+    repository: Optional[str] = None,
+    version: Optional[str] = None,
+) -> List[str]:
+    vers_published: List[str] = x_get_versions_published(
+        repository=repository, _echo=False
+    )
+
+    if not version:
+        version = x_get_version(_echo=False)
+
+    if version in vers_published:
+        raise SystemExit(
+            ValueError(f"Version {version} already published; increment to continue.")
+        )
+
+    return vers_published
+
+
 def _get_next_version(
     repository: Optional[str] = None,
     version: Optional[str] = None,
@@ -54,16 +73,16 @@ def _get_next_version(
             else:
                 version = "0.0.1a1"
 
-    _dev_version = os.getenv("CI") and not os.getenv("CI_COMMIT_TAG")
+    vers_published: List[str] = _assert_unpublished(
+        repository=repository, version=version
+    )
 
-    if _dev_version:
-        ver_published: List[str] = x_find_published_versions(
-            repository=repository, _echo=False
-        )
+    # if in CI, but no tag, append next '.dev#' to version
+    if os.getenv("CI") and not os.getenv("CI_COMMIT_TAG"):
         i: int = 0
         ver_suffix: str = f"dev{i}"
         next_dev_version: str = f"{version}.{ver_suffix}"
-        while next_dev_version in ver_published:
+        while next_dev_version in vers_published:
             i += 1
             ver_suffix = f"dev{i}"
             next_dev_version = f"{version}.{ver_suffix}"
@@ -77,7 +96,7 @@ def _get_next_version(
 
 @myke.task
 def x_set_version(
-    version=myke.arg(None, pos=True), _repository: Optional[str] = None
+    version=myke.arg(None, pos=True), repository: Optional[str] = None
 ) -> None:
     version_og: Optional[str] = None
     try:
@@ -86,7 +105,7 @@ def x_set_version(
         pass
 
     if not version:
-        version = _get_next_version(version=version, repository=_repository)
+        version = _get_next_version(version=version, repository=repository)
 
     if version_og != version:
         print(f"{version_og} --> {version}")
@@ -191,7 +210,7 @@ def x_requirements(
 
 
 @myke.task
-def x_find_published_versions(
+def x_get_versions_published(
     repository: Optional[str] = None, name: Optional[str] = None, _echo: bool = True
 ) -> List[str]:
     if not name:
@@ -347,9 +366,7 @@ def x_reports() -> None:
 
 
 @myke.task_sh
-def x_build(repository: Optional[str] = None) -> str:
-    x_set_version(version=None, _repository=repository)
-
+def x_build() -> str:
     return r"""
 python -m build
 python -m twine check --strict dist/*
@@ -360,7 +377,7 @@ pip install --force-reinstall dist/*.whl
 @myke.task_sh
 def publish(repository: str = "testpypi", build: bool = False) -> str:
     if build:
-        x_build(repository=repository)
+        x_build()
 
     return f"""
 python -m twine upload --verbose --non-interactive -r {repository} dist/*
