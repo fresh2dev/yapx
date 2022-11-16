@@ -1,11 +1,3 @@
-__all__ = [
-    "convert_to_command_string",
-    "convert_to_flag_string",
-    "make_dataclass_from_func",
-    "str2bool",
-    "is_dataclass_type",
-]
-
 import dataclasses
 from typing import Any, Type
 
@@ -16,6 +8,15 @@ from .arg import (
     make_dataclass_from_func,
 )
 from .types import Dataclass
+
+__all__ = [
+    "convert_to_command_string",
+    "convert_to_flag_string",
+    "make_dataclass_from_func",
+    "str2bool",
+    "is_dataclass_type",
+]
+
 
 try:
     from typing import TypeGuard

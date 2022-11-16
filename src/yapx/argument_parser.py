@@ -1,5 +1,3 @@
-__all__ = ["ArgumentParser", "run", "run_command"]
-
 import argparse
 import collections.abc
 import sys
@@ -38,11 +36,14 @@ from .argparse_action import YapxAction
 from .types import Dataclass, NoneType
 from .utils import is_dataclass_type, str2bool
 
+__all__ = ["ArgumentParser", "run", "run_command"]
+
+
 try:
     from pydantic.dataclasses import create_pydantic_model_from_dataclass
 except ModuleNotFoundError:
 
-    def create_pydantic_model_from_dataclass():  # type: ignore
+    def create_pydantic_model_from_dataclass():
         ...
 
 
@@ -255,8 +256,15 @@ class ArgumentParser(argparse.ArgumentParser):
                 # skip private arg
                 continue
 
-            fld_type: Type[Any] = fld.type
-            if cls._get_type_origin(fld_type) is Union:  # type: ignore
+            fld_type: Union[str, Type[Any]] = fld.type
+
+            # basic support for handling deferred annotation evaluation,
+            # when using `from __future__ import annotations`
+            if isinstance(fld_type, str):
+                fld_type = cls._eval_fld_type(fld_type)
+                assert not isinstance(fld_type, str)
+
+            if cls._get_type_origin(fld_type) is Union:
                 fld_type = cls._extract_type_from_container(fld_type)
 
             help_type: str = (
@@ -267,7 +275,7 @@ class ArgumentParser(argparse.ArgumentParser):
 
             fld_type_origin: Optional[Type[Any]] = cls._get_type_origin(fld_type)
             if fld_type_origin:
-                if fld_type_origin is Literal:  # type: ignore
+                if fld_type_origin is Literal:
                     argparse_argument.choices = list(cls._get_type_args(fld_type))
                     if argparse_argument.choices:
                         fld_type = type(argparse_argument.choices[0])
@@ -384,6 +392,21 @@ class ArgumentParser(argparse.ArgumentParser):
                 parser_required_args["required"].add_argument(*args, **kwargs)
             else:
                 parser_optional_args["optional"].add_argument(*args, **kwargs)
+
+    @classmethod
+    def _eval_fld_type(cls, fld_type: str) -> Any:
+        if "[" in fld_type:
+            # None | list[str] --> None | List[str]
+            fld_type = "|".join(
+                (y.capitalize() if "[" in y else y)
+                for x in fld_type.split("|")
+                for y in [x.strip()]
+            )
+        if "|" in fld_type:
+            # None | str --> Union[None, str]
+            fld_type = f"Union[{fld_type.replace('|', ',')}]"
+
+        return eval(fld_type)  # pylint: disable=eval-used
 
     @staticmethod
     def _get_type_origin(t: Type[Any]) -> Optional[Type[Any]]:

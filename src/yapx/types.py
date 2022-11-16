@@ -1,7 +1,7 @@
+from typing import Any, Dict, Optional, Sequence, Union
+
 __all__ = ["Dataclass", "ArgumentParser", "NoneType", "ArgValueType"]
 
-import sys
-from typing import Any, Dict, Optional, Sequence, Union
 
 try:
     from typing import Protocol
