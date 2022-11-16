@@ -1,7 +1,7 @@
-import inspect
 import os
 from argparse import Action
 from dataclasses import MISSING, Field, dataclass, field, make_dataclass
+from inspect import _empty, signature
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Type, Union
 
 from .types import Dataclass
@@ -127,6 +127,23 @@ def convert_to_short_flag_string(x: str) -> str:
     return "-" + convert_to_command_string(x)[0]
 
 
+def _eval_type(type_str: str) -> Type[Any]:
+    if "[" in type_str:
+        # None | list[str] --> None | List[str]
+        type_str = "|".join(
+            (y.capitalize() if "[" in y else y)
+            for x in type_str.split("|")
+            for y in [x.strip()]
+        )
+    if "|" in type_str:
+        # None | str --> Union[None, str]
+        type_str = f"Union[{type_str.replace('|', ',')}]"
+
+    type_obj: Type[Any] = eval(type_str)  # pylint: disable=eval-used
+
+    return type_obj
+
+
 def make_dataclass_from_func(
     func: Callable[..., Any],
     base_classes: Optional[Tuple[Type[Dataclass], ...]] = None,
@@ -137,7 +154,7 @@ def make_dataclass_from_func(
 
     fields: List[Tuple[str, Type[Any], Field]] = []
 
-    signature = inspect.signature(func)
+    func_signature = signature(func)
     type_hints: Dict[str, Any]
     try:
         type_hints = get_type_hints(func)
@@ -146,8 +163,13 @@ def make_dataclass_from_func(
         # via `from __future__ import annotations`
         type_hints = {}
 
-    for param in signature.parameters.values():
-        annotation: Union[str, Type[Any]] = type_hints.get(param.name, param.annotation)
+    for param in func_signature.parameters.values():
+        annotation: Type[Any] = (
+            _eval_type(param.annotation)
+            if isinstance(param.annotation, str)
+            else type_hints.get(param.name, param.annotation)
+        )
+
         default: Any = param.default
         default_value: Any
 
@@ -160,7 +182,7 @@ def make_dataclass_from_func(
                 default_value = default.default
             field_metadata = default
         else:
-            if default is inspect._empty:  # pylint: disable=protected-access
+            if default is _empty:  # pylint: disable=protected-access
                 default_value = MISSING
             else:
                 default_value = default
@@ -170,7 +192,7 @@ def make_dataclass_from_func(
         fallback_type: Type[Any] = str
 
         # pylint: disable=protected-access
-        if annotation is inspect._empty:
+        if annotation is _empty:
             if default_value is MISSING:
                 annotation = fallback_type
             elif default_value is None:

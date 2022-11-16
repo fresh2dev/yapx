@@ -16,9 +16,9 @@ def test_add_arguments_deferred():
     # 2. ACT
     parser: yapx.ArgumentParser = yapx.ArgumentParser()
     parser.add_arguments(func)
-    args: dict[str, str] = vars(parser.parse_args([]))
+    args: type[yapx.types.Dataclass] = parser.parse_args_to_model([])
 
     # 3. ASSERT
     assert args
-    assert "value" in args
-    assert args["value"] == expected
+    assert hasattr(args, "value")
+    assert args.value == expected
