@@ -5,16 +5,12 @@
     "python.linting.enabled": true,
     "python.linting.flake8Enabled": true,
     "python.linting.pylintEnabled": true,
-    "python.linting.mypyEnabled": true,
-    "python.linting.mypyArgs": [
-        "--strict",
-        "--show-column-numbers",
-        "--no-pretty"
+    "python.linting.mypyEnabled": false,
+    "mypy.targets": [
+        "./src"
     ],
     "python.formatting.provider": "black",
-    "python.sortImports.args": [
-        "--src=${workspaceFolder}"
-    ],
+    "isort.check": true,
     "[python]": {
         "editor.wordBasedSuggestions": false,
         "editor.formatOnSave": true,
@@ -29,5 +25,6 @@
     "editor.rulers": [88],
     "python.analysis.typeCheckingMode": "off",
     "autoDocstring.docstringFormat": "google-notypes",
-    "autoDocstring.includeExtendedSummary": true
+    "autoDocstring.includeExtendedSummary": true,
+    "python.languageServer": "Pylance"
 }
