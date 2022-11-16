@@ -138,9 +138,16 @@ def make_dataclass_from_func(
     fields: List[Tuple[str, Type[Any], Field]] = []  # type: ignore
 
     signature = inspect.signature(func)
-    type_hints = get_type_hints(func)
+    type_hints: Dict[str, Any]
+    try:
+        type_hints = get_type_hints(func)
+    except TypeError:
+        # this can happen if deferred evaluation is used,
+        # via `from __future__ import annotations`
+        type_hints = {}
+
     for param in signature.parameters.values():
-        annotation: Type[Any] = type_hints.get(param.name, param.annotation)
+        annotation: Union[str, Type[Any]] = type_hints.get(param.name, param.annotation)
         default: Any = param.default
         default_value: Any
 
