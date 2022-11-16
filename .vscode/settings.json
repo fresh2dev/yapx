@@ -27,5 +27,7 @@
     "python.terminal.activateEnvironment": false,
     "python.envFile": "${workspaceFolder}/.env",
     "editor.rulers": [88],
-    "python.analysis.typeCheckingMode": "off"
+    "python.analysis.typeCheckingMode": "off",
+    "autoDocstring.docstringFormat": "google-notypes",
+    "autoDocstring.includeExtendedSummary": true
 }

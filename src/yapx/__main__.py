@@ -1,7 +1,7 @@
 import argparse
 import sys
 
-from . import __version__ as VERSION
+from .__version__ import __version__
 
 
 def main() -> None:
@@ -9,7 +9,7 @@ def main() -> None:
     subparsers = parser.add_subparsers(dest="_command")
 
     subparser_version = subparsers.add_parser("version")
-    subparser_version.set_defaults(func=print, args=[VERSION], kwargs={})
+    subparser_version.set_defaults(func=print, args=[__version__], kwargs={})
 
     parsed_args: argparse.Namespace = parser.parse_args(sys.argv[1:])
 

@@ -6,8 +6,6 @@ from unittest import mock
 
 import pytest
 from _pytest.capture import CaptureFixture, CaptureResult
-from pydantic import ValidationError
-from pydantic.networks import EmailStr
 
 import yapx
 

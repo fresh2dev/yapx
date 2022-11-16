@@ -133,7 +133,7 @@ def test_build_dataclass_from_func_none_anno():
     # pylint: disable=unused-argument,too-many-arguments
     def func(value=None):
         """testing docstring to argparse description"""
-        pass
+        ...
 
     expected_field_props: Dict[str, Dict[str, Any]] = {
         "value": {
