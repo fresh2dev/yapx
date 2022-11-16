@@ -5,7 +5,7 @@
 import myke  # noqa
 
 myke.require(
-    "mykefiles==0.0.1a3.dev2",
+    "mykefiles==0.0.1a3.dev5",
     pip_args=[
         "--extra-index-url",
         "https://codeberg.org/api/packages/Fresh2dev/pypi/simple",
