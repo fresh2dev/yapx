@@ -1,8 +1,17 @@
 #!/usr/bin/env python3
 # type: ignore
+# pylint: skip-file
+# flake8: noqa
+import myke  # noqa
 
-import myke
-from mykefiles import hostbutter, py_pkg
+myke.require(
+    "mykefiles==0.0.1a3.dev2",
+    pip_args=[
+        "--extra-index-url",
+        "https://codeberg.org/api/packages/Fresh2dev/pypi/simple",
+    ],
+)
+from mykefiles import hostbutter, py_pkg  # noqa
 
 # @myke.task(root=True)
 # def setup():
