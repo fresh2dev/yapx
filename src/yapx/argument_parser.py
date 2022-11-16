@@ -27,6 +27,7 @@ from .actions import (
 from .arg import (
     ARGPARSE_ARG_METADATA_KEY,
     ArgparseArg,
+    _eval_type,
     convert_to_command_string,
     convert_to_flag_string,
     convert_to_short_flag_string,
@@ -261,7 +262,7 @@ class ArgumentParser(argparse.ArgumentParser):
             # basic support for handling deferred annotation evaluation,
             # when using `from __future__ import annotations`
             if isinstance(fld_type, str):
-                fld_type = cls._eval_fld_type(fld_type)
+                fld_type = _eval_type(fld_type)
                 assert not isinstance(fld_type, str)
 
             if cls._get_type_origin(fld_type) is Union:
@@ -392,21 +393,6 @@ class ArgumentParser(argparse.ArgumentParser):
                 parser_required_args["required"].add_argument(*args, **kwargs)
             else:
                 parser_optional_args["optional"].add_argument(*args, **kwargs)
-
-    @classmethod
-    def _eval_fld_type(cls, fld_type: str) -> Any:
-        if "[" in fld_type:
-            # None | list[str] --> None | List[str]
-            fld_type = "|".join(
-                (y.capitalize() if "[" in y else y)
-                for x in fld_type.split("|")
-                for y in [x.strip()]
-            )
-        if "|" in fld_type:
-            # None | str --> Union[None, str]
-            fld_type = f"Union[{fld_type.replace('|', ',')}]"
-
-        return eval(fld_type)  # pylint: disable=eval-used
 
     @staticmethod
     def _get_type_origin(t: Type[Any]) -> Optional[Type[Any]]:
@@ -566,7 +552,6 @@ class ArgumentParser(argparse.ArgumentParser):
 
         if use_pydantic:
             if not self.is_pydantic_available():
-                # print("pydantic is not installed")
                 pass
             else:
                 args_union = vars(
