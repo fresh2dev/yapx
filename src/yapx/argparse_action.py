@@ -1,10 +1,11 @@
-__all__ = ["argparse_action"]
-
 from argparse import Action, ArgumentParser, Namespace
 from functools import partial
 from typing import Any, Callable, Optional, Type, TypeVar, Union
 
 from .types import ArgValueType
+
+__all__ = ["argparse_action"]
+
 
 F = TypeVar("F", bound=Callable[..., Any])
 

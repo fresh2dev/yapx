@@ -1,6 +1,3 @@
-__all__ = ["arg"]
-
-import collections.abc
 import inspect
 import os
 from argparse import Action
@@ -8,6 +5,9 @@ from dataclasses import MISSING, Field, dataclass, field, make_dataclass
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Type, Union
 
 from .types import Dataclass
+
+__all__ = ["arg"]
+
 
 try:
     from typing import get_type_hints
@@ -54,7 +54,7 @@ def arg(
     help: Optional[str] = None,
     metavar: Optional[str] = None,
     action: Optional[Action] = None,
-) -> Field:  # type: ignore
+) -> Field:
     if env_var:
         default_from_env = os.getenv(env_var, None)
         if default_from_env:
@@ -62,7 +62,7 @@ def arg(
         else:
             default_from_file = os.getenv(env_var + "_FILE", None)
             if default_from_file and os.path.exists(default_from_file):
-                with open(default_from_file, mode="r", encoding="utf8") as f:
+                with open(default_from_file, encoding="utf8") as f:
                     default = f.read().strip()
 
     required = default is MISSING
@@ -87,7 +87,7 @@ def arg(
     default_param: str = "default_factory" if callable(default) else "default"
     kwargs[default_param] = default
 
-    fld: Field = field(**kwargs)  # type: ignore
+    fld: Field = field(**kwargs)
     assert isinstance(fld, Field)
     return fld
 
@@ -135,7 +135,7 @@ def make_dataclass_from_func(
     if base_classes is None:
         base_classes = ()
 
-    fields: List[Tuple[str, Type[Any], Field]] = []  # type: ignore
+    fields: List[Tuple[str, Type[Any], Field]] = []
 
     signature = inspect.signature(func)
     type_hints: Dict[str, Any]
@@ -151,7 +151,7 @@ def make_dataclass_from_func(
         default: Any = param.default
         default_value: Any
 
-        field_metadata: Field  # type: ignore
+        field_metadata: Field
 
         if isinstance(default, Field):
             if default.default_factory is not MISSING:
