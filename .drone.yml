@@ -19,7 +19,9 @@ data:
     {
       "codeberg": {
         "url": "git@codeberg.org:Fresh2dev",
-        "when": {}
+        "when": {
+          "ref": ["refs/heads/main", "refs/tags/*"]
+        }
       }
     }
   imageTags: ""
@@ -42,7 +44,7 @@ data:
     [
       {
         "name": "build-reports",
-        "image": "registry.lokalhost.net/fresh2dev/docker-myke:0.0.1a5.dev2",
+        "image": "registry.lokalhost.net/fresh2dev/myke-ci:0.0.1a6",
         "commands": [
           "myke py-requirements",
           "myke py-reports"
@@ -55,7 +57,7 @@ data:
     [
       {
         "name": "py-build-package",
-        "image": "registry.lokalhost.net/fresh2dev/docker-myke:0.0.1a5.dev2",
+        "image": "registry.lokalhost.net/fresh2dev/myke-ci:0.0.1a6",
         "environment": {
           "PYPI_CREDS": {"from_secret": "PYPI_CREDS"}
         },
@@ -69,7 +71,7 @@ data:
       },
       {
         "name": "py-publish-sandbox",
-        "image": "registry.lokalhost.net/fresh2dev/docker-myke:0.0.1a5.dev2",
+        "image": "registry.lokalhost.net/fresh2dev/myke-ci:0.0.1a6",
         "environment": {
           "PYPI_CREDS": {"from_secret": "PYPI_CREDS"},
           "TWINE_CERT": "/etc/ssl/certs/ca-certificates.crt"
@@ -83,7 +85,7 @@ data:
       },
       {
         "name": "py-publish-dev",
-        "image": "registry.lokalhost.net/fresh2dev/docker-myke:0.0.1a5.dev2",
+        "image": "registry.lokalhost.net/fresh2dev/myke-ci:0.0.1a6",
         "environment": {
           "PYPI_CREDS": {"from_secret": "PYPI_CREDS"},
           "TWINE_CERT": "/etc/ssl/certs/ca-certificates.crt"
@@ -99,7 +101,7 @@ data:
       },
       {
         "name": "py-publish-test",
-        "image": "registry.lokalhost.net/fresh2dev/docker-myke:0.0.1a5.dev2",
+        "image": "registry.lokalhost.net/fresh2dev/myke-ci:0.0.1a6",
         "environment": {
           "PYPI_CREDS": {"from_secret": "PYPI_CREDS"},
           "TWINE_CERT": "/etc/ssl/certs/ca-certificates.crt"
@@ -115,7 +117,7 @@ data:
       },
       {
         "name": "py-publish-prod",
-        "image": "registry.lokalhost.net/fresh2dev/docker-myke:0.0.1a5.dev2",
+        "image": "registry.lokalhost.net/fresh2dev/myke-ci:0.0.1a6",
         "environment": {
           "PYPI_CREDS": {"from_secret": "PYPI_CREDS"},
           "TWINE_CERT": "/etc/ssl/certs/ca-certificates.crt"
