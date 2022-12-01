@@ -1,12 +1,16 @@
 # Changes here will be overwritten by Copier
-_commit: 4087dfc
-_src_path: https://codeberg.org/fresh2dev/copier-python.git
-author_email: hello@fresh2.dev
+_commit: f0ee83a
+_src_path: https://codeberg.org/Fresh2dev/copier-python.git
+author_email: hello@Fresh2.dev
 author_name: donald
 ci_domain_name: lokalhost.net
-docs_url: https://www.Fresh2.dev/code/r/yapx/i
+docs_url: https://www.Fresh2.dev/code/r/yapx/i/docs
 funding_url: https://www.Fresh2.dev/tip
+home_page: https://www.Fresh2.dev
+is_python: true
 package_name: yapx
 project_name: yapx
 python_version: '3.7'
+repo_mirror: https://www.Fresh2.dev/code/r/yapx
+repo_owner: Fresh2dev
 repo_url: https://codeberg.org/Fresh2dev/yapx
