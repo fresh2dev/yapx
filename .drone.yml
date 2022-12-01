@@ -16,14 +16,7 @@ data:
       }
     }
   pushRemotes: >-
-    {
-      "codeberg": {
-        "url": "git@codeberg.org:Fresh2dev",
-        "when": {
-          "ref": ["refs/heads/main", "refs/tags/*"]
-        }
-      }
-    }
+    {}
   imageTags: ""
   useDinD: false
   dockerHubUser: ""

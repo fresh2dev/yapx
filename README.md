@@ -1,52 +1,22 @@
 # yapx
 
-```python
-import yapx
+|               |                                           |
+| ------------- | ----------------------------------------- |
+| Repo          | https://codeberg.org/Fresh2dev/yapx       |
+| Repo Mirror   | https://www.Fresh2.dev/code/r/yapx        |
+| Documentation | https://www.Fresh2.dev/code/r/yapx/i/docs |
+| Funding       | https://www.Fresh2.dev/tip                |
 
-@dataclass
-class ArgsModel:
-    ...
+---
 
-parser = yapx.ArgumentParser()
+## Build
 
-parser.add_arguments(ArgsModel)
-
-parser.print_help()
+```sh
+myke py-mkdocs
 ```
 
-```python
-@dataclass
-class CmdArgsModel:
-    ...
+## Deploy
 
-parser.add_command('run-command', CmdArgsModel)
-
-parser.print_help()
-```
-
-```python
-import yapx
-
-def setup(...):
-    ...
-
-def run_it(...):
-    ...
-
-
-yapx.run(setup, run_it)
-# or
-yapx.run(setup, run_command=run_it)
-# or
-yapx.run(setup, **{
-    'run-command': run_it
-})
-```
-
-```python
-yapx.run(setup, run_it, _print_help=True)
-```
-
-```python
-yapx.run(lambda value: value * 5)
+```sh
+myke stack-up
 ```
