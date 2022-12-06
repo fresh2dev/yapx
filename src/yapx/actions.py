@@ -1,8 +1,10 @@
 import collections.abc
-from typing import Any, Dict, List, Optional, Set, Tuple, TypeVar
+from enum import Enum
+from typing import Any, Dict, List, Optional, Set, Tuple, Type, TypeVar
 
 from .argparse_action import YapxAction, argparse_action
 from .types import ArgumentParser, ArgValueType
+from .utils import is_subclass
 
 # @argparse_action
 # # pylint: disable=unused-argument
@@ -19,13 +21,18 @@ from .types import ArgumentParser, ArgValueType
 
 def _split_csv_sequence(
     values: ArgValueType,
-    cast_to: type = str,
+    cast_to: Type[Any] = str,
 ) -> Optional[List[Optional[Any]]]:
 
     T = TypeVar("T", bound=type)
 
     def _split_csv_str(txt: str, cast_to: T) -> List[Optional[T]]:
-        return [cast_to(y) for x in txt.split(",") for y in [x.strip()] if y]
+        return [
+            cast_to[y] if is_subclass(cast_to, Enum) else cast_to(y)
+            for x in txt.split(",")
+            for y in [x.strip()]
+            if y
+        ]
 
     if values is None:
         return None
@@ -33,7 +40,7 @@ def _split_csv_sequence(
     if isinstance(values, str):
         return _split_csv_str(values, cast_to=cast_to)
 
-    if values and issubclass(type(values), collections.abc.Sequence):
+    if values and is_subclass(type(values), collections.abc.Sequence):
         return [y for x in values for y in _split_csv_str(x, cast_to=cast_to)]
 
     return []
@@ -105,6 +112,19 @@ def split_csv_to_dict(
             for x_split in [x.split(":" if ":" in x else "=", maxsplit=1)]
         }
     return None
+
+
+@argparse_action
+def str2enum(
+    values: ArgValueType,
+    *,
+    action: YapxAction,
+    parser: ArgumentParser,
+    **kwargs: Any,
+) -> Optional[Enum]:
+    if values is None:
+        return None
+    return parser._inner_type_conversions[action.dest][values]
 
 
 @argparse_action(nargs=0)

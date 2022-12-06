@@ -1,6 +1,7 @@
 from argparse import Action
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Set, Tuple
+from enum import Enum, auto
+from typing import Any, Dict, List, Optional, Sequence, Set, Tuple
 
 import pytest
 from _pytest.capture import CaptureFixture, CaptureResult
@@ -152,6 +153,47 @@ def test_split_csv_to_dict():
 
     assert "values" in args
     assert args["values"] == expected
+
+
+def test_str2enum():
+    # 1. ARRANGE
+    class MyEnum(Enum):
+        one = auto()
+        two = auto()
+        three = auto()
+
+    @dataclass
+    class ArgsModel:
+        value: Optional[MyEnum]
+        value_seq: Optional[Sequence[MyEnum]]
+
+    cli_args = ["--value", "one", "--value-seq", "three", "two", "one"]
+
+    # expected is {1: None, 2: None, 3: None, 4: None, 5: None, 6: None, ...}
+    expected: Tuple[MyEnum, List[MyEnum]] = (
+        MyEnum.one,
+        [MyEnum.three, MyEnum.two, MyEnum.one],
+    )
+
+    expected_action_name: str = "str2enum"
+
+    # 2. ACT
+    parser: yapx.ArgumentParser = yapx.ArgumentParser()
+    parser.add_arguments(ArgsModel)
+
+    args: Dict[str, Any] = vars(parser.parse_args(cli_args))
+
+    # 3. ASSERT
+    # pylint: disable=protected-access
+    parser_action: Action = parser._actions[1]
+    assert isinstance(parser_action, YapxAction)
+    # pylint: disable=protected-access
+    assert parser_action.name == expected_action_name
+
+    assert "value" in args
+    assert args["value"] == expected[0]
+    assert "value_seq" in args
+    assert args["value_seq"] == expected[1]
 
 
 def test_print_help_all(capsys: CaptureFixture):
