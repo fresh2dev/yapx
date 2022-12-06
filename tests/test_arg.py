@@ -215,7 +215,7 @@ def test_build_dataclass_from_func_argfield_envvar():
     os.environ[env_var_name] = "3.1415"
 
     # pylint: disable=unused-argument,too-many-arguments
-    def func(value=yapx.arg(env_var=env_var_name)):
+    def func(value=yapx.arg(env=env_var_name)):
         pass
 
     del os.environ[env_var_name]
@@ -250,7 +250,7 @@ def test_build_dataclass_from_func_argfield_envvar_file(clean_dir):
         f.write("3.1415")
 
     # pylint: disable=unused-argument,too-many-arguments
-    def func(value=yapx.arg(env_var=env_var_name)):
+    def func(value=yapx.arg(env=env_var_name)):
         pass
 
     del os.environ[env_var_name_file]

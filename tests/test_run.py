@@ -227,7 +227,7 @@ def test_run_ipv4address(use_pydantic: bool):
     expected: List[IPv4Address] = [IPv4Address(ip) for ip in env_values]
 
     def _func(
-        ip_addrs: List[IPv4Address] = yapx.arg(env_var=env_var_name),
+        ip_addrs: List[IPv4Address] = yapx.arg(env=env_var_name),
     ) -> List[int]:
         return ip_addrs
 
@@ -259,7 +259,7 @@ def test_run_patterns(use_pydantic: bool):
 
     expected: List[Pattern] = [re.compile(x) for x in env_values]
 
-    def _func(ip_addrs: List[Pattern] = yapx.arg(env_var=env_var_name)) -> List[int]:
+    def _func(ip_addrs: List[Pattern] = yapx.arg(env=env_var_name)) -> List[int]:
         return ip_addrs
 
     del os.environ[env_var_name]
@@ -290,7 +290,7 @@ def test_run_pattern(use_pydantic: bool):
 
     expected: Pattern = re.compile(env_value)
 
-    def _func(ip_addr: Pattern = yapx.arg(env_var=env_var_name)) -> Pattern:
+    def _func(ip_addr: Pattern = yapx.arg(env=env_var_name)) -> Pattern:
         return ip_addr
 
     del os.environ[env_var_name]
@@ -322,7 +322,7 @@ def test_run_bools(use_pydantic: bool):
         x.lower() in ("1", "true", "t", "yes", "y") for x in env_values
     ]
 
-    def _func(ip_addrs: List[bool] = yapx.arg(env_var=env_var_name)) -> List[int]:
+    def _func(ip_addrs: List[bool] = yapx.arg(env=env_var_name)) -> List[int]:
         return ip_addrs
 
     del os.environ[env_var_name]

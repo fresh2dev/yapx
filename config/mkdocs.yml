@@ -19,8 +19,8 @@ watch:
   - ../src
 
 plugins:
-  - autorefs
   - search
+  - autorefs
   - mkdocstrings:
       default_handler: python
       handlers:

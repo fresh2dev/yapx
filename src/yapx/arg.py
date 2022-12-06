@@ -45,25 +45,32 @@ class ArgparseArg:
 
 def arg(
     default: Optional[Any] = MISSING,
-    env_var: Optional[str] = None,
+    env: Union[None, str, Sequence[str]] = None,
     pos: Optional[bool] = False,
     group: Optional[str] = None,
     exclusive: Optional[bool] = False,
-    flags: Optional[Sequence[str]] = None,
+    flags: Union[None, str, Sequence[str]] = None,
     # pylint: disable=redefined-builtin
     help: Optional[str] = None,
     metavar: Optional[str] = None,
     action: Optional[Action] = None,
 ) -> Field:
-    if env_var:
-        default_from_env = os.getenv(env_var, None)
-        if default_from_env:
-            default = default_from_env
-        else:
-            default_from_file = os.getenv(env_var + "_FILE", None)
-            if default_from_file and os.path.exists(default_from_file):
-                with open(default_from_file, encoding="utf8") as f:
-                    default = f.read().strip()
+    if env:
+        if isinstance(env, str):
+            env = [env]
+        for e in env:
+            value_from_env = os.getenv(e, None)
+            if value_from_env:
+                default = value_from_env
+                break
+
+            env_file = os.getenv(e + "_FILE", None)
+            if env_file and os.path.exists(env_file):
+                with open(env_file, encoding="utf8") as f:
+                    value_from_file = f.read().strip()
+                if value_from_file:
+                    default = value_from_file
+                    break
 
     required = default is MISSING
 
@@ -71,14 +78,14 @@ def arg(
         ARGPARSE_ARG_METADATA_KEY: ArgparseArg(
             action=action,
             pos=pos,
-            option_strings=flags,
+            option_strings=[flags] if isinstance(flags, str) else flags,
             required=required,
             group=group,
             exclusive=exclusive,
             default=(None if required else default() if callable(default) else default),
             help=help,
             metavar=metavar,
-            _env_var=env_var,
+            _env_var=env,
         )
     }
 
@@ -158,7 +165,7 @@ def make_dataclass_from_func(
     type_hints: Dict[str, Any]
     try:
         type_hints = get_type_hints(func)
-    except TypeError:
+    except (TypeError, NameError):
         # this can happen if deferred evaluation is used,
         # via `from __future__ import annotations`
         type_hints = {}

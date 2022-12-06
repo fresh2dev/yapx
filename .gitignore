@@ -1,13 +1,14 @@
 secrets*/
 !.keep
 *.tmp
-requirements.txt
 
+public/
+
+requirements.txt
 .venv/
 dist/
 build/
 *.egg-info/
-public/
 
 .mypy_cache/
 __pycache__/
@@ -15,6 +16,4 @@ __pycache__/
 .hypothesis/
 .coverage
 .tox/
-
 .idea/
-.VSCodeCounter/
