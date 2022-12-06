@@ -1,4 +1,10 @@
 {
+    "VSCodeCounter.history": 1,
+    "VSCodeCounter.outputAsCSV": false,
+    "VSCodeCounter.outputAsText": false,
+    "VSCodeCounter.outputAsMarkdown": true,
+    "VSCodeCounter.outputDirectory": "docs",
+    "VSCodeCounter.saveLocation": "workspace settings",
     "python.defaultInterpreterPath": "python",
     "python.testing.unittestEnabled": false,
     "python.testing.pytestEnabled": true,

@@ -3,6 +3,7 @@ import collections.abc
 import sys
 from collections import defaultdict
 from dataclasses import MISSING, Field, fields
+from enum import Enum
 from typing import (
     Any,
     Callable,
@@ -23,6 +24,7 @@ from .actions import (
     split_csv_to_dict,
     split_csv_to_set,
     split_csv_to_tuple,
+    str2enum,
 )
 from .arg import (
     ARGPARSE_ARG_METADATA_KEY,
@@ -35,7 +37,7 @@ from .arg import (
 )
 from .argparse_action import YapxAction
 from .types import Dataclass, NoneType
-from .utils import is_dataclass_type, str2bool
+from .utils import is_dataclass_type, is_subclass, str2bool
 
 __all__ = ["ArgumentParser", "run", "run_command"]
 
@@ -276,20 +278,20 @@ class ArgumentParser(argparse.ArgumentParser):
 
             fld_type_origin: Optional[Type[Any]] = cls._get_type_origin(fld_type)
             if fld_type_origin:
-                if fld_type_origin is Literal:
+                if fld_type_origin and fld_type_origin is Literal:
                     argparse_argument.choices = list(cls._get_type_args(fld_type))
                     if argparse_argument.choices:
                         fld_type = type(argparse_argument.choices[0])
                 else:
                     # this is a type-container (List, Set, Tuple, Dict, ...)
-                    if issubclass(fld_type_origin, collections.abc.Mapping):
+                    if is_subclass(fld_type_origin, collections.abc.Mapping):
                         fld_type = cls._extract_type_from_container(
                             fld_type, assert_primitive=True
                         )
                         if not argparse_argument.action:
                             argparse_argument.action = split_csv_to_dict
                     elif (
-                        issubclass(fld_type_origin, collections.abc.Iterable)
+                        is_subclass(fld_type_origin, collections.abc.Iterable)
                         or fld_type_origin is set
                     ):
                         fld_type = cls._extract_type_from_container(
@@ -303,11 +305,14 @@ class ArgumentParser(argparse.ArgumentParser):
                             else:
                                 argparse_argument.action = split_csv
                     elif not cls.is_pydantic_available():
-                        raise TypeError(f"Unsupported type: {fld_type_origin.__name__}")
+                        raise TypeError(f"Unsupported type: {fld_type.__name__}")
+
+                    if is_subclass(fld_type, Enum):
+                        argparse_argument.choices = [x.name for x in fld_type]
 
                     # store desired types for casting later
                     if isinstance(parser, cls):
-                        if fld_type in (str, int, float):
+                        if fld_type in (str, int, float) or is_subclass(fld_type, Enum):
                             # pylint: disable=protected-access
                             parser._inner_type_conversions[
                                 argparse_argument.dest
@@ -322,6 +327,11 @@ class ArgumentParser(argparse.ArgumentParser):
                     fld_type = str
 
                     argparse_argument.nargs = "+" if argparse_argument.required else "*"
+            elif is_subclass(fld_type, Enum):
+                argparse_argument.choices = [x.name for x in fld_type]
+                argparse_argument.action = str2enum
+                parser._inner_type_conversions[argparse_argument.dest] = fld_type
+                fld_type = str
 
             if fld_type in (str, int, float, bool):
                 argparse_argument.type = fld_type
@@ -423,14 +433,14 @@ class ArgumentParser(argparse.ArgumentParser):
 
         if (
             type_container_origin is Union
-            or issubclass(type_container_origin, collections.abc.Sequence)
+            or is_subclass(type_container_origin, collections.abc.Sequence)
             or type_container_origin is set
         ):
             if len(results) != 1:
                 results.clear()
             else:
                 type_container_subtype = results[0]
-        elif issubclass(type_container_origin, collections.abc.Mapping):
+        elif is_subclass(type_container_origin, collections.abc.Mapping):
             if len(results) != 2:
                 results.clear()
             else:

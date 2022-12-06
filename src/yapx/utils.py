@@ -30,3 +30,10 @@ def str2bool(string: str) -> bool:
 
 def is_dataclass_type(candidate: Any) -> TypeGuard[Type[Dataclass]]:
     return dataclasses.is_dataclass(candidate)
+
+
+def is_subclass(candidate: Any, test_type: Type[Any]) -> bool:
+    try:
+        return issubclass(candidate, test_type)
+    except TypeError:
+        return False
