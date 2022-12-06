@@ -200,7 +200,7 @@ def test_print_help_all(capsys: CaptureFixture):
     # 1. ARRANGE
     @dataclass
     class ArgsModel:
-        values: str = yapx.arg(env_var="TEST_VALUES")
+        values: str = yapx.arg(env="TEST_VALUES")
 
     cli_args: List[str] = ["-h", "--values", "1"]
 
@@ -223,7 +223,7 @@ def test_print_help_subparser(capsys: CaptureFixture):
     # 1. ARRANGE
     @dataclass
     class ArgsModel:
-        values: str = yapx.arg(env_var="TEST_VALUES")
+        values: str = yapx.arg(env="TEST_VALUES")
 
     expected_cmd: str = "subcmd1"
 
