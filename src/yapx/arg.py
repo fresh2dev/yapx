@@ -45,7 +45,7 @@ class ArgparseArg:
 
 def arg(
     default: Optional[Any] = MISSING,
-    env_var: Union[None, str, Sequence[str]] = None,
+    env: Union[None, str, Sequence[str]] = None,
     pos: Optional[bool] = False,
     group: Optional[str] = None,
     exclusive: Optional[bool] = False,
@@ -55,10 +55,10 @@ def arg(
     metavar: Optional[str] = None,
     action: Optional[Action] = None,
 ) -> Field:
-    if env_var:
-        if isinstance(env_var, str):
-            env_var = [env_var]
-        for e in env_var:
+    if env:
+        if isinstance(env, str):
+            env = [env]
+        for e in env:
             value_from_env = os.getenv(e, None)
             if value_from_env:
                 default = value_from_env
@@ -85,7 +85,7 @@ def arg(
             default=(None if required else default() if callable(default) else default),
             help=help,
             metavar=metavar,
-            _env_var=env_var,
+            _env_var=env,
         )
     }
 
