@@ -2,7 +2,7 @@ secrets*/
 !.keep
 *.tmp
 
-public/
+/public/
 
 requirements.txt
 .venv/

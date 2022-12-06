@@ -47,14 +47,14 @@ services:
         - "traefik.http.services.${COMPOSE_PROJECT_NAME:?}_${APP_SVC_ID:?}.loadbalancer.sticky.cookie.secure=${APP_STICKY_LB:-false}"
         - "traefik.http.services.${COMPOSE_PROJECT_NAME:?}_${APP_SVC_ID:?}.loadbalancer.sticky.cookie.name=StickySessionCookie_${COMPOSE_PROJECT_NAME:?}_${APP_SVC_ID:?}"
         # define https entrypoint.
-        - "traefik.http.routers.${COMPOSE_PROJECT_NAME:?}_${APP_SVC_ID:?}_secure.entrypoints=websecure"
-        - "traefik.http.routers.${COMPOSE_PROJECT_NAME:?}_${APP_SVC_ID:?}_secure.rule=(Host(`${APP_SUBDOMAIN}${DOMAIN:?}`) && PathPrefix(`/${APP_ROUTE_PREFIX}`))${APP_EXTRA_ROUTES:-}"
-        - "traefik.http.routers.${COMPOSE_PROJECT_NAME:?}_${APP_SVC_ID:?}_secure.tls=true"
-        # - "traefik.http.routers.${COMPOSE_PROJECT_NAME:?}_${APP_SVC_ID:?}_secure.tls.certresolver=letsencrypt"
+        - "traefik.http.routers.${COMPOSE_PROJECT_NAME:?}_${APP_SVC_ID:?}.entrypoints=websecure"
+        - "traefik.http.routers.${COMPOSE_PROJECT_NAME:?}_${APP_SVC_ID:?}.rule=(Host(`${APP_SUBDOMAIN}${DOMAIN:?}`) && PathPrefix(`/${APP_ROUTE_PREFIX}`))${APP_EXTRA_ROUTES:-}"
+        - "traefik.http.routers.${COMPOSE_PROJECT_NAME:?}_${APP_SVC_ID:?}.tls=true"
+        # - "traefik.http.routers.${COMPOSE_PROJECT_NAME:?}_${APP_SVC_ID:?}.tls.certresolver=letsencrypt"
         # strip prefixes.
         # - "traefik.http.middlewares.${COMPOSE_PROJECT_NAME:?}_${APP_SVC_ID:?}_stripprefix.stripprefix.prefixes=/${APP_STRIP_PREFIX}"
         # set middlewares.
-        - "traefik.http.routers.${COMPOSE_PROJECT_NAME:?}_${APP_SVC_ID:?}_secure.middlewares=${APP_MIDDLEWARE:-ip-whitelist@docker,secure-headers@docker,authelia@docker}"  #",${COMPOSE_PROJECT_NAME:?}_${APP_SVC_ID:?}_stripprefix"
+        - "traefik.http.routers.${COMPOSE_PROJECT_NAME:?}_${APP_SVC_ID:?}.middlewares=${APP_MIDDLEWARE-secured-auth}"  #",${COMPOSE_PROJECT_NAME:?}_${APP_SVC_ID:?}_stripprefix"
     volumes:
       - /etc/ssl/certs/ca-certificates.crt:/etc/ssl/certs/ca-certificates.crt:ro
     configs:
