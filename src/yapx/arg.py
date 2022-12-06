@@ -158,7 +158,7 @@ def make_dataclass_from_func(
     type_hints: Dict[str, Any]
     try:
         type_hints = get_type_hints(func)
-    except TypeError:
+    except (TypeError, NameError):
         # this can happen if deferred evaluation is used,
         # via `from __future__ import annotations`
         type_hints = {}
