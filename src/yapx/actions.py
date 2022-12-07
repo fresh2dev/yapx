@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional, Set, Tuple, Type, TypeVar
 
 from .argparse_action import YapxAction, argparse_action
 from .types import ArgumentParser, ArgValueType
-from .utils import is_subclass
+from .utils import is_instance, is_subclass
 
 # @argparse_action
 # # pylint: disable=unused-argument
@@ -21,14 +21,18 @@ from .utils import is_subclass
 
 def _split_csv_sequence(
     values: ArgValueType,
-    cast_to: Type[Any] = str,
+    target_type: Type[Any] = str,
 ) -> Optional[List[Optional[Any]]]:
 
     T = TypeVar("T", bound=type)
 
-    def _split_csv_str(txt: str, cast_to: T) -> List[Optional[T]]:
+    def _split_csv_str(txt: str, target_type: T) -> List[Optional[T]]:
         return [
-            cast_to[y] if is_subclass(cast_to, Enum) else cast_to(y)
+            y
+            if is_instance(y, target_type)
+            else target_type[y]
+            if is_subclass(target_type, Enum)
+            else target_type(y)
             for x in txt.split(",")
             for y in [x.strip()]
             if y
@@ -37,11 +41,19 @@ def _split_csv_sequence(
     if values is None:
         return None
 
-    if isinstance(values, str):
-        return _split_csv_str(values, cast_to=cast_to)
+    if is_instance(values, str):
+        return _split_csv_str(values, target_type=target_type)
 
-    if values and is_subclass(type(values), collections.abc.Sequence):
-        return [y for x in values for y in _split_csv_str(x, cast_to=cast_to)]
+    if values:
+        # this is written to handle strings from the command line,
+        # and to pass default argument values as-is.
+        if is_subclass(type(values), collections.abc.Sequence) and is_instance(
+            values[0], str
+        ):
+            values = [
+                y for x in values for y in _split_csv_str(x, target_type=target_type)
+            ]
+        return values
 
     return []
 
@@ -62,7 +74,7 @@ def split_csv(
     parser: ArgumentParser,
     **kwargs: Any,
 ) -> Optional[List[Optional[Any]]]:
-    return _split_csv_sequence(values, cast_to=_get_target_type(action, parser))
+    return _split_csv_sequence(values, target_type=_get_target_type(action, parser))
 
 
 @argparse_action
@@ -74,7 +86,7 @@ def split_csv_to_tuple(
     **kwargs: Any,
 ) -> Optional[Tuple[Optional[Any], ...]]:
     split_values: Optional[List[Optional[Any]]] = _split_csv_sequence(
-        values, cast_to=_get_target_type(action, parser)
+        values, target_type=_get_target_type(action, parser)
     )
     if split_values is not None:
         return tuple(split_values)
@@ -90,7 +102,7 @@ def split_csv_to_set(
     **kwargs: Any,
 ) -> Optional[Set[Optional[Any]]]:
     split_values: Optional[List[Optional[Any]]] = _split_csv_sequence(
-        values, cast_to=_get_target_type(action, parser)
+        values, target_type=_get_target_type(action, parser)
     )
     if split_values is not None:
         return set(split_values)
@@ -124,7 +136,12 @@ def str2enum(
 ) -> Optional[Enum]:
     if values is None:
         return None
-    return parser._inner_type_conversions[action.dest][values]
+
+    target_type: Type[Enum] = _get_target_type(action=action, parser=parser)
+    if is_instance(values, target_type):
+        return values
+
+    return target_type[values]
 
 
 @argparse_action(nargs=0)
