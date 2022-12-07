@@ -166,13 +166,20 @@ def test_str2enum():
     class ArgsModel:
         value: Optional[MyEnum]
         value_seq: Optional[Sequence[MyEnum]]
+        value_default: Optional[MyEnum] = MyEnum.two
+        value_seq_default: Optional[Sequence[MyEnum]] = yapx.arg(
+            default=lambda: [MyEnum.three]
+        )
+        value_int_default: Optional[Sequence[int]] = yapx.arg(default=lambda: [3, 2, 1])
 
     cli_args = ["--value", "one", "--value-seq", "three", "two", "one"]
 
-    # expected is {1: None, 2: None, 3: None, 4: None, 5: None, 6: None, ...}
     expected: Tuple[MyEnum, List[MyEnum]] = (
         MyEnum.one,
         [MyEnum.three, MyEnum.two, MyEnum.one],
+        MyEnum.two,
+        [MyEnum.three],
+        [3, 2, 1],
     )
 
     expected_action_name: str = "str2enum"
@@ -194,6 +201,12 @@ def test_str2enum():
     assert args["value"] == expected[0]
     assert "value_seq" in args
     assert args["value_seq"] == expected[1]
+    assert "value_default" in args
+    assert args["value_default"] == expected[2]
+    assert "value_seq_default" in args
+    assert args["value_seq_default"] == expected[3]
+    assert "value_int_default" in args
+    assert args["value_int_default"] == expected[4]
 
 
 def test_print_help_all(capsys: CaptureFixture):
