@@ -78,6 +78,8 @@ class ArgumentParser(argparse.ArgumentParser):
                 help=argparse.SUPPRESS,
             )
 
+        self.kv_separator = "="
+
         self._inner_type_conversions: Dict[str, Union[type, Callable[[str], Any]]] = {}
 
     def add_arguments(
@@ -322,6 +324,7 @@ class ArgumentParser(argparse.ArgumentParser):
                             parser._inner_type_conversions[
                                 argparse_argument.dest
                             ] = str2bool
+
                     # type-containers must only contain strings
                     # until parsed by argparse.
                     fld_type = str
