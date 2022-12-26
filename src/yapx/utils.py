@@ -15,6 +15,7 @@ __all__ = [
     "make_dataclass_from_func",
     "str2bool",
     "is_dataclass_type",
+    "coalesce",
 ]
 
 
@@ -44,3 +45,9 @@ def is_subclass(candidate: Any, test_type: Type[Any]) -> bool:
         return issubclass(candidate, test_type)
     except TypeError:
         return False
+
+
+def coalesce(x: Any, d: Any, null_or_empty: bool = False) -> Any:
+    if (null_or_empty and x) or (not null_or_empty and x is not None):
+        return x
+    return d

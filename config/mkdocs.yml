@@ -1,19 +1,24 @@
 site_name: "yapx"
-site_description: "yapx documentation"
-site_url: "https://www.Fresh2.dev/code/r/yapx/i/docs"
+site_description: "yapx Documentation"
+site_url: "https://www.Fresh2.dev/code/r/yapx/i"
 repo_url: "https://codeberg.org/Fresh2dev/yapx"
 repo_name: "Gitea"
-edit_uri_template: "src/branch/main/{path}"
+edit_uri_template: "src/branch/main/docs/{path}"
 docs_dir: "../docs"
-site_dir: "../public/docs"
+site_dir: "../public"
 
 theme:
   name: readthedocs
 
 ## https://www.mkdocs.org/user-guide/writing-your-docs/#configure-pages-and-navigation
-# nav:
-#   - Home: index.md
-#   ...
+nav:
+  - Fresh2.dev: https://www.Fresh2.dev
+  - Home: index.md
+  - Recipes: recipes.md
+  - Changelog: changelog.md
+  - Contributing: contributing.md
+  - Reference:
+      - yapx: reference/yapx.md
 
 watch:
   - ../src
