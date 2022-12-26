@@ -16,15 +16,21 @@ def test_split_csv():
     class ArgsModel:
         values: List[Optional[str]]
 
-    cli_args = [
-        "--values",
-        " ,,1, 1,  1  , 1 , 2 , 3 ",
-        " 4 , 5 , 6 ",
-        " 7 , 8 , 9 ,",
+    expected: List[Optional[str]] = [
+        "1",
+        "1",
+        "1",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "9",
     ]
-
-    # expected is [1, 1, 1, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-    expected: List[Optional[str]] = (["1"] * 4) + [str(i) for i in range(2, 10)]
+    cli_args = ["--values"] + expected
 
     expected_action_name: str = "split_csv"
 
@@ -51,15 +57,17 @@ def test_split_csv_to_set():
     class ArgsModel:
         values: Set[Optional[str]]
 
-    cli_args = [
-        "--values",
-        " ,,1, 1,  1  , 1 , 2 , 3 ",
-        " 4 , 5 , 6 ",
-        " 7 , 8 , 9 ,",
-    ]
-
-    # expected is {1, 2, 3, 4, 5, 6, 7, 8, 9}
-    expected: Set[Optional[str]] = {str(i) for i in range(1, 10)}
+    expected: Set[Optional[str]] = {
+        "",
+        "1",
+        "2",
+        "3  4",
+        "5",
+        "6  7",
+        "8",
+        "9",
+    }
+    cli_args = ["--values"] + list(expected)
 
     expected_action_name: str = "split_csv_to_set"
 
@@ -86,15 +94,22 @@ def test_split_csv_to_tuple():
     class ArgsModel:
         values: Tuple[Optional[str], ...]
 
-    cli_args = [
-        "--values",
-        " ,,1, 1,  1  , 1 , 2 , 3 ",
-        " 4 , 5 , 6 ",
-        " 7 , 8 , 9 ,",
-    ]
-
-    # expected is [1, 1, 1, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-    expected: Tuple[Optional[str]] = tuple((["1"] * 4) + [str(i) for i in range(2, 10)])
+    expected: Tuple[Optional[str]] = (
+        "",
+        "",
+        "1",
+        "1",
+        "1",
+        "1",
+        "2",
+        "3  4",
+        "5",
+        "6  7",
+        "8",
+        "9",
+        "",
+    )
+    cli_args = ["--values"] + list(expected)
 
     expected_action_name: str = "split_csv_to_tuple"
 
@@ -121,20 +136,30 @@ def test_split_csv_to_dict():
     class ArgsModel:
         values: Dict[str, Optional[str]]
 
+    expected: Dict[str, Optional[str]] = {
+        "1": None,
+        "2": None,
+        "3": None,
+        "4": "hello",
+        "5": None,
+        "6": "world",
+        "7": None,
+        "8 9": None,
+    }
     cli_args = [
         "--values",
-        " ,,1, 1,  1  , 1 , 2 , 3 ",
-        " 4 : hello , 5 ,  6  = world  ",
-        " 7 = , 8 : , 9 ,  =  ,:",
+        "1",
+        "1",
+        "1",
+        "1",
+        "2",
+        "3",
+        " 4 = hello",
+        "5",
+        "6  = world ",
+        " 7 = ",
+        " 8 9 ",
     ]
-
-    # expected is {1: None, 2: None, 3: None, 4: None, 5: None, 6: None, ...}
-    expected: Dict[str, Optional[str]] = dict.fromkeys(str(i) for i in range(1, 10))
-    expected["4"] = "hello"
-    expected["6"] = "world"
-    expected["7"] = ""
-    expected["8"] = ""
-    expected[""] = ""
 
     expected_action_name: str = "split_csv_to_dict"
 

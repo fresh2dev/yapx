@@ -1,10 +1,11 @@
 import collections.abc
+import shlex
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Tuple, Type, TypeVar
+from typing import Any, Dict, List, Optional, Set, Tuple, Type, TypeVar, Union
 
 from .argparse_action import YapxAction, argparse_action
 from .types import ArgumentParser, ArgValueType
-from .utils import is_instance, is_subclass
+from .utils import coalesce, is_instance, is_subclass
 
 # @argparse_action
 # # pylint: disable=unused-argument
@@ -19,43 +20,41 @@ from .utils import is_instance, is_subclass
 #     return _cast(value, to=str)
 
 
+T = TypeVar("T", bound=type)
+
+
 def _split_csv_sequence(
     values: ArgValueType,
-    target_type: Type[Any] = str,
-) -> Optional[List[Optional[Any]]]:
-
-    T = TypeVar("T", bound=type)
-
-    def _split_csv_str(txt: str, target_type: T) -> List[Optional[T]]:
-        return [
-            y
-            if is_instance(y, target_type)
-            else target_type[y]
+    target_type: T,
+) -> Union[None, T, List[T]]:
+    def _cast_type(txt: str, target_type: T) -> T:
+        return (
+            txt
+            if is_instance(txt, target_type)
+            else target_type[txt]
             if is_subclass(target_type, Enum)
-            else target_type(y)
-            for x in txt.split(",")
-            for y in [x.strip()]
-            if y
-        ]
+            else target_type(txt)
+        )
 
-    if values is None:
-        return None
-
-    if is_instance(values, str):
-        return _split_csv_str(values, target_type=target_type)
-
-    if values:
-        # this is written to handle strings from the command line,
-        # and to pass default argument values as-is.
-        if is_subclass(type(values), collections.abc.Sequence) and is_instance(
-            values[0], str
-        ):
-            values = [
-                y for x in values for y in _split_csv_str(x, target_type=target_type)
-            ]
+    if (
+        values is None
+        or not is_subclass(type(values), collections.abc.Sequence)
+        or len(values) == 0
+        or not isinstance(values[0], str)
+    ):
         return values
 
-    return []
+    values_clean: str = (
+        values.strip() if isinstance(values, str) else " ".join(list(values)).strip()
+    )
+
+    if values_clean and values_clean.startswith("[") and values_clean.endswith("]"):
+        return [
+            _cast_type(x, target_type=target_type)
+            for x in shlex.split(values_clean.strip(" []"))
+        ]
+
+    return [_cast_type(x, target_type=target_type) for x in values]
 
 
 def _get_target_type(action: YapxAction, parser: ArgumentParser) -> type:
@@ -74,7 +73,10 @@ def split_csv(
     parser: ArgumentParser,
     **kwargs: Any,
 ) -> Optional[List[Optional[Any]]]:
-    return _split_csv_sequence(values, target_type=_get_target_type(action, parser))
+    return _split_csv_sequence(
+        values,
+        target_type=_get_target_type(action, parser),
+    )
 
 
 @argparse_action
@@ -86,7 +88,8 @@ def split_csv_to_tuple(
     **kwargs: Any,
 ) -> Optional[Tuple[Optional[Any], ...]]:
     split_values: Optional[List[Optional[Any]]] = _split_csv_sequence(
-        values, target_type=_get_target_type(action, parser)
+        values,
+        target_type=_get_target_type(action, parser),
     )
     if split_values is not None:
         return tuple(split_values)
@@ -102,7 +105,8 @@ def split_csv_to_set(
     **kwargs: Any,
 ) -> Optional[Set[Optional[Any]]]:
     split_values: Optional[List[Optional[Any]]] = _split_csv_sequence(
-        values, target_type=_get_target_type(action, parser)
+        values,
+        target_type=_get_target_type(action, parser),
     )
     if split_values is not None:
         return set(split_values)
@@ -112,16 +116,23 @@ def split_csv_to_set(
 @argparse_action
 def split_csv_to_dict(
     values: ArgValueType,
+    *,
+    action: YapxAction,
+    parser: ArgumentParser,
     **kwargs: Any,
 ) -> Optional[Dict[str, Optional[Any]]]:
-    split_values: Optional[List[Optional[Any]]] = _split_csv_sequence(values)
+    split_values: Optional[List[Optional[Any]]] = _split_csv_sequence(
+        values, target_type=str
+    )
 
     if split_values is not None:
         return {
-            x_split[0].strip(): None if len(x_split) < 2 else x_split[1].strip()
+            x_split[0].strip(): None
+            if len(x_split) < 2
+            else coalesce(x_split[1].strip(), None, null_or_empty=True)
             for x in split_values
             if x
-            for x_split in [x.split(":" if ":" in x else "=", maxsplit=1)]
+            for x_split in [x.split(parser.kv_separator, maxsplit=1)]
         }
     return None
 
