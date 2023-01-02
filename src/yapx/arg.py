@@ -153,6 +153,7 @@ def _eval_type(type_str: str) -> Type[Any]:
 def make_dataclass_from_func(
     func: Callable[..., Any],
     base_classes: Optional[Tuple[Type[Dataclass], ...]] = None,
+    include_private_params: bool = False,
 ) -> Type[Dataclass]:
 
     if base_classes is None:
@@ -170,6 +171,9 @@ def make_dataclass_from_func(
         type_hints = {}
 
     for param in func_signature.parameters.values():
+        if not include_private_params and param.name.startswith("_"):
+            continue
+
         annotation: Type[Any] = (
             _eval_type(param.annotation)
             if isinstance(param.annotation, str)
