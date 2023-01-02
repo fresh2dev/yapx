@@ -257,12 +257,6 @@ class ArgumentParser(argparse.ArgumentParser):
                 argparse_argument.default = None
                 argparse_argument.required = True
 
-            if not argparse_argument.required and argparse_argument.dest.startswith(
-                "_"
-            ):
-                # skip private arg
-                continue
-
             fld_type: Union[str, Type[Any]] = fld.type
 
             # basic support for handling deferred annotation evaluation,
