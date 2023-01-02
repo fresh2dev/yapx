@@ -14,6 +14,15 @@ def example_setup(text: str = "world") -> str:
     print("hello " + text)
 
 
+def example_setup_generator(text: str = "world") -> str:
+    print("hello " + text)
+    yield
+    print("hallo " + text)
+    yield
+    yield
+    yield
+
+
 def example_subcmd(name: str, upper: Optional[bool]) -> str:
     msg: str = "howdy " + name
     if upper:
@@ -118,6 +127,34 @@ def test_run_both(use_pydantic: bool, capsys: CaptureFixture):
     # 2. ACT
     with mock.patch.object(yapx.argument_parser.sys, "argv", [""] + cli_args):
         yapx.run(example_setup, example_subcmd, _use_pydantic=use_pydantic)
+
+    # 3. ASSERT
+    captured: CaptureResult = capsys.readouterr()
+    assert captured.out
+    for e in expected:
+        assert e in captured.out
+    for ne in not_expected:
+        assert ne not in captured.out
+
+
+@pytest.mark.parametrize("use_pydantic", [False, True])
+def test_run_generator(use_pydantic: bool, capsys: CaptureFixture):
+    # 1. ARRANGE
+    text: str = "donald"
+    cli_args: List[str] = [
+        "--text",
+        text,
+        "example-subcmd",
+        "--name",
+        text,
+        "--upper",
+    ]
+    expected: List[str] = [f"hello {text}", f"howdy {text}".upper(), f"hallo {text}"]
+    not_expected: List[str] = []
+
+    # 2. ACT
+    with mock.patch.object(yapx.argument_parser.sys, "argv", [""] + cli_args):
+        yapx.run(example_setup_generator, example_subcmd, _use_pydantic=use_pydantic)
 
     # 3. ASSERT
     captured: CaptureResult = capsys.readouterr()

@@ -1,4 +1,5 @@
 import dataclasses
+from contextlib import suppress
 from typing import Any, Dict, List, Tuple, Type
 
 # pylint: disable=unused-import
@@ -34,17 +35,15 @@ def is_dataclass_type(candidate: Any) -> TypeGuard[Type[Dataclass]]:
 
 
 def is_instance(candidate: Any, test_type: Type[Any]) -> bool:
-    try:
+    with suppress(TypeError):
         return isinstance(candidate, test_type)
-    except TypeError:
-        return False
+    return False
 
 
 def is_subclass(candidate: Any, test_type: Type[Any]) -> bool:
-    try:
+    with suppress(TypeError):
         return issubclass(candidate, test_type)
-    except TypeError:
-        return False
+    return False
 
 
 def coalesce(x: Any, d: Any, null_or_empty: bool = False) -> Any:
