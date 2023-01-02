@@ -2,8 +2,10 @@ import argparse
 import collections.abc
 import sys
 from collections import defaultdict
+from contextlib import suppress
 from dataclasses import MISSING, Field, fields
 from enum import Enum
+from types import GeneratorType
 from typing import (
     Any,
     Callable,
@@ -37,7 +39,7 @@ from .arg import (
 )
 from .argparse_action import YapxAction
 from .types import Dataclass, NoneType
-from .utils import is_dataclass_type, is_subclass, str2bool
+from .utils import is_dataclass_type, is_instance, is_subclass, str2bool
 
 __all__ = ["ArgumentParser", "run", "run_command"]
 
@@ -254,12 +256,6 @@ class ArgumentParser(argparse.ArgumentParser):
             else:
                 argparse_argument.default = None
                 argparse_argument.required = True
-
-            if not argparse_argument.required and argparse_argument.dest.startswith(
-                "_"
-            ):
-                # skip private arg
-                continue
 
             fld_type: Union[str, Type[Any]] = fld.type
 
@@ -627,6 +623,21 @@ class ArgumentParser(argparse.ArgumentParser):
             # allow newlines in parser description
             parser.formatter_class = argparse.RawTextHelpFormatter
 
+    @staticmethod
+    def _run_func(
+        parser: "ArgumentParser",
+        func: Optional[Callable[..., Any]] = None,
+        args_model: Optional[Type[Any]] = None,
+        args: Optional[List[str]] = None,
+        use_pydantic: Optional[bool] = True,
+    ) -> Any:
+        if func:
+            model_inst: Dataclass = parser.parse_args_to_model(
+                args=args, args_model=args_model, use_pydantic=use_pydantic
+            )
+            return func(**vars(model_inst))
+        return None
+
     @classmethod
     def _run(
         cls,
@@ -685,20 +696,38 @@ class ArgumentParser(argparse.ArgumentParser):
         # parsed_args.get(cls.COMMAND_ATTRIBUTE_NAME)
 
         func: Optional[Callable[..., Any]] = parsed_args.get(cls.FUNC_ATTRIBUTE_NAME)
-
         args_model: Optional[Type[Any]] = parsed_args.get(cls.ARGS_ATTRIBUTE_NAME)
+        func_result: Any = None
 
-        result: Any = None
+        setup_result: Any = cls._run_func(
+            parser=parser,
+            func=setup_func,
+            args_model=setup_func_arg_model,
+            args=_args,
+            use_pydantic=_use_pydantic,
+        )
 
-        for f, m in [(setup_func, setup_func_arg_model), (func, args_model)]:
-            if f:
-                model_inst: Dataclass = parser.parse_args_to_model(
-                    args=_args, args_model=m, use_pydantic=_use_pydantic
-                )
-                f_kwargs: Dict[str, Any] = vars(model_inst)
-                result = f(**f_kwargs)
+        if is_instance(setup_result, GeneratorType):
+            with suppress(StopIteration):
+                func_result = next(setup_result)
+        else:
+            func_result = setup_result
 
-        return result
+        if func:
+            func_result = cls._run_func(
+                parser=parser,
+                func=func,
+                args_model=args_model,
+                args=_args,
+                use_pydantic=_use_pydantic,
+            )
+
+        if is_instance(setup_result, GeneratorType):
+            for gen_result in setup_result:
+                if not func:
+                    func_result = gen_result
+
+        return func_result
 
 
 def run(

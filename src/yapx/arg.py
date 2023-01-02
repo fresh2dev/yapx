@@ -1,5 +1,6 @@
 import os
 from argparse import Action
+from contextlib import suppress
 from dataclasses import MISSING, Field, dataclass, field, make_dataclass
 from inspect import _empty, signature
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Type, Union
@@ -109,10 +110,8 @@ def convert_to_command_string(x: str) -> str:
     elif x.startswith(under):
         # `_xxx_cmd_name` --> `cmd-name`
         next_under: int = 0
-        try:
+        with suppress(ValueError):
             next_under = x.index(under, 1)
-        except ValueError:
-            pass
         if not next_under:
             x = x.lstrip(under)
         else:
@@ -154,6 +153,7 @@ def _eval_type(type_str: str) -> Type[Any]:
 def make_dataclass_from_func(
     func: Callable[..., Any],
     base_classes: Optional[Tuple[Type[Dataclass], ...]] = None,
+    include_private_params: bool = False,
 ) -> Type[Dataclass]:
 
     if base_classes is None:
@@ -171,6 +171,9 @@ def make_dataclass_from_func(
         type_hints = {}
 
     for param in func_signature.parameters.values():
+        if not include_private_params and param.name.startswith("_"):
+            continue
+
         annotation: Type[Any] = (
             _eval_type(param.annotation)
             if isinstance(param.annotation, str)
