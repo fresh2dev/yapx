@@ -1,5 +1,6 @@
 import os
 from argparse import Action
+from contextlib import suppress
 from dataclasses import MISSING, Field, dataclass, field, make_dataclass
 from inspect import _empty, signature
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Type, Union
@@ -109,10 +110,8 @@ def convert_to_command_string(x: str) -> str:
     elif x.startswith(under):
         # `_xxx_cmd_name` --> `cmd-name`
         next_under: int = 0
-        try:
+        with suppress(ValueError):
             next_under = x.index(under, 1)
-        except ValueError:
-            pass
         if not next_under:
             x = x.lstrip(under)
         else:
