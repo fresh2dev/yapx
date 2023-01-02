@@ -222,7 +222,7 @@ def test_run_ipv4address(use_pydantic: bool):
     env_var_name: str = "FUNKY_ARG"
 
     env_values: List[str] = ["127.0.0.1", "192.168.0.1", "9.9.9.9"]
-    os.environ[env_var_name] = " [ " + "   ".join(env_values) + " ] "
+    os.environ[env_var_name] = " LIST[ " + "   ".join(env_values) + " ] "
 
     expected: List[IPv4Address] = [IPv4Address(ip) for ip in env_values]
 
@@ -255,7 +255,9 @@ def test_run_patterns(use_pydantic: bool):
     env_var_name: str = "FUNKY_ARG"
 
     env_values: List[str] = ["abc", "def", ".*"]
-    os.environ[env_var_name] = " [ " + "   ".join(str(i) for i in env_values) + " ] "
+    os.environ[env_var_name] = (
+        " LiSt[ " + "   ".join(str(i) for i in env_values) + " ] "
+    )
 
     expected: List[Pattern] = [re.compile(x) for x in env_values]
 
@@ -316,7 +318,9 @@ def test_run_bools(use_pydantic: bool):
     env_var_name: str = "FUNKY_ARG"
 
     env_values: List[str] = ["0", "1", "true", "t", "false", "f", "yes", "y", "no", "n"]
-    os.environ[env_var_name] = " [ " + "   ".join(str(i) for i in env_values) + " ] "
+    os.environ[env_var_name] = (
+        " list[ " + "   ".join(str(i) for i in env_values) + " ] "
+    )
 
     expected: List[bool] = [
         x.lower() in ("1", "true", "t", "yes", "y") for x in env_values
