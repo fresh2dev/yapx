@@ -713,19 +713,20 @@ class ArgumentParser(argparse.ArgumentParser):
         else:
             func_result = setup_result
 
-        if func:
-            func_result = cls._run_func(
-                parser=parser,
-                func=func,
-                args_model=args_model,
-                args=_args,
-                use_pydantic=_use_pydantic,
-            )
-
-        if is_instance(setup_result, GeneratorType):
-            for gen_result in setup_result:
-                if not func:
-                    func_result = gen_result
+        try:
+            if func:
+                func_result = cls._run_func(
+                    parser=parser,
+                    func=func,
+                    args_model=args_model,
+                    args=_args,
+                    use_pydantic=_use_pydantic,
+                )
+        finally:
+            if is_instance(setup_result, GeneratorType):
+                for gen_result in setup_result:
+                    if not func:
+                        func_result = gen_result
 
         return func_result
 
