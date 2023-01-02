@@ -36,7 +36,9 @@ def _split_csv_sequence(
             else target_type(txt)
         )
 
-    if (
+    if isinstance(values, str) and values:
+        values = [values]
+    elif (
         values is None
         or not is_subclass(type(values), collections.abc.Sequence)
         or len(values) == 0
@@ -44,17 +46,29 @@ def _split_csv_sequence(
     ):
         return values
 
-    values_clean: str = (
-        values.strip() if isinstance(values, str) else " ".join(list(values)).strip()
-    )
+    all_values: List[str] = []
 
-    if values_clean and values_clean.startswith("[") and values_clean.endswith("]"):
-        return [
-            _cast_type(x, target_type=target_type)
-            for x in shlex.split(values_clean.strip(" []"))
-        ]
+    list_prefix: str = "list["
+    list_suffix: str = "]"
 
-    return [_cast_type(x, target_type=target_type) for x in values]
+    for value in values:
+        value_clean: str = value.strip()
+
+        if (
+            value_clean
+            and value_clean.lower().startswith(list_prefix)
+            and value_clean.lower().endswith(list_suffix)
+        ):
+            all_values.extend(
+                _cast_type(x, target_type=target_type)
+                for x in shlex.split(
+                    value_clean[len(list_prefix) : -len(list_suffix)].strip()
+                )
+            )
+        else:
+            all_values.append(_cast_type(value, target_type=target_type))
+
+    return all_values
 
 
 def _get_target_type(action: YapxAction, parser: ArgumentParser) -> type:

@@ -1,5 +1,6 @@
 import dataclasses
-from typing import Any, Type
+from contextlib import suppress
+from typing import Any, Dict, List, Tuple, Type
 
 # pylint: disable=unused-import
 from .arg import (
@@ -34,20 +35,34 @@ def is_dataclass_type(candidate: Any) -> TypeGuard[Type[Dataclass]]:
 
 
 def is_instance(candidate: Any, test_type: Type[Any]) -> bool:
-    try:
+    with suppress(TypeError):
         return isinstance(candidate, test_type)
-    except TypeError:
-        return False
+    return False
 
 
 def is_subclass(candidate: Any, test_type: Type[Any]) -> bool:
-    try:
+    with suppress(TypeError):
         return issubclass(candidate, test_type)
-    except TypeError:
-        return False
+    return False
 
 
 def coalesce(x: Any, d: Any, null_or_empty: bool = False) -> Any:
     if (null_or_empty and x) or (not null_or_empty and x is not None):
         return x
     return d
+
+
+def parse_sequence(
+    *args: str, kv_separator: str = "="
+) -> Tuple[List[str], Dict[str, str]]:
+    parsed_args: List[str] = []
+    parsed_kwargs: Dict[str, str] = {}
+
+    for x in args:
+        if x and kv_separator in x:
+            k, v = x.split(kv_separator, 1)
+            parsed_kwargs[k.strip()] = v.strip() if v.strip() else None
+        else:
+            parsed_args.append(x)
+
+    return parsed_args, parsed_kwargs
