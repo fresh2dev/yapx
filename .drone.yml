@@ -37,7 +37,7 @@ data:
     [
       {
         "name": "build-reports",
-        "image": "registry.lokalhost.net/fresh2dev/myke-ci:0.0.1a9",
+        "image": "registry.lokalhost.net/fresh2dev/myke-ci:0.0.1a11",
         "commands": [
           "myke py-requirements",
           "myke py-reports"
@@ -50,7 +50,7 @@ data:
     [
       {
         "name": "py-build-package",
-        "image": "registry.lokalhost.net/fresh2dev/myke-ci:0.0.1a9",
+        "image": "registry.lokalhost.net/fresh2dev/myke-ci:0.0.1a11",
         "environment": {
           "PYPI_CREDS": {"from_secret": "PYPI_CREDS"}
         },
@@ -64,7 +64,7 @@ data:
       },
       {
         "name": "py-publish-sandbox",
-        "image": "registry.lokalhost.net/fresh2dev/myke-ci:0.0.1a9",
+        "image": "registry.lokalhost.net/fresh2dev/myke-ci:0.0.1a11",
         "environment": {
           "PYPI_CREDS": {"from_secret": "PYPI_CREDS"},
           "TWINE_CERT": "/etc/ssl/certs/ca-certificates.crt"
@@ -78,7 +78,7 @@ data:
       },
       {
         "name": "py-publish-dev",
-        "image": "registry.lokalhost.net/fresh2dev/myke-ci:0.0.1a9",
+        "image": "registry.lokalhost.net/fresh2dev/myke-ci:0.0.1a11",
         "environment": {
           "PYPI_CREDS": {"from_secret": "PYPI_CREDS"},
           "TWINE_CERT": "/etc/ssl/certs/ca-certificates.crt"
@@ -94,7 +94,7 @@ data:
       },
       {
         "name": "py-publish-test",
-        "image": "registry.lokalhost.net/fresh2dev/myke-ci:0.0.1a9",
+        "image": "registry.lokalhost.net/fresh2dev/myke-ci:0.0.1a11",
         "environment": {
           "PYPI_CREDS": {"from_secret": "PYPI_CREDS"},
           "TWINE_CERT": "/etc/ssl/certs/ca-certificates.crt"
@@ -110,7 +110,7 @@ data:
       },
       {
         "name": "py-publish-prod",
-        "image": "registry.lokalhost.net/fresh2dev/myke-ci:0.0.1a9",
+        "image": "registry.lokalhost.net/fresh2dev/myke-ci:0.0.1a11",
         "environment": {
           "PYPI_CREDS": {"from_secret": "PYPI_CREDS"},
           "TWINE_CERT": "/etc/ssl/certs/ca-certificates.crt"
