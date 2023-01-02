@@ -1,6 +1,6 @@
 # public images to pull into local registry during ci; fully-qualified.
 # e.g., <registry>/<owner>/<image> -> docker.io/library/alpine:latest
 
-docker.io/fresh2dev/myke-ci:0.0.1a9
+docker.io/fresh2dev/myke-ci:0.0.1a11
 
 docker.io/nginx:1
