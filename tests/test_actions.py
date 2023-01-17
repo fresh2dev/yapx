@@ -234,7 +234,7 @@ def test_str2enum():
     assert args["value_int_default"] == expected[4]
 
 
-def test_print_help_all(capsys: CaptureFixture):
+def test_print_help_full(capsys: CaptureFixture):
     # 1. ARRANGE
     @dataclass
     class ArgsModel:
