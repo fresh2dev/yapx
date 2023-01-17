@@ -2,13 +2,6 @@ secrets*/
 !.keep
 *.tmp
 
-/public/
-
-requirements.txt
-dist/
-build/
-*.egg-info/
-
 .mypy_cache/
 __pycache__/
 .pytest_cache/
@@ -16,3 +9,5 @@ __pycache__/
 .coverage
 .tox/
 .idea/
+
+.git
