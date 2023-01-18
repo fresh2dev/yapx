@@ -5,6 +5,8 @@ from dataclasses import MISSING, Field, dataclass, field, make_dataclass
 from inspect import _empty, signature
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Type, Union
 
+from typing_extensions import Literal  # noqa: keep this so eval of `Literal` works...
+
 from .types import Dataclass
 
 __all__ = ["arg"]
