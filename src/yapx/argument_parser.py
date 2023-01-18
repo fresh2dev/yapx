@@ -593,7 +593,7 @@ class ArgumentParser(argparse.ArgumentParser):
                     print(f">>> {choice}")
                     print(subparser.format_help())
 
-    def print_help_all(self) -> None:
+    def print_help_full(self) -> None:
         self._print_help(parser=self, include_all=True)
 
     @staticmethod
@@ -684,12 +684,12 @@ class ArgumentParser(argparse.ArgumentParser):
             **kwargs,
         )
 
-        if _print_help:
-            parser.print_help_all()
-            parser.exit()
-
         if not _args:
             _args = sys.argv[1:]
+
+        if _print_help or "--help-full" in _args:
+            parser.print_help_full()
+            parser.exit()
 
         parsed_args: Dict[str, Any] = vars(parser.parse_args(_args))
 
@@ -713,19 +713,20 @@ class ArgumentParser(argparse.ArgumentParser):
         else:
             func_result = setup_result
 
-        if func:
-            func_result = cls._run_func(
-                parser=parser,
-                func=func,
-                args_model=args_model,
-                args=_args,
-                use_pydantic=_use_pydantic,
-            )
-
-        if is_instance(setup_result, GeneratorType):
-            for gen_result in setup_result:
-                if not func:
-                    func_result = gen_result
+        try:
+            if func:
+                func_result = cls._run_func(
+                    parser=parser,
+                    func=func,
+                    args_model=args_model,
+                    args=_args,
+                    use_pydantic=_use_pydantic,
+                )
+        finally:
+            if is_instance(setup_result, GeneratorType):
+                for gen_result in setup_result:
+                    if not func:
+                        func_result = gen_result
 
         return func_result
 

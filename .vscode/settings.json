@@ -1,10 +1,4 @@
 {
-    "VSCodeCounter.history": 1,
-    "VSCodeCounter.outputAsCSV": false,
-    "VSCodeCounter.outputAsText": false,
-    "VSCodeCounter.outputAsMarkdown": true,
-    "VSCodeCounter.outputDirectory": "docs",
-    "VSCodeCounter.saveLocation": "workspace settings",
     "python.defaultInterpreterPath": "python",
     "python.testing.unittestEnabled": false,
     "python.testing.pytestEnabled": true,
@@ -32,5 +26,11 @@
     "python.analysis.typeCheckingMode": "off",
     "autoDocstring.docstringFormat": "google-notypes",
     "autoDocstring.includeExtendedSummary": true,
-    "python.languageServer": "Pylance"
+    "python.languageServer": "Pylance",
+    "VSCodeCounter.history": 1,
+    "VSCodeCounter.outputAsCSV": false,
+    "VSCodeCounter.outputAsText": false,
+    "VSCodeCounter.outputAsMarkdown": true,
+    "VSCodeCounter.outputDirectory": "docs",
+    "VSCodeCounter.saveLocation": "workspace settings"
 }
