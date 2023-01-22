@@ -5,7 +5,7 @@ from dataclasses import MISSING, Field, dataclass, field, make_dataclass
 from inspect import _empty, signature
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Type, Union
 
-from typing_extensions import Literal  # noqa: keep this so eval of `Literal` works...
+from typing_extensions import Literal  # pylint: disable=unused-import
 
 from .types import Dataclass
 
@@ -36,7 +36,7 @@ class ArgparseArg:
     help: Optional[str] = None
     metavar: Optional[str] = None
     pos: Optional[bool] = False
-    _env_var: Optional[str] = None
+    _env_var: Union[None, str, Sequence[str]] = None
 
     def __post_init__(self) -> None:
         if self.dest and not self.option_strings:
@@ -56,7 +56,7 @@ def arg(
     # pylint: disable=redefined-builtin
     help: Optional[str] = None,
     metavar: Optional[str] = None,
-    action: Optional[Action] = None,
+    action: Union[None, str, Type[Action]] = None,
 ) -> Field:
     if env:
         if isinstance(env, str):
@@ -157,7 +157,6 @@ def make_dataclass_from_func(
     base_classes: Optional[Tuple[Type[Dataclass], ...]] = None,
     include_private_params: bool = False,
 ) -> Type[Dataclass]:
-
     if base_classes is None:
         base_classes = ()
 

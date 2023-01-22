@@ -167,14 +167,3 @@ def str2enum(
         return values
 
     return target_type[values]
-
-
-@argparse_action(nargs=0)
-def print_help(
-    values: ArgValueType,
-    *,
-    parser: ArgumentParser,
-    **kwargs: Any,
-) -> None:
-    parser.print_help()
-    parser.exit()
