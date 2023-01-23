@@ -7,6 +7,7 @@ import pytest
 
 import yapx
 from yapx.arg import ArgparseArg
+from yapx.exceptions import ArgumentConflictError, ParserClosedError
 
 try:
     from typing import Literal
@@ -364,7 +365,7 @@ def test_add_arguments_twice():
     parser.add_arguments(ArgsModel)
 
     # 3. ASSERT
-    with pytest.raises(Exception):
+    with pytest.raises(ParserClosedError):
         parser.add_arguments(ArgsModel)
 
 
@@ -398,7 +399,7 @@ def test_add_arguments_conflict_error():
     # 2. ACT
     parser: yapx.ArgumentParser = yapx.ArgumentParser()
 
-    with pytest.raises(ValueError) as excinfo:
+    with pytest.raises(ArgumentConflictError) as excinfo:
         parser.add_arguments(ArgsModel)
 
     # 3. ASSERT
@@ -428,8 +429,8 @@ def test_add_arguments_func():
     sys.version_info.minor < 10, reason="test modern annotations in Python 3.10+"
 )
 def test_add_arguments_modern():
+    # pylint: disable=unused-argument,unsupported-binary-operation,unsubscriptable-object
     # 1. ARRANGE
-    # pylint: disable=unused-argument
     # noinspection Annotator
     def func(value: None | list[str] = yapx.arg(default=lambda: ["hello world"])):
         ...

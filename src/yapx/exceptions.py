@@ -1,1 +1,6 @@
-# TODO: use custom exceptions
+class ArgumentConflictError(Exception):
+    ...
+
+
+class ParserClosedError(Exception):
+    ...

@@ -7,6 +7,7 @@ from dataclasses import MISSING, Field, fields
 from enum import Enum
 from types import GeneratorType
 from typing import (
+    IO,
     Any,
     Callable,
     Dict,
@@ -20,8 +21,9 @@ from typing import (
     Union,
 )
 
+from yapx.exceptions import ArgumentConflictError, ParserClosedError
+
 from .actions import (
-    print_help,
     split_csv,
     split_csv_to_dict,
     split_csv_to_set,
@@ -61,24 +63,24 @@ T = TypeVar("T")
 
 
 class ArgumentParser(argparse.ArgumentParser):
-
     COMMAND_ATTRIBUTE_NAME: str = "_command"
     FUNC_ATTRIBUTE_NAME: str = "_func"
     ARGS_ATTRIBUTE_NAME: str = "_args_model"
 
-    def __init__(self, *args: Any, **kwargs: Any):
-        add_help: bool = bool(kwargs.pop("add_help", True))
-        super().__init__(*args, add_help=False, **kwargs)
+    def __init__(
+        self,
+        *args: Any,
+        prog: Optional[str] = None,
+        add_help: bool = True,
+        add_sh_completion: bool = False,
+        **kwargs: Any,
+    ):
+        super().__init__(*args, prog=prog, add_help=add_help, **kwargs)
 
-        if add_help:
-            parser_help_args = self.add_argument_group("help")
-            parser_help_args.add_argument(
-                "-h",
-                "--help",
-                action=print_help,
-                default=argparse.SUPPRESS,
-                help=argparse.SUPPRESS,
-            )
+        if add_sh_completion:
+            import shtab
+
+            shtab.add_argument_to(self, "--print-shell-completion")
 
         self.kv_separator = "="
 
@@ -93,29 +95,52 @@ class ArgumentParser(argparse.ArgumentParser):
         self,
         name: str,
         args_model: Optional[Union[Callable[..., Any], Type[Dataclass]]] = None,
-        use_docstr_description: Optional[bool] = True,
+        docstring_description: Optional[bool] = True,
+        add_help: Optional[bool] = True,
         **kwargs: Any,
     ) -> argparse.ArgumentParser:
         subparsers: argparse.Action = self._get_or_add_subparsers()
+
         # pylint: disable=protected-access
         assert isinstance(subparsers, argparse._SubParsersAction)
         prog: Optional[str] = kwargs.pop("prog", None)
         if prog:
             prog += " " + name
-        add_help: bool = bool(kwargs.pop("add_help", True))
-        parser = subparsers.add_parser(name, prog=prog, add_help=add_help, **kwargs)
+
+        description_txt: Optional[str] = (
+            self._extract_description_from_docstring(args_model)
+            if args_model and docstring_description
+            else None
+        )
+        # subparsers must populate 'help' in order to
+        # be included in shell-completion.
+        # ref: https://github.com/iterative/shtab/issues/54#issuecomment-940516963
+        help_txt: Optional[str] = (
+            None
+            if not add_help
+            else description_txt.splitlines()[0]
+            if description_txt
+            else ""
+        )
+
+        parser = subparsers.add_parser(
+            name, prog=prog, add_help=add_help, help=help_txt, **kwargs
+        )
         assert isinstance(parser, argparse.ArgumentParser)
+
         if args_model:
             self._add_arguments(parser, args_model)
-            if use_docstr_description:
-                self._docstring_to_description(parser=parser, args_model=args_model)
+
+        if docstring_description and description_txt:
+            self._set_parser_description(parser=parser, description=description_txt)
+
         return parser
 
     def _register_funcs(
         self,
         *args: Optional[Callable[..., Any]],
         subparser_kwargs: Optional[Dict[str, Any]] = None,
-        use_docstr_description: Optional[bool] = True,
+        docstring_description: Optional[bool] = True,
         **kwargs: Callable[..., Any],
     ) -> None:
         def _register_func(
@@ -127,7 +152,7 @@ class ArgumentParser(argparse.ArgumentParser):
             parser: argparse.ArgumentParser = self.add_command(
                 name,
                 func,
-                use_docstr_description,
+                docstring_description,
                 **sp_kwargs,
             )
             parser.set_defaults(**{self.FUNC_ATTRIBUTE_NAME: func})
@@ -187,7 +212,9 @@ class ArgumentParser(argparse.ArgumentParser):
             model = make_dataclass_from_func(args_model)
 
         if parser.get_default(cls.ARGS_ATTRIBUTE_NAME):
-            raise Exception("This parser already has args from another dataclass")
+            raise ParserClosedError(
+                "This parser already has args from another dataclass"
+            )
         parser.set_defaults(**{cls.ARGS_ATTRIBUTE_NAME: model})
 
         parser_required_args: Dict[str, argparse._ArgumentGroup] = defaultdict(
@@ -218,7 +245,7 @@ class ArgumentParser(argparse.ArgumentParser):
 
         registered_flags: List[str] = ["-h", "--help"]
 
-        for fld, argparse_argument in novel_field_args:
+        for _fld, argparse_argument in novel_field_args:
             if argparse_argument.option_strings:
                 if isinstance(argparse_argument.option_strings, str):
                     argparse_argument.option_strings = [
@@ -240,7 +267,9 @@ class ArgumentParser(argparse.ArgumentParser):
                         arg_flags.append(flg)
 
                 if not arg_flags:
-                    raise ValueError(f"Derived flag name already in use: {long_flag}")
+                    raise ArgumentConflictError(
+                        f"Derived flag name already in use: {long_flag}"
+                    )
 
                 argparse_argument.option_strings = arg_flags
 
@@ -329,6 +358,7 @@ class ArgumentParser(argparse.ArgumentParser):
             elif is_subclass(fld_type, Enum):
                 argparse_argument.choices = [x.name for x in fld_type]
                 argparse_argument.action = str2enum
+                # pylint: disable=protected-access
                 parser._inner_type_conversions[argparse_argument.dest] = fld_type
                 fld_type = str
 
@@ -418,9 +448,7 @@ class ArgumentParser(argparse.ArgumentParser):
         type_container_origin: Any = cls._get_type_origin(type_container)
 
         if type_container_origin is None:
-            raise TypeError(
-                f"Given type is not a container:" f" {type_container.__name__}"
-            )
+            raise TypeError(f"Given type is not a container: {type_container.__name__}")
 
         type_container_args = cls._get_type_args(type_container)
 
@@ -470,22 +498,19 @@ class ArgumentParser(argparse.ArgumentParser):
 
         return type_container_subtype
 
-    @classmethod
-    def _get_subparsers(
-        cls, parser: argparse.ArgumentParser
-    ) -> Optional[argparse._SubParsersAction]:
-        # pylint: disable=protected-access
-        for a in parser._actions:
-            # pylint: disable=protected-access
-            if isinstance(a, argparse._SubParsersAction):
+    def _get_subparsers(self) -> Optional[argparse._SubParsersAction]:
+        for a in self._actions:
+            if isinstance(
+                a, argparse._SubParsersAction  # pylint: disable=protected-access
+            ):
                 return a
         return None
 
     def _get_or_add_subparsers(self) -> argparse._SubParsersAction:
-        subparsers = self._get_subparsers(parser=self)
+        subparsers = self._get_subparsers()
 
         if not subparsers:
-            return self.add_subparsers(dest=self.COMMAND_ATTRIBUTE_NAME)
+            subparsers = self.add_subparsers(dest=self.COMMAND_ATTRIBUTE_NAME)
 
         return subparsers
 
@@ -575,53 +600,69 @@ class ArgumentParser(argparse.ArgumentParser):
     ) -> Dict[str, Any]:
         return {k: v for k, v in args_dict.items() if k in args_model.__annotations__}
 
-    @classmethod
-    def _print_help(
-        cls, parser: argparse.ArgumentParser, include_all: Optional[bool] = False
+    def print_help(
+        self,
+        file: Optional[IO[str]] = None,
+        full: bool = False,
     ) -> None:
-        separator: str = "*" * 80
-        print(separator)
-        print(parser.format_help())
+        super().print_help(file)
 
-        if include_all:
-            subparsers: Optional[argparse._SubParsersAction] = cls._get_subparsers(
-                parser=parser
-            )
+        if full:
+            subparsers: Optional[argparse._SubParsersAction] = self._get_subparsers()
+            separator: str = "\n" + ("*" * 80)
             if subparsers:
                 for choice, subparser in subparsers.choices.items():
                     print(separator)
                     print(f">>> {choice}")
-                    print(subparser.format_help())
+                    subparser.print_help(file)
 
-    def print_help_full(self) -> None:
-        self._print_help(parser=self, include_all=True)
-
-    @staticmethod
+    @classmethod
     def _docstring_to_description(
+        cls,
         parser: argparse.ArgumentParser,
         args_model: Union[Callable[..., Any], Type[Dataclass]],
     ) -> None:
-        docstr_lines: Optional[List[str]] = None
-        if args_model.__doc__:
-            docstr_lines = args_model.__doc__.strip().splitlines()
+        cls._set_parser_description(
+            parser, description=cls._extract_description_from_docstring(args_model)
+        )
 
-        if not docstr_lines:
+    @classmethod
+    def _set_parser_description(
+        cls, parser: argparse.ArgumentParser, description: Optional[str]
+    ):
+        if not description:
             return
 
+        parser.description = description
+
+        if "\n" in description:
+            # allow newlines in parser description
+            parser.formatter_class = argparse.RawTextHelpFormatter
+
+    @staticmethod
+    def _extract_description_from_docstring(
+        args_model: Union[Callable[..., Any], Type[Dataclass]],
+    ) -> Optional[str]:
+        description_lines: Optional[List[str]] = None
+
+        if args_model.__doc__ and not args_model.__doc__.startswith(
+            args_model.__name__ + "("
+        ):
+            description_lines = args_model.__doc__.strip().splitlines()
+
+        if not description_lines:
+            return None
+
         text_block_ends_at: int = 0
-        for i, line in enumerate(docstr_lines):
+        for i, line in enumerate(description_lines):
             if not line.strip():
                 text_block_ends_at = i
                 break
 
         if text_block_ends_at > 0:
-            docstr_lines = docstr_lines[:text_block_ends_at]
+            description_lines = description_lines[:text_block_ends_at]
 
-        parser.description = "\n".join([x.strip() for x in docstr_lines])
-
-        if len(docstr_lines) > 1:
-            # allow newlines in parser description
-            parser.formatter_class = argparse.RawTextHelpFormatter
+        return "\n".join(x.strip() for x in description_lines)
 
     @staticmethod
     def _run_func(
@@ -645,13 +686,16 @@ class ArgumentParser(argparse.ArgumentParser):
         _args: Optional[List[str]] = None,
         _prog: Optional[str] = None,
         _use_pydantic: Optional[bool] = True,
+        _add_sh_completion: Optional[bool] = False,
         _print_help: Optional[bool] = False,
-        _use_docstr_description: Optional[bool] = True,
+        _docstring_description: Optional[bool] = True,
         **kwargs: Callable[..., Any],
     ) -> Any:
         parser_shared_kwargs: Dict[str, Any] = {"prog": _prog}
 
-        parser: ArgumentParser = cls(**parser_shared_kwargs)
+        parser: ArgumentParser = cls(
+            add_sh_completion=_add_sh_completion, **parser_shared_kwargs
+        )
 
         parser.set_defaults(
             **{cls.ARGS_ATTRIBUTE_NAME: None, cls.FUNC_ATTRIBUTE_NAME: None}
@@ -667,7 +711,7 @@ class ArgumentParser(argparse.ArgumentParser):
             if setup_func:
                 setup_func_arg_model = make_dataclass_from_func(setup_func)
                 parser.add_arguments(setup_func_arg_model)
-                if _use_docstr_description:
+                if _docstring_description:
                     cls._docstring_to_description(
                         parser=parser,
                         args_model=setup_func_arg_model,
@@ -680,7 +724,7 @@ class ArgumentParser(argparse.ArgumentParser):
         parser._register_funcs(
             *cmd_funcs,
             subparser_kwargs=parser_shared_kwargs,
-            use_docstr_description=_use_docstr_description,
+            docstring_description=_docstring_description,
             **kwargs,
         )
 
@@ -688,7 +732,7 @@ class ArgumentParser(argparse.ArgumentParser):
             _args = sys.argv[1:]
 
         if _print_help or "--help-full" in _args:
-            parser.print_help_full()
+            parser.print_help(full=True)
             parser.exit()
 
         parsed_args: Dict[str, Any] = vars(parser.parse_args(_args))
@@ -736,6 +780,7 @@ def run(
     _args: Optional[List[str]] = None,
     _prog: Optional[str] = None,
     _use_pydantic: Optional[bool] = True,
+    _add_sh_completion: Optional[bool] = False,
     _print_help: Optional[bool] = False,
     **kwargs: Callable[..., Any],
 ) -> Any:
@@ -745,6 +790,7 @@ def run(
         _args=_args,
         _prog=_prog,
         _use_pydantic=_use_pydantic,
+        _add_sh_completion=_add_sh_completion,
         _print_help=_print_help,
         **kwargs,
     )
@@ -755,6 +801,7 @@ def run_command(
     _args: Optional[List[str]] = None,
     _prog: Optional[str] = None,
     _use_pydantic: Optional[bool] = True,
+    _add_sh_completion: Optional[bool] = False,
     _print_help: Optional[bool] = False,
     **kwargs: Callable[..., Any],
 ) -> Any:
@@ -764,6 +811,7 @@ def run_command(
         _args=_args,
         _prog=_prog,
         _use_pydantic=_use_pydantic,
+        _add_sh_completion=_add_sh_completion,
         _print_help=_print_help,
         **kwargs,
     )
