@@ -23,6 +23,10 @@ def example_setup_generator(text: str = "world") -> str:
     yield
 
 
+def example_empty_subcmd() -> str:
+    ...
+
+
 def example_subcmd(name: str, upper: Optional[bool]) -> str:
     msg: str = "howdy " + name
     if upper:
@@ -380,3 +384,28 @@ def test_run_bools(use_pydantic: bool):
     assert isinstance(result, list)
 
     assert result == expected
+
+
+def test_print_shell_completion(capsys: CaptureFixture):
+    # 1. ARRANGE
+    cli_args: List[str] = ["--print-shell-completion", "zsh"]
+    expected: List[str] = [r"{-t,--text}", "example-empty-subcmd", "example-subcmd"]
+    not_expected: List[str] = []
+
+    # 2. ACT
+    with pytest.raises(SystemExit):
+        yapx.run(
+            example_setup,
+            example_empty_subcmd,
+            example_subcmd,
+            _args=cli_args,
+            _add_sh_completion=True,
+        )
+
+    # 3. ASSERT
+    captured: CaptureResult = capsys.readouterr()
+    assert captured.out
+    for e in expected:
+        assert e in captured.out
+    for ne in not_expected:
+        assert ne not in captured.out

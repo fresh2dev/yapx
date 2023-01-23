@@ -64,13 +64,13 @@ def test_argument_parser_arg_defaults():
 def test_build_dataclass_from_func_raises_type_error():
     # 1. ARRANGE
     # pylint: disable=unused-argument,too-many-arguments
-    def func1(value=[]):
+    def func1(value=lambda: []):
         pass
 
-    def func2(value={}):
+    def func2(value=lambda: {}):
         pass
 
-    def func3(value=()):
+    def func3(value=lambda: ()):
         pass
 
     def func4(value=b""):

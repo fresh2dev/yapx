@@ -5,10 +5,7 @@
     "python.linting.enabled": true,
     "python.linting.flake8Enabled": true,
     "python.linting.pylintEnabled": true,
-    "python.linting.mypyEnabled": false,
-    "mypy.targets": [
-        "./src"
-    ],
+    "python.linting.mypyEnabled": true,
     "python.formatting.provider": "black",
     "isort.check": true,
     "[python]": {
