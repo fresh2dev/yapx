@@ -8,6 +8,7 @@ import pytest
 from _pytest.capture import CaptureFixture, CaptureResult
 
 import yapx
+import yapx.argument_parser
 
 
 def example_setup(text: str = "world") -> str:
@@ -41,8 +42,18 @@ def test_run_noargs(use_pydantic: bool, capsys: CaptureFixture):
     cli_args: List[str] = []
 
     # 2. ACT
-    with mock.patch.object(yapx.argument_parser.sys, "argv", [""] + cli_args):
-        yapx.run(example_setup, _use_pydantic=use_pydantic)
+    try:
+        if not use_pydantic:
+            mock.patch.object(
+                yapx.argument_parser.create_pydantic_model_from_dataclass,
+                attribute="__module__",
+                new_callable=mock.PropertyMock(return_value="yapx.argument_parser"),
+            ).start()
+
+        with mock.patch.object(yapx.argument_parser.sys, "argv", [""] + cli_args):
+            yapx.run(example_setup)
+    finally:
+        mock.patch.stopall()
 
     # 3. ASSERT
     captured: CaptureResult = capsys.readouterr()
@@ -59,8 +70,18 @@ def test_run_default(use_pydantic: bool, capsys: CaptureFixture):
     not_expected: List[str] = ["howdy"]
 
     # 2. ACT
-    with mock.patch.object(yapx.argument_parser.sys, "argv", [""] + cli_args):
-        yapx.run(example_setup, example_subcmd, _use_pydantic=use_pydantic)
+    try:
+        if not use_pydantic:
+            mock.patch.object(
+                yapx.argument_parser.create_pydantic_model_from_dataclass,
+                attribute="__module__",
+                new_callable=mock.PropertyMock(return_value="yapx.argument_parser"),
+            ).start()
+
+        with mock.patch.object(yapx.argument_parser.sys, "argv", [""] + cli_args):
+            yapx.run(example_setup, example_subcmd)
+    finally:
+        mock.patch.stopall()
 
     # 3. ASSERT
     captured: CaptureResult = capsys.readouterr()
@@ -80,8 +101,18 @@ def test_run_command(use_pydantic: bool, capsys: CaptureFixture):
     not_expected: List[str] = ["hello"]
 
     # 2. ACT
-    with mock.patch.object(yapx.argument_parser.sys, "argv", [""] + cli_args):
-        yapx.run_command(example_subcmd, _use_pydantic=use_pydantic)
+    try:
+        if not use_pydantic:
+            mock.patch.object(
+                yapx.argument_parser.create_pydantic_model_from_dataclass,
+                attribute="__module__",
+                new_callable=mock.PropertyMock(return_value="yapx.argument_parser"),
+            ).start()
+
+        with mock.patch.object(yapx.argument_parser.sys, "argv", [""] + cli_args):
+            yapx.run_command(example_subcmd)
+    finally:
+        mock.patch.stopall()
 
     # 3. ASSERT
     captured: CaptureResult = capsys.readouterr()
@@ -101,8 +132,18 @@ def test_run_subcmd(use_pydantic: bool, capsys: CaptureFixture):
     not_expected: List[str] = ["hello"]
 
     # 2. ACT
-    with mock.patch.object(yapx.argument_parser.sys, "argv", [""] + cli_args):
-        yapx.run(None, example_subcmd, _use_pydantic=use_pydantic)
+    try:
+        if not use_pydantic:
+            mock.patch.object(
+                yapx.argument_parser.create_pydantic_model_from_dataclass,
+                attribute="__module__",
+                new_callable=mock.PropertyMock(return_value="yapx.argument_parser"),
+            ).start()
+
+        with mock.patch.object(yapx.argument_parser.sys, "argv", [""] + cli_args):
+            yapx.run(None, example_subcmd)
+    finally:
+        mock.patch.stopall()
 
     # 3. ASSERT
     captured: CaptureResult = capsys.readouterr()
@@ -129,8 +170,18 @@ def test_run_both(use_pydantic: bool, capsys: CaptureFixture):
     not_expected: List[str] = []
 
     # 2. ACT
-    with mock.patch.object(yapx.argument_parser.sys, "argv", [""] + cli_args):
-        yapx.run(example_setup, example_subcmd, _use_pydantic=use_pydantic)
+    try:
+        if not use_pydantic:
+            mock.patch.object(
+                yapx.argument_parser.create_pydantic_model_from_dataclass,
+                attribute="__module__",
+                new_callable=mock.PropertyMock(return_value="yapx.argument_parser"),
+            ).start()
+
+        with mock.patch.object(yapx.argument_parser.sys, "argv", [""] + cli_args):
+            yapx.run(example_setup, example_subcmd)
+    finally:
+        mock.patch.stopall()
 
     # 3. ASSERT
     captured: CaptureResult = capsys.readouterr()
@@ -157,8 +208,18 @@ def test_run_generator(use_pydantic: bool, capsys: CaptureFixture):
     not_expected: List[str] = []
 
     # 2. ACT
-    with mock.patch.object(yapx.argument_parser.sys, "argv", [""] + cli_args):
-        yapx.run(example_setup_generator, example_subcmd, _use_pydantic=use_pydantic)
+    try:
+        if not use_pydantic:
+            mock.patch.object(
+                yapx.argument_parser.create_pydantic_model_from_dataclass,
+                attribute="__module__",
+                new_callable=mock.PropertyMock(return_value="yapx.argument_parser"),
+            ).start()
+
+        with mock.patch.object(yapx.argument_parser.sys, "argv", [""] + cli_args):
+            yapx.run(example_setup_generator, example_subcmd)
+    finally:
+        mock.patch.stopall()
 
     # 3. ASSERT
     captured: CaptureResult = capsys.readouterr()
@@ -185,7 +246,18 @@ def test_run_args(use_pydantic: bool, capsys: CaptureFixture):
     not_expected: List[str] = []
 
     # 2. ACT
-    yapx.run(example_setup, example_subcmd, _args=cli_args, _use_pydantic=use_pydantic)
+    try:
+        if not use_pydantic:
+            mock.patch.object(
+                yapx.argument_parser.create_pydantic_model_from_dataclass,
+                attribute="__module__",
+                new_callable=mock.PropertyMock(return_value="yapx.argument_parser"),
+            ).start()
+
+        with mock.patch.object(yapx.argument_parser.sys, "argv", [""] + cli_args):
+            yapx.run(example_setup, example_subcmd, _args=cli_args)
+    finally:
+        mock.patch.stopall()
 
     # 3. ASSERT
     captured: CaptureResult = capsys.readouterr()
@@ -212,12 +284,21 @@ def test_run_kwargs_alias(use_pydantic: bool, capsys: CaptureFixture):
     not_expected: List[str] = []
 
     # 2. ACT
-    with mock.patch.object(yapx.argument_parser.sys, "argv", [""] + cli_args):
-        yapx.run(
-            example_setup,
-            **{"command-alias": example_subcmd},
-            _use_pydantic=use_pydantic,
-        )
+    try:
+        if not use_pydantic:
+            mock.patch.object(
+                yapx.argument_parser.create_pydantic_model_from_dataclass,
+                attribute="__module__",
+                new_callable=mock.PropertyMock(return_value="yapx.argument_parser"),
+            ).start()
+
+        with mock.patch.object(yapx.argument_parser.sys, "argv", [""] + cli_args):
+            yapx.run(
+                example_setup,
+                **{"command-alias": example_subcmd},
+            )
+    finally:
+        mock.patch.stopall()
 
     # 3. ASSERT
     captured: CaptureResult = capsys.readouterr()
@@ -244,10 +325,18 @@ def test_run_kwargs_alias2(use_pydantic: bool, capsys: CaptureFixture):
     not_expected: List[str] = []
 
     # 2. ACT
-    with mock.patch.object(yapx.argument_parser.sys, "argv", [""] + cli_args):
-        yapx.run(
-            example_setup, command_alias=example_subcmd, _use_pydantic=use_pydantic
-        )
+    try:
+        if not use_pydantic:
+            mock.patch.object(
+                yapx.argument_parser.create_pydantic_model_from_dataclass,
+                attribute="__module__",
+                new_callable=mock.PropertyMock(return_value="yapx.argument_parser"),
+            ).start()
+
+        with mock.patch.object(yapx.argument_parser.sys, "argv", [""] + cli_args):
+            yapx.run(example_setup, command_alias=example_subcmd)
+    finally:
+        mock.patch.stopall()
 
     # 3. ASSERT
     captured: CaptureResult = capsys.readouterr()
@@ -278,17 +367,31 @@ def test_run_ipv4address(use_pydantic: bool):
     cli_args: List[str] = []
 
     # 2. ACT
-    with mock.patch.object(yapx.argument_parser.sys, "argv", [""] + cli_args):
-        result: List[Any] = yapx.run(_func, _use_pydantic=use_pydantic)
+    try:
+        if not use_pydantic:
+            mock.patch.object(
+                yapx.argument_parser.create_pydantic_model_from_dataclass,
+                attribute="__module__",
+                new_callable=mock.PropertyMock(return_value="yapx.argument_parser"),
+            ).start()
+
+            with mock.patch.object(
+                yapx.argument_parser.sys, "argv", [""] + cli_args
+            ), pytest.raises(yapx.exceptions.UnsupportedTypeError):
+                yapx.run(_func)
+            return
+
+        with mock.patch.object(yapx.argument_parser.sys, "argv", [""] + cli_args):
+            result: List[Any] = yapx.run(_func)
+    finally:
+        mock.patch.stopall()
 
     # 3. ASSERT
     assert result
     assert isinstance(result, list)
 
-    if use_pydantic:
-        assert result == expected
-    else:
-        assert result == env_values
+    # if use_pydantic:
+    assert result == expected
 
 
 @pytest.mark.parametrize("use_pydantic", [False, True])
@@ -311,8 +414,24 @@ def test_run_patterns(use_pydantic: bool):
     cli_args: List[str] = []
 
     # 2. ACT
-    with mock.patch.object(yapx.argument_parser.sys, "argv", [""] + cli_args):
-        result: List[Any] = yapx.run(_func, _use_pydantic=use_pydantic)
+    try:
+        if not use_pydantic:
+            mock.patch.object(
+                yapx.argument_parser.create_pydantic_model_from_dataclass,
+                attribute="__module__",
+                new_callable=mock.PropertyMock(return_value="yapx.argument_parser"),
+            ).start()
+
+            with mock.patch.object(
+                yapx.argument_parser.sys, "argv", [""] + cli_args
+            ), pytest.raises(yapx.exceptions.UnsupportedTypeError):
+                yapx.run(_func)
+            return
+
+        with mock.patch.object(yapx.argument_parser.sys, "argv", [""] + cli_args):
+            result: List[Any] = yapx.run(_func)
+    finally:
+        mock.patch.stopall()
 
     # 3. ASSERT
     assert result
@@ -342,8 +461,24 @@ def test_run_pattern(use_pydantic: bool):
     cli_args: List[str] = []
 
     # 2. ACT
-    with mock.patch.object(yapx.argument_parser.sys, "argv", [""] + cli_args):
-        result: List[Any] = yapx.run(_func, _use_pydantic=use_pydantic)
+    try:
+        if not use_pydantic:
+            mock.patch.object(
+                yapx.argument_parser.create_pydantic_model_from_dataclass,
+                attribute="__module__",
+                new_callable=mock.PropertyMock(return_value="yapx.argument_parser"),
+            ).start()
+
+            with mock.patch.object(
+                yapx.argument_parser.sys, "argv", [""] + cli_args
+            ), pytest.raises(yapx.exceptions.UnsupportedTypeError):
+                yapx.run(_func)
+            return
+
+        with mock.patch.object(yapx.argument_parser.sys, "argv", [""] + cli_args):
+            result: List[Any] = yapx.run(_func)
+    finally:
+        mock.patch.stopall()
 
     # 3. ASSERT
     assert result
@@ -376,8 +511,18 @@ def test_run_bools(use_pydantic: bool):
     cli_args: List[str] = []
 
     # 2. ACT
-    with mock.patch.object(yapx.argument_parser.sys, "argv", [""] + cli_args):
-        result: List[Any] = yapx.run(_func, _use_pydantic=use_pydantic)
+    try:
+        if not use_pydantic:
+            mock.patch.object(
+                yapx.argument_parser.create_pydantic_model_from_dataclass,
+                attribute="__module__",
+                new_callable=mock.PropertyMock(return_value="yapx.argument_parser"),
+            ).start()
+
+        with mock.patch.object(yapx.argument_parser.sys, "argv", [""] + cli_args):
+            result: List[Any] = yapx.run(_func)
+    finally:
+        mock.patch.stopall()
 
     # 3. ASSERT
     assert result
@@ -399,7 +544,6 @@ def test_print_shell_completion(capsys: CaptureFixture):
             example_empty_subcmd,
             example_subcmd,
             _args=cli_args,
-            _add_sh_completion=True,
         )
 
     # 3. ASSERT
