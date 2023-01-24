@@ -1,7 +1,7 @@
 from argparse import Action
 from dataclasses import dataclass
 from enum import Enum, auto
-from typing import Any, Dict, List, Optional, Sequence, Set, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Set, Tuple, Union
 
 import pytest
 from _pytest.capture import CaptureFixture, CaptureResult
@@ -42,7 +42,7 @@ def test_split_csv():
 
     # 3. ASSERT
     # pylint: disable=protected-access
-    parser_action: Action = parser._actions[1]
+    parser_action: Action = parser._actions[2]
     assert isinstance(parser_action, YapxAction)
     # pylint: disable=protected-access
     assert parser_action.name == expected_action_name
@@ -79,7 +79,7 @@ def test_split_csv_to_set():
 
     # 3. ASSERT
     # pylint: disable=protected-access
-    parser_action: Action = parser._actions[1]
+    parser_action: Action = parser._actions[2]
     assert isinstance(parser_action, YapxAction)
     # pylint: disable=protected-access
     assert parser_action.name == expected_action_name
@@ -121,7 +121,7 @@ def test_split_csv_to_tuple():
 
     # 3. ASSERT
     # pylint: disable=protected-access
-    parser_action: Action = parser._actions[1]
+    parser_action: Action = parser._actions[2]
     assert isinstance(parser_action, YapxAction)
     # pylint: disable=protected-access
     assert parser_action.name == expected_action_name
@@ -171,7 +171,7 @@ def test_split_csv_to_dict():
 
     # 3. ASSERT
     # pylint: disable=protected-access
-    parser_action: Action = parser._actions[1]
+    parser_action: Action = parser._actions[2]
     assert isinstance(parser_action, YapxAction)
     # pylint: disable=protected-access
     assert parser_action.name == expected_action_name
@@ -199,13 +199,13 @@ def test_str2enum():
 
     cli_args = ["--value", "one", "--value-seq", "three", "two", "one"]
 
-    expected: Tuple[MyEnum, List[MyEnum]] = (
-        MyEnum.one,
-        [MyEnum.three, MyEnum.two, MyEnum.one],
-        MyEnum.two,
-        [MyEnum.three],
-        [3, 2, 1],
-    )
+    expected: Dict[str, Union[Enum, List[Enum]]] = {
+        "value": MyEnum.one,
+        "value_seq": [MyEnum.three, MyEnum.two, MyEnum.one],
+        "value_default": MyEnum.two,
+        "value_seq_default": [MyEnum.three],
+        "value_int_default": [3, 2, 1],
+    }
 
     expected_action_name: str = "str2enum"
 
@@ -217,21 +217,14 @@ def test_str2enum():
 
     # 3. ASSERT
     # pylint: disable=protected-access
-    parser_action: Action = parser._actions[1]
+    parser_action: Action = parser._actions[2]
     assert isinstance(parser_action, YapxAction)
     # pylint: disable=protected-access
     assert parser_action.name == expected_action_name
 
-    assert "value" in args
-    assert args["value"] == expected[0]
-    assert "value_seq" in args
-    assert args["value_seq"] == expected[1]
-    assert "value_default" in args
-    assert args["value_default"] == expected[2]
-    assert "value_seq_default" in args
-    assert args["value_seq_default"] == expected[3]
-    assert "value_int_default" in args
-    assert args["value_int_default"] == expected[4]
+    for k, v in expected.items():
+        assert k in args
+        assert args[k] == v
 
 
 def test_print_help_full(capsys: CaptureFixture):
