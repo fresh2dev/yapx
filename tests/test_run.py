@@ -399,7 +399,6 @@ def test_print_shell_completion(capsys: CaptureFixture):
             example_empty_subcmd,
             example_subcmd,
             _args=cli_args,
-            _add_sh_completion=True,
         )
 
     # 3. ASSERT

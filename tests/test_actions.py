@@ -42,7 +42,7 @@ def test_split_csv():
 
     # 3. ASSERT
     # pylint: disable=protected-access
-    parser_action: Action = parser._actions[1]
+    parser_action: Action = parser._actions[2]
     assert isinstance(parser_action, YapxAction)
     # pylint: disable=protected-access
     assert parser_action.name == expected_action_name
@@ -79,7 +79,7 @@ def test_split_csv_to_set():
 
     # 3. ASSERT
     # pylint: disable=protected-access
-    parser_action: Action = parser._actions[1]
+    parser_action: Action = parser._actions[2]
     assert isinstance(parser_action, YapxAction)
     # pylint: disable=protected-access
     assert parser_action.name == expected_action_name
@@ -121,7 +121,7 @@ def test_split_csv_to_tuple():
 
     # 3. ASSERT
     # pylint: disable=protected-access
-    parser_action: Action = parser._actions[1]
+    parser_action: Action = parser._actions[2]
     assert isinstance(parser_action, YapxAction)
     # pylint: disable=protected-access
     assert parser_action.name == expected_action_name
@@ -171,7 +171,7 @@ def test_split_csv_to_dict():
 
     # 3. ASSERT
     # pylint: disable=protected-access
-    parser_action: Action = parser._actions[1]
+    parser_action: Action = parser._actions[2]
     assert isinstance(parser_action, YapxAction)
     # pylint: disable=protected-access
     assert parser_action.name == expected_action_name
@@ -217,7 +217,7 @@ def test_str2enum():
 
     # 3. ASSERT
     # pylint: disable=protected-access
-    parser_action: Action = parser._actions[1]
+    parser_action: Action = parser._actions[2]
     assert isinstance(parser_action, YapxAction)
     # pylint: disable=protected-access
     assert parser_action.name == expected_action_name

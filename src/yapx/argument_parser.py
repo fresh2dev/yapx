@@ -55,6 +55,14 @@ except ModuleNotFoundError:
 
 
 try:
+    from shtab import add_argument_to
+except ModuleNotFoundError:
+
+    def add_argument_to():
+        ...
+
+
+try:
     from typing import Literal
 except ImportError:
     from typing_extensions import Literal
@@ -72,15 +80,12 @@ class ArgumentParser(argparse.ArgumentParser):
         *args: Any,
         prog: Optional[str] = None,
         add_help: bool = True,
-        add_sh_completion: bool = False,
         **kwargs: Any,
     ):
         super().__init__(*args, prog=prog, add_help=add_help, **kwargs)
 
-        if add_sh_completion:
-            import shtab
-
-            shtab.add_argument_to(self, "--print-shell-completion")
+        if self.is_shtab_available():
+            add_argument_to(self, "--print-shell-completion")
 
         self.kv_separator = "="
 
@@ -226,9 +231,7 @@ class ArgumentParser(argparse.ArgumentParser):
         parser_exclusive_args: Dict[str, argparse._ArgumentGroup] = defaultdict(
             parser.add_mutually_exclusive_group
         )
-        # parser_required_args = parser.add_argument_group("required arguments")
-        # parser_optional_args = parser.add_argument_group("optional arguments")
-        # parser_exclusive_args = parser.add_mutually_exclusive_group()
+
         parser_arg_groups: Dict[str, argparse._ArgumentGroup] = {}
 
         novel_fields: List[Field] = list(
@@ -525,6 +528,12 @@ class ArgumentParser(argparse.ArgumentParser):
         """
         parsed: argparse.Namespace = super().parse_args(args=args, namespace=namespace)
 
+        # delete vars created by shtab
+        if self.is_shtab_available():
+            sh_complete_attr = "print_shell_completion"
+            delattr(parsed, sh_complete_attr)
+
+        # always run YapxActions
         for a in self._actions:
             if (
                 isinstance(a, YapxAction)
@@ -538,6 +547,10 @@ class ArgumentParser(argparse.ArgumentParser):
     @staticmethod
     def is_pydantic_available() -> bool:
         return create_pydantic_model_from_dataclass.__module__ != __name__
+
+    @staticmethod
+    def is_shtab_available() -> bool:
+        return add_argument_to.__module__ != __name__
 
     def parse_known_args_to_model(
         self,
@@ -686,16 +699,13 @@ class ArgumentParser(argparse.ArgumentParser):
         _args: Optional[List[str]] = None,
         _prog: Optional[str] = None,
         _use_pydantic: Optional[bool] = True,
-        _add_sh_completion: Optional[bool] = False,
         _print_help: Optional[bool] = False,
         _docstring_description: Optional[bool] = True,
         **kwargs: Callable[..., Any],
     ) -> Any:
         parser_shared_kwargs: Dict[str, Any] = {"prog": _prog}
 
-        parser: ArgumentParser = cls(
-            add_sh_completion=_add_sh_completion, **parser_shared_kwargs
-        )
+        parser: ArgumentParser = cls(**parser_shared_kwargs)
 
         parser.set_defaults(
             **{cls.ARGS_ATTRIBUTE_NAME: None, cls.FUNC_ATTRIBUTE_NAME: None}
@@ -780,7 +790,6 @@ def run(
     _args: Optional[List[str]] = None,
     _prog: Optional[str] = None,
     _use_pydantic: Optional[bool] = True,
-    _add_sh_completion: Optional[bool] = False,
     _print_help: Optional[bool] = False,
     **kwargs: Callable[..., Any],
 ) -> Any:
@@ -790,7 +799,6 @@ def run(
         _args=_args,
         _prog=_prog,
         _use_pydantic=_use_pydantic,
-        _add_sh_completion=_add_sh_completion,
         _print_help=_print_help,
         **kwargs,
     )
@@ -801,7 +809,6 @@ def run_command(
     _args: Optional[List[str]] = None,
     _prog: Optional[str] = None,
     _use_pydantic: Optional[bool] = True,
-    _add_sh_completion: Optional[bool] = False,
     _print_help: Optional[bool] = False,
     **kwargs: Callable[..., Any],
 ) -> Any:
@@ -811,7 +818,6 @@ def run_command(
         _args=_args,
         _prog=_prog,
         _use_pydantic=_use_pydantic,
-        _add_sh_completion=_add_sh_completion,
         _print_help=_print_help,
         **kwargs,
     )

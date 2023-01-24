@@ -337,7 +337,7 @@ def test_add_arguments(
 
     # 3. ASSERT
     # pylint: disable=protected-access
-    parser_actions: List[Action] = parser._actions[1:]
+    parser_actions: List[Action] = parser._actions[2:]
     # pylint: disable=no-member
     assert len(parser_actions) == len(ArgsModel.__dataclass_fields__)
 
