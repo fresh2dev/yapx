@@ -574,13 +574,18 @@ class ArgumentParser(argparse.ArgumentParser):
         self,
         args: Optional[Sequence[str]] = None,
         args_model: Optional[Type[Dataclass]] = None,
+        skip_pydantic_validation: bool = False,
     ) -> Tuple[Dataclass, List[str]]:
         parsed_args: argparse.Namespace
         unknown_args: List[str]
         parsed_args, unknown_args = self.parse_known_args(args)
 
         return (
-            self._parse_args_to_model(args=parsed_args, args_model=args_model),
+            self._parse_args_to_model(
+                args=parsed_args,
+                args_model=args_model,
+                skip_pydantic_validation=skip_pydantic_validation,
+            ),
             unknown_args,
         )
 
@@ -588,14 +593,20 @@ class ArgumentParser(argparse.ArgumentParser):
         self,
         args: Optional[Sequence[str]] = None,
         args_model: Optional[Type[Dataclass]] = None,
+        skip_pydantic_validation: bool = False,
     ) -> Dataclass:
         parsed_args: argparse.Namespace = self.parse_args(args)
-        return self._parse_args_to_model(args=parsed_args, args_model=args_model)
+        return self._parse_args_to_model(
+            args=parsed_args,
+            args_model=args_model,
+            skip_pydantic_validation=skip_pydantic_validation,
+        )
 
     def _parse_args_to_model(
         self,
         args: argparse.Namespace,
         args_model: Optional[Type[Dataclass]] = None,
+        skip_pydantic_validation: bool = False,
     ) -> Dataclass:
         parsed_args: Dict[str, Any] = vars(args)
 
@@ -608,7 +619,7 @@ class ArgumentParser(argparse.ArgumentParser):
             args_dict=parsed_args, args_model=args_model
         )
 
-        if self.is_pydantic_available():
+        if not skip_pydantic_validation and self.is_pydantic_available():
             args_union = vars(
                 create_pydantic_model_from_dataclass(args_model)(**args_union)
             )
