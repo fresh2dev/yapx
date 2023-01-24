@@ -3,12 +3,12 @@ version: "3.9"
 
 networks:
   proxy:
-    name: ${PROXY_NETWORK}
+    name: ${HB_PROXY_NETWORK}
     external: true
 
 services:
   app:
-    image: ${IMAGE_REGISTRY:?}/${IMAGE_REPO}:${IMAGE_TAG:-latest}
+    image: ${HB_IMAGE_REGISTRY:?}/${HB_IMAGE_OWNER:?}/${COMPOSE_PROJECT_NAME:?}:${HB_IMAGE_TAG:?}
     networks:
       - proxy
     healthcheck:
@@ -39,7 +39,7 @@ services:
       labels:
         # enable traefik
         - "traefik.enable=true"
-        - "traefik.docker.network=${PROXY_NETWORK:?}"
+        - "traefik.docker.network=${HB_PROXY_NETWORK:?}"
         # define load balancer.
         - "traefik.http.services.${COMPOSE_PROJECT_NAME:?}_${APP_SVC_ID:?}.loadbalancer.server.port=${APP_HTTP_PORT:?}"
         - "traefik.http.services.${COMPOSE_PROJECT_NAME:?}_${APP_SVC_ID:?}.loadbalancer.server.scheme=${APP_HTTP_PROTOCOL:-http}"
@@ -48,7 +48,7 @@ services:
         - "traefik.http.services.${COMPOSE_PROJECT_NAME:?}_${APP_SVC_ID:?}.loadbalancer.sticky.cookie.name=StickySessionCookie_${COMPOSE_PROJECT_NAME:?}_${APP_SVC_ID:?}"
         # define https entrypoint.
         - "traefik.http.routers.${COMPOSE_PROJECT_NAME:?}_${APP_SVC_ID:?}.entrypoints=websecure"
-        - "traefik.http.routers.${COMPOSE_PROJECT_NAME:?}_${APP_SVC_ID:?}.rule=(Host(`${APP_SUBDOMAIN}${DOMAIN:?}`) && PathPrefix(`/${APP_ROUTE_PREFIX}`))${APP_EXTRA_ROUTES:-}"
+        - "traefik.http.routers.${COMPOSE_PROJECT_NAME:?}_${APP_SVC_ID:?}.rule=(Host(`${APP_SUBDOMAIN}${HB_DOMAIN:?}`) && PathPrefix(`/${APP_ROUTE_PREFIX}`))${APP_EXTRA_ROUTES:-}"
         - "traefik.http.routers.${COMPOSE_PROJECT_NAME:?}_${APP_SVC_ID:?}.tls=true"
         # - "traefik.http.routers.${COMPOSE_PROJECT_NAME:?}_${APP_SVC_ID:?}.tls.certresolver=letsencrypt"
         # strip prefixes.

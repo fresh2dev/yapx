@@ -31,9 +31,9 @@ def _split_csv_sequence(
         return (
             txt
             if is_instance(txt, target_type)
-            else target_type[txt]
-            if is_subclass(target_type, Enum)
-            else target_type(txt)
+            else (
+                target_type[txt] if is_subclass(target_type, Enum) else target_type(txt)
+            )
         )
 
     if isinstance(values, str) and values:
@@ -141,9 +141,11 @@ def split_csv_to_dict(
 
     if split_values is not None:
         return {
-            x_split[0].strip(): None
-            if len(x_split) < 2
-            else coalesce(x_split[1].strip(), None, null_or_empty=True)
+            x_split[0].strip(): (
+                None
+                if len(x_split) < 2
+                else coalesce(x_split[1].strip(), None, null_or_empty=True)
+            )
             for x in split_values
             if x
             for x_split in [x.split(parser.kv_separator, maxsplit=1)]
