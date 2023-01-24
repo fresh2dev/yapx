@@ -21,7 +21,11 @@ from typing import (
     Union,
 )
 
-from yapx.exceptions import ArgumentConflictError, ParserClosedError
+from yapx.exceptions import (
+    ArgumentConflictError,
+    ParserClosedError,
+    UnsupportedTypeError,
+)
 
 from .actions import (
     split_csv,
@@ -335,13 +339,13 @@ class ArgumentParser(argparse.ArgumentParser):
                             else:
                                 argparse_argument.action = split_csv
                     elif not cls.is_pydantic_available():
-                        raise TypeError(f"Unsupported type: {fld_type.__name__}")
+                        cls._raise_unsupported_type_error(fld_type)
 
                     if is_subclass(fld_type, Enum):
                         argparse_argument.choices = [x.name for x in fld_type]
 
-                    # store desired types for casting later
                     if isinstance(parser, cls):
+                        # store desired types for casting later
                         if fld_type in (str, int, float) or is_subclass(fld_type, Enum):
                             # pylint: disable=protected-access
                             parser._inner_type_conversions[
@@ -352,6 +356,8 @@ class ArgumentParser(argparse.ArgumentParser):
                             parser._inner_type_conversions[
                                 argparse_argument.dest
                             ] = str2bool
+                        elif not cls.is_pydantic_available():
+                            cls._raise_unsupported_type_error(fld_type)
 
                     # type-containers must only contain strings
                     # until parsed by argparse.
@@ -367,6 +373,8 @@ class ArgumentParser(argparse.ArgumentParser):
 
             if fld_type in (str, int, float, bool):
                 argparse_argument.type = fld_type
+            elif not cls.is_pydantic_available():
+                cls._raise_unsupported_type_error(fld_type)
             else:
                 argparse_argument.type = str
 
@@ -436,6 +444,16 @@ class ArgumentParser(argparse.ArgumentParser):
             else:
                 parser_optional_args["optional"].add_argument(*args, **kwargs)
 
+    @classmethod
+    def _raise_unsupported_type_error(cls, fld_type):
+        fld_type_name: str = (
+            fld_type.__name__ if hasattr(fld_type, "__name__") else str(fld_type)
+        )
+        raise UnsupportedTypeError(
+            f"Unsupported type: {fld_type_name}\n"
+            "Install 'pydantic' to support more types."
+        )
+
     @staticmethod
     def _get_type_origin(t: Type[Any]) -> Optional[Type[Any]]:
         return getattr(t, "__origin__", None)
@@ -479,7 +497,7 @@ class ArgumentParser(argparse.ArgumentParser):
                     raise TypeError("Dictionary keys must be type `str`")
                 type_container_subtype = value_type
         elif not cls.is_pydantic_available():
-            raise TypeError(f"Unsupported type: {type_container.__name__}")
+            cls._raise_unsupported_type_error(type_container)
 
         if not results:
             raise TypeError("Too many types in container")
@@ -497,7 +515,7 @@ class ArgumentParser(argparse.ArgumentParser):
             and type_container_subtype_origin
             and not cls.is_pydantic_available()
         ):
-            raise TypeError(f"Unsupported type: {str(type_container_subtype_origin)}")
+            cls._raise_unsupported_type_error(type_container_subtype_origin)
 
         return type_container_subtype
 
@@ -556,16 +574,13 @@ class ArgumentParser(argparse.ArgumentParser):
         self,
         args: Optional[Sequence[str]] = None,
         args_model: Optional[Type[Dataclass]] = None,
-        use_pydantic: Optional[bool] = True,
     ) -> Tuple[Dataclass, List[str]]:
         parsed_args: argparse.Namespace
         unknown_args: List[str]
         parsed_args, unknown_args = self.parse_known_args(args)
 
         return (
-            self._parse_args_to_model(
-                args=parsed_args, args_model=args_model, use_pydantic=use_pydantic
-            ),
+            self._parse_args_to_model(args=parsed_args, args_model=args_model),
             unknown_args,
         )
 
@@ -573,18 +588,14 @@ class ArgumentParser(argparse.ArgumentParser):
         self,
         args: Optional[Sequence[str]] = None,
         args_model: Optional[Type[Dataclass]] = None,
-        use_pydantic: Optional[bool] = True,
     ) -> Dataclass:
         parsed_args: argparse.Namespace = self.parse_args(args)
-        return self._parse_args_to_model(
-            args=parsed_args, args_model=args_model, use_pydantic=use_pydantic
-        )
+        return self._parse_args_to_model(args=parsed_args, args_model=args_model)
 
     def _parse_args_to_model(
         self,
         args: argparse.Namespace,
         args_model: Optional[Type[Dataclass]] = None,
-        use_pydantic: Optional[bool] = True,
     ) -> Dataclass:
         parsed_args: Dict[str, Any] = vars(args)
 
@@ -597,13 +608,10 @@ class ArgumentParser(argparse.ArgumentParser):
             args_dict=parsed_args, args_model=args_model
         )
 
-        if use_pydantic:
-            if not self.is_pydantic_available():
-                pass
-            else:
-                args_union = vars(
-                    create_pydantic_model_from_dataclass(args_model)(**args_union)
-                )
+        if self.is_pydantic_available():
+            args_union = vars(
+                create_pydantic_model_from_dataclass(args_model)(**args_union)
+            )
 
         return args_model(**args_union)
 
@@ -683,11 +691,10 @@ class ArgumentParser(argparse.ArgumentParser):
         func: Optional[Callable[..., Any]] = None,
         args_model: Optional[Type[Any]] = None,
         args: Optional[List[str]] = None,
-        use_pydantic: Optional[bool] = True,
     ) -> Any:
         if func:
             model_inst: Dataclass = parser.parse_args_to_model(
-                args=args, args_model=args_model, use_pydantic=use_pydantic
+                args=args, args_model=args_model
             )
             return func(**vars(model_inst))
         return None
@@ -698,7 +705,6 @@ class ArgumentParser(argparse.ArgumentParser):
         *args: Optional[Callable[..., Any]],
         _args: Optional[List[str]] = None,
         _prog: Optional[str] = None,
-        _use_pydantic: Optional[bool] = True,
         _print_help: Optional[bool] = False,
         _docstring_description: Optional[bool] = True,
         **kwargs: Callable[..., Any],
@@ -758,7 +764,6 @@ class ArgumentParser(argparse.ArgumentParser):
             func=setup_func,
             args_model=setup_func_arg_model,
             args=_args,
-            use_pydantic=_use_pydantic,
         )
 
         if is_instance(setup_result, GeneratorType):
@@ -774,7 +779,6 @@ class ArgumentParser(argparse.ArgumentParser):
                     func=func,
                     args_model=args_model,
                     args=_args,
-                    use_pydantic=_use_pydantic,
                 )
         finally:
             if is_instance(setup_result, GeneratorType):
@@ -789,7 +793,6 @@ def run(
     *args: Optional[Callable[..., Any]],
     _args: Optional[List[str]] = None,
     _prog: Optional[str] = None,
-    _use_pydantic: Optional[bool] = True,
     _print_help: Optional[bool] = False,
     **kwargs: Callable[..., Any],
 ) -> Any:
@@ -798,7 +801,6 @@ def run(
         *args,
         _args=_args,
         _prog=_prog,
-        _use_pydantic=_use_pydantic,
         _print_help=_print_help,
         **kwargs,
     )
@@ -808,7 +810,6 @@ def run_command(
     *args: Callable[..., Any],
     _args: Optional[List[str]] = None,
     _prog: Optional[str] = None,
-    _use_pydantic: Optional[bool] = True,
     _print_help: Optional[bool] = False,
     **kwargs: Callable[..., Any],
 ) -> Any:
@@ -817,7 +818,6 @@ def run_command(
         *args,
         _args=_args,
         _prog=_prog,
-        _use_pydantic=_use_pydantic,
         _print_help=_print_help,
         **kwargs,
     )
