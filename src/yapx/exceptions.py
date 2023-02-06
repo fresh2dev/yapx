@@ -8,3 +8,7 @@ class ParserClosedError(Exception):
 
 class UnsupportedTypeError(Exception):
     ...
+
+
+class NoArgsModelError(Exception):
+    ...

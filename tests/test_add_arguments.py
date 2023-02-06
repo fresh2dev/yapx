@@ -440,7 +440,7 @@ def test_add_arguments_modern():
     # 2. ACT
     parser: yapx.ArgumentParser = yapx.ArgumentParser()
     parser.add_arguments(func)
-    args: Dict[str, str] = vars(parser.parse_args([]))
+    args: dict[str, str] = vars(parser.parse_args([]))
 
     # 3. ASSERT
     assert args

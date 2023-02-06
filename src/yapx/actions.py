@@ -51,6 +51,9 @@ def _split_csv_sequence(
     list_prefix: str = "list["
     list_suffix: str = "]"
 
+    if all(x.endswith(",") for x in values[:-1]):
+        values = [x.rstrip(",") for x in values]
+
     for value in values:
         value_clean: str = value.strip()
 
@@ -60,10 +63,12 @@ def _split_csv_sequence(
             and value_clean.lower().endswith(list_suffix)
         ):
             all_values.extend(
-                _cast_type(x, target_type=target_type)
-                for x in shlex.split(
-                    value_clean[len(list_prefix) : -len(list_suffix)].strip()
-                )
+                _split_csv_sequence(
+                    values=shlex.split(
+                        value_clean[len(list_prefix) : -len(list_suffix)].strip(),
+                    ),
+                    target_type=target_type,
+                ),
             )
         else:
             all_values.append(_cast_type(value, target_type=target_type))

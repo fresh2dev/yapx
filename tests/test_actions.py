@@ -148,17 +148,17 @@ def test_split_csv_to_dict():
     }
     cli_args = [
         "--values",
-        "1",
-        "1",
-        "1",
-        "1",
-        "2",
-        "3",
-        " 4 = hello",
-        "5",
-        "6  = world ",
-        " 7 = ",
-        " 8 9 ",
+        "1,",
+        "1,",
+        "1,",
+        "1,",
+        "2,",
+        "3,",
+        " 4 = hello,",
+        "5,",
+        "6  = world,",
+        " 7 = ,",
+        " 8 9 ,",
     ]
 
     expected_action_name: str = "split_csv_to_dict"
