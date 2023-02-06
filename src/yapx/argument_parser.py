@@ -23,6 +23,7 @@ from typing import (
 
 from yapx.exceptions import (
     ArgumentConflictError,
+    NoArgsModelError,
     ParserClosedError,
     UnsupportedTypeError,
 )
@@ -233,7 +234,9 @@ class ArgumentParser(argparse.ArgumentParser):
             lambda: parser.add_argument_group("optional arguments")
         )
         parser_exclusive_args: Dict[str, argparse._ArgumentGroup] = defaultdict(
-            parser.add_mutually_exclusive_group
+            lambda: parser.add_argument_group(
+                "mutually-exclusive arguments"
+            ).add_mutually_exclusive_group()
         )
 
         parser_arg_groups: Dict[str, argparse._ArgumentGroup] = {}
@@ -364,6 +367,7 @@ class ArgumentParser(argparse.ArgumentParser):
                     fld_type = str
 
                     argparse_argument.nargs = "+" if argparse_argument.required else "*"
+
             elif is_subclass(fld_type, Enum):
                 argparse_argument.choices = [x.name for x in fld_type]
                 argparse_argument.action = str2enum
@@ -613,7 +617,7 @@ class ArgumentParser(argparse.ArgumentParser):
         if not args_model:
             args_model = parsed_args.get(self.ARGS_ATTRIBUTE_NAME)
             if not args_model:
-                raise Exception("No arg model provided")
+                raise NoArgsModelError()
 
         args_union: Dict[str, Any] = self._union_args_with_model(
             args_dict=parsed_args, args_model=args_model
