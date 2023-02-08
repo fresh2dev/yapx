@@ -1,13 +1,6 @@
 kind: template
 load: hostbutter.jsonnet
 data:
-  projectName: ${DRONE_REPO}
-  gitSshKey: default
-  ciImageRegistry: "registry.lokalhost.net"
-  domains: >-
-    ["lokalhost.net", "fresh2.dev"]
-  domainContexts: >-
-    {}
   domainTriggers: >-
     {
       "lokalhost.net": {},
@@ -15,14 +8,9 @@ data:
         "ref": ["refs/heads/main", "refs/tags/*"]
       }
     }
-  pushRemotes: >-
+  domainClusterMap: >-
     {}
-  imageTags: ""
-  useDinD: false
   dockerHubUser: ""
-  deployStack: true
-  deployCommands: >-
-    {}
   secrets: >-
     []
   secretFiles: >-
@@ -37,7 +25,7 @@ data:
     [
       {
         "name": "build-reports",
-        "image": "registry.lokalhost.net/fresh2dev/myke-ci:0.0.1a12",
+        "image": "registry.lokalhost.net/fresh2dev/myke-ci:0.0.1a14",
         "commands": [
           "myke py-requirements",
           "myke py-reports"
@@ -50,7 +38,7 @@ data:
     [
       {
         "name": "py-build-package",
-        "image": "registry.lokalhost.net/fresh2dev/myke-ci:0.0.1a12",
+        "image": "registry.lokalhost.net/fresh2dev/myke-ci:0.0.1a14",
         "environment": {
           "PYPI_CREDS": {"from_secret": "PYPI_CREDS"}
         },
@@ -64,7 +52,7 @@ data:
       },
       {
         "name": "py-publish-sandbox",
-        "image": "registry.lokalhost.net/fresh2dev/myke-ci:0.0.1a12",
+        "image": "registry.lokalhost.net/fresh2dev/myke-ci:0.0.1a14",
         "environment": {
           "PYPI_CREDS": {"from_secret": "PYPI_CREDS"},
           "TWINE_CERT": "/etc/ssl/certs/ca-certificates.crt"
@@ -78,7 +66,7 @@ data:
       },
       {
         "name": "py-publish-dev",
-        "image": "registry.lokalhost.net/fresh2dev/myke-ci:0.0.1a12",
+        "image": "registry.lokalhost.net/fresh2dev/myke-ci:0.0.1a14",
         "environment": {
           "PYPI_CREDS": {"from_secret": "PYPI_CREDS"},
           "TWINE_CERT": "/etc/ssl/certs/ca-certificates.crt"
@@ -94,7 +82,7 @@ data:
       },
       {
         "name": "py-publish-test",
-        "image": "registry.lokalhost.net/fresh2dev/myke-ci:0.0.1a12",
+        "image": "registry.lokalhost.net/fresh2dev/myke-ci:0.0.1a14",
         "environment": {
           "PYPI_CREDS": {"from_secret": "PYPI_CREDS"},
           "TWINE_CERT": "/etc/ssl/certs/ca-certificates.crt"
@@ -110,7 +98,7 @@ data:
       },
       {
         "name": "py-publish-prod",
-        "image": "registry.lokalhost.net/fresh2dev/myke-ci:0.0.1a12",
+        "image": "registry.lokalhost.net/fresh2dev/myke-ci:0.0.1a14",
         "environment": {
           "PYPI_CREDS": {"from_secret": "PYPI_CREDS"},
           "TWINE_CERT": "/etc/ssl/certs/ca-certificates.crt"
