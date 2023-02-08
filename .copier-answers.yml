@@ -1,11 +1,11 @@
 # Changes here will be overwritten by Copier
-_commit: d107d66
-_src_path: https://codeberg.org/Fresh2dev/copier-f2d-project.git
+_commit: 2d22194
+_src_path: https://codeberg.org/Fresh2dev/copier-f2dv-project.git
 author_email: hello@Fresh2.dev
 author_name: donald
 ci_domain_name: lokalhost.net
 docs_url: https://www.Fresh2.dev/code/r/yapx/i
-funding_url: https://www.Fresh2.dev/tip
+funding_url: https://www.Fresh2.dev/funding
 home_page: https://www.Fresh2.dev
 is_python: true
 package_name: yapx
