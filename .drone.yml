@@ -1,6 +1,8 @@
 kind: template
 load: hostbutter.jsonnet
 data:
+  domains: >-
+    ["lokalhost.net", "fresh2.dev"]
   domainTriggers: >-
     {
       "lokalhost.net": {},
@@ -19,8 +21,6 @@ data:
     }
   volumes: >-
     []
-  domainVars: >-
-    {}
   beforeSteps: >-
     [
       {
