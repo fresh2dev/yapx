@@ -111,20 +111,22 @@ def test_build_dataclass_from_func_no_anno():
             "name": "value",
             "type": str,
             "default": MISSING,
-        }
+        },
     }
     expected_metadata_field_props: Dict[str, Dict[str, Any]] = {
-        "value": ArgparseArg().asdict()
+        "value": ArgparseArg().asdict(),
     }
 
     # 2. ACT
     model: Type[yapx.types.Dataclass] = yapx.utils.make_dataclass_from_func(
-        lambda value: ...
+        lambda value: ...,
     )
 
     # 3. ASSERT
     _assert_model_field_attributes(
-        model, expected_field_props, expected_metadata_field_props
+        model,
+        expected_field_props,
+        expected_metadata_field_props,
     )
 
 
@@ -140,10 +142,10 @@ def test_build_dataclass_from_func_none_anno():
             "name": "value",
             "type": Optional[str],
             "default": None,
-        }
+        },
     }
     expected_metadata_field_props: Dict[str, Dict[str, Any]] = {
-        "value": ArgparseArg(required=False).asdict()
+        "value": ArgparseArg(required=False).asdict(),
     }
 
     # 2. ACT
@@ -151,7 +153,9 @@ def test_build_dataclass_from_func_none_anno():
 
     # 3. ASSERT
     _assert_model_field_attributes(
-        model, expected_field_props, expected_metadata_field_props
+        model,
+        expected_field_props,
+        expected_metadata_field_props,
     )
 
     assert model.__doc__ == func.__doc__
@@ -168,10 +172,10 @@ def test_build_dataclass_from_func_default():
             "name": "value",
             "type": float,
             "default": 3.14,
-        }
+        },
     }
     expected_metadata_field_props: Dict[str, Dict[str, Any]] = {
-        "value": ArgparseArg(required=False, default=3.14).asdict()
+        "value": ArgparseArg(required=False, default=3.14).asdict(),
     }
 
     # 2. ACT
@@ -179,7 +183,9 @@ def test_build_dataclass_from_func_default():
 
     # 3. ASSERT
     _assert_model_field_attributes(
-        model, expected_field_props, expected_metadata_field_props
+        model,
+        expected_field_props,
+        expected_metadata_field_props,
     )
 
 
@@ -194,10 +200,10 @@ def test_build_dataclass_from_func_argfield_default():
             "name": "value",
             "type": float,
             "default": 3.14,
-        }
+        },
     }
     expected_metadata_field_props: Dict[str, Dict[str, Any]] = {
-        "value": ArgparseArg(required=False, default=3.14).asdict()
+        "value": ArgparseArg(required=False, default=3.14).asdict(),
     }
 
     # 2. ACT
@@ -205,7 +211,9 @@ def test_build_dataclass_from_func_argfield_default():
 
     # 3. ASSERT
     _assert_model_field_attributes(
-        model, expected_field_props, expected_metadata_field_props
+        model,
+        expected_field_props,
+        expected_metadata_field_props,
     )
 
 
@@ -225,10 +233,10 @@ def test_build_dataclass_from_func_argfield_envvar():
             "name": "value",
             "type": str,
             "default": "3.1415",
-        }
+        },
     }
     expected_metadata_field_props: Dict[str, Dict[str, Any]] = {
-        "value": ArgparseArg(required=False, default="3.1415").asdict()
+        "value": ArgparseArg(required=False, default="3.1415").asdict(),
     }
 
     # 2. ACT
@@ -236,7 +244,9 @@ def test_build_dataclass_from_func_argfield_envvar():
 
     # 3. ASSERT
     _assert_model_field_attributes(
-        model, expected_field_props, expected_metadata_field_props
+        model,
+        expected_field_props,
+        expected_metadata_field_props,
     )
 
 
@@ -261,10 +271,10 @@ def test_build_dataclass_from_func_argfield_envvar_file(clean_dir):
             "name": "value",
             "type": str,
             "default": "3.1415",
-        }
+        },
     }
     expected_metadata_field_props: Dict[str, Dict[str, Any]] = {
-        "value": ArgparseArg(required=False, default="3.1415").asdict()
+        "value": ArgparseArg(required=False, default="3.1415").asdict(),
     }
 
     # 2. ACT
@@ -272,5 +282,7 @@ def test_build_dataclass_from_func_argfield_envvar_file(clean_dir):
 
     # 3. ASSERT
     _assert_model_field_attributes(
-        model, expected_field_props, expected_metadata_field_props
+        model,
+        expected_field_props,
+        expected_metadata_field_props,
     )
