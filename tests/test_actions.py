@@ -193,7 +193,7 @@ def test_str2enum():
         value_seq: Optional[Sequence[MyEnum]]
         value_default: Optional[MyEnum] = MyEnum.two
         value_seq_default: Optional[Sequence[MyEnum]] = yapx.arg(
-            default=lambda: [MyEnum.three]
+            default=lambda: [MyEnum.three],
         )
         value_int_default: Optional[Sequence[int]] = yapx.arg(default=lambda: [3, 2, 1])
 

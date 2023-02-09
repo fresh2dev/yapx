@@ -1,11 +1,12 @@
+import sys
 from typing import Any, Dict, Optional, Sequence, Union
 
 __all__ = ["Dataclass", "ArgumentParser", "NoneType", "ArgValueType"]
 
 
-try:
+if sys.version_info >= (3, 8):
     from typing import Protocol
-except ImportError:
+else:
     from typing_extensions import Protocol
 
 NoneType = type(None)

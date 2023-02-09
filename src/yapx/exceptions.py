@@ -1,3 +1,6 @@
+x = 5
+
+
 class ArgumentConflictError(Exception):
     ...
 

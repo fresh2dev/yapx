@@ -1,21 +1,32 @@
 import os
+import sys
 from argparse import Action
 from contextlib import suppress
 from dataclasses import MISSING, Field, dataclass, field, make_dataclass
 from inspect import _empty, signature
-from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Type, Union
-
-from typing_extensions import Literal  # pylint: disable=unused-import
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Sequence,
+    Tuple,
+    Type,
+    Union,
+    get_type_hints,
+)
 
 from .types import Dataclass
 
+if sys.version_info >= (3, 8):
+    from typing import Literal  # pylint: disable=unused-import
+else:
+    from typing_extensions import Literal  # pylint: disable=unused-import
+
+
 __all__ = ["arg"]
 
-
-try:
-    from typing import get_type_hints
-except ImportError:
-    from typing_extensions import get_type_hints
 
 ARGPARSE_ARG_METADATA_KEY: str = "_argparse_argument"
 
@@ -89,7 +100,7 @@ def arg(
             help=help,
             metavar=metavar,
             _env_var=env,
-        )
+        ),
     }
 
     kwargs: Dict[str, Any] = {"metadata": metadata}
@@ -214,8 +225,10 @@ def make_dataclass_from_func(
                     annotation = type_of_default
                 else:
                     raise TypeError(
-                        f"Provide explicit type annotation for '{param.name}' "
-                        f"(type  of default is '{type_of_default})'"
+                        (
+                            f"Provide explicit type annotation for '{param.name}' "
+                            f"(type  of default is '{type_of_default})'"
+                        ),
                     )
 
         fields.append((param.name, annotation, field_metadata))
