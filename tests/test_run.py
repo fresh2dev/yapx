@@ -376,7 +376,9 @@ def test_run_ipv4address(use_pydantic: bool):
             ).start()
 
             with mock.patch.object(
-                yapx.argument_parser.sys, "argv", [""] + cli_args
+                yapx.argument_parser.sys,
+                "argv",
+                [""] + cli_args,
             ), pytest.raises(yapx.exceptions.UnsupportedTypeError):
                 yapx.run(_func)
             return
@@ -423,7 +425,9 @@ def test_run_patterns(use_pydantic: bool):
             ).start()
 
             with mock.patch.object(
-                yapx.argument_parser.sys, "argv", [""] + cli_args
+                yapx.argument_parser.sys,
+                "argv",
+                [""] + cli_args,
             ), pytest.raises(yapx.exceptions.UnsupportedTypeError):
                 yapx.run(_func)
             return
@@ -470,7 +474,9 @@ def test_run_pattern(use_pydantic: bool):
             ).start()
 
             with mock.patch.object(
-                yapx.argument_parser.sys, "argv", [""] + cli_args
+                yapx.argument_parser.sys,
+                "argv",
+                [""] + cli_args,
             ), pytest.raises(yapx.exceptions.UnsupportedTypeError):
                 yapx.run(_func)
             return

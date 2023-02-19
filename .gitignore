@@ -1,18 +1,20 @@
-secrets/
-!.keep
-*.tmp
+**/secrets
+!**/*.keep
+**/*.tmp
+/public
 
-/public/
+/requirements.txt
+/dist
+/build
 
-requirements.txt
-dist/
-build/
-*.egg-info/
-
-.mypy_cache/
-__pycache__/
-.pytest_cache/
-.hypothesis/
-.coverage
-.tox/
-.idea/
+**/.coverage
+**/.hypothesis
+**/.tox
+**/.idea
+**/.vscode
+**/*.egg-info
+**/.mypy_cache
+**/__pycache__
+**/.pytest_cache
+**/.ropeproject
+**/.ruff_cache

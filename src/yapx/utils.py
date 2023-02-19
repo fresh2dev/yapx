@@ -1,4 +1,5 @@
 import dataclasses
+import sys
 from contextlib import suppress
 from typing import Any, Dict, List, Tuple, Type
 
@@ -20,9 +21,9 @@ __all__ = [
 ]
 
 
-try:
+if sys.version_info >= (3, 10):
     from typing import TypeGuard
-except ImportError:
+else:
     from typing_extensions import TypeGuard
 
 
@@ -53,7 +54,8 @@ def coalesce(x: Any, d: Any, null_or_empty: bool = False) -> Any:
 
 
 def parse_sequence(
-    *args: str, kv_separator: str = "="
+    *args: str,
+    kv_separator: str = "=",
 ) -> Tuple[List[str], Dict[str, str]]:
     parsed_args: List[str] = []
     parsed_kwargs: Dict[str, str] = {}

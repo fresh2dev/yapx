@@ -64,5 +64,6 @@ def fixture_env() -> Generator[None, None, None]:
 @pytest.fixture(name="version_regex", scope="session")
 def fixture_version_regex() -> Pattern:
     return re.compile(
-        r"^\s*" + VERSION_PATTERN + r"\s*$", flags=re.VERBOSE | re.IGNORECASE
+        r"^\s*" + VERSION_PATTERN + r"\s*$",
+        flags=re.VERBOSE | re.IGNORECASE,
     )

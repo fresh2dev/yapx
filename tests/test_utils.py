@@ -48,7 +48,13 @@ def test_coalesce():
 
 def test_parse_sequence():
     args, kwargs = yapx.utils.parse_sequence(
-        None, "1", "two=2", "3", " four = 4 ", None, "five="
+        None,
+        "1",
+        "two=2",
+        "3",
+        " four = 4 ",
+        None,
+        "five=",
     )
     assert args == [None, "1", "3", None]
     assert kwargs == {"two": "2", "four": "4", "five": None}
