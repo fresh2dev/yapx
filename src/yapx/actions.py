@@ -141,7 +141,8 @@ def split_csv_to_dict(
     **kwargs: Any,
 ) -> Optional[Dict[str, Optional[Any]]]:
     split_values: Optional[List[Optional[Any]]] = _split_csv_sequence(
-        values, target_type=str
+        values,
+        target_type=str,
     )
 
     if split_values is not None:

@@ -1,13 +1,14 @@
-secrets/
-!.keep
-*.tmp
+**/.git
 
-.mypy_cache/
-__pycache__/
-.pytest_cache/
-.hypothesis/
-.coverage
-.tox/
-.idea/
-
-.git
+**/secrets
+!**/*.keep
+**/*.tmp/build
+**/.coverage
+**/.hypothesis
+**/.tox
+**/.idea
+**/.vscode
+**/*.egg-info
+**/.mypy_cache
+**/__pycache__
+**/.pytest_cache

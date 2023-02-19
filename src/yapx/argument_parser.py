@@ -67,10 +67,11 @@ except ModuleNotFoundError:
         ...
 
 
-try:
+if sys.version_info >= (3, 8):
     from typing import Literal
-except ImportError:
+else:
     from typing_extensions import Literal
+
 
 T = TypeVar("T")
 
@@ -97,7 +98,8 @@ class ArgumentParser(argparse.ArgumentParser):
         self._inner_type_conversions: Dict[str, Union[type, Callable[[str], Any]]] = {}
 
     def add_arguments(
-        self, args_model: Union[Callable[..., Any], Type[Dataclass]]
+        self,
+        args_model: Union[Callable[..., Any], Type[Dataclass]],
     ) -> None:
         self._add_arguments(self, args_model)
 
@@ -134,7 +136,11 @@ class ArgumentParser(argparse.ArgumentParser):
         )
 
         parser = subparsers.add_parser(
-            name, prog=prog, add_help=add_help, help=help_txt, **kwargs
+            name,
+            prog=prog,
+            add_help=add_help,
+            help=help_txt,
+            **kwargs,
         )
         assert isinstance(parser, argparse.ArgumentParser)
 
@@ -223,20 +229,20 @@ class ArgumentParser(argparse.ArgumentParser):
 
         if parser.get_default(cls.ARGS_ATTRIBUTE_NAME):
             raise ParserClosedError(
-                "This parser already has args from another dataclass"
+                "This parser already has args from another dataclass",
             )
         parser.set_defaults(**{cls.ARGS_ATTRIBUTE_NAME: model})
 
         parser_required_args: Dict[str, argparse._ArgumentGroup] = defaultdict(
-            lambda: parser.add_argument_group("required arguments")
+            lambda: parser.add_argument_group("required arguments"),
         )
         parser_optional_args: Dict[str, argparse._ArgumentGroup] = defaultdict(
-            lambda: parser.add_argument_group("optional arguments")
+            lambda: parser.add_argument_group("optional arguments"),
         )
         parser_exclusive_args: Dict[str, argparse._ArgumentGroup] = defaultdict(
             lambda: parser.add_argument_group(
-                "mutually-exclusive arguments"
-            ).add_mutually_exclusive_group()
+                "mutually-exclusive arguments",
+            ).add_mutually_exclusive_group(),
         )
 
         parser_arg_groups: Dict[str, argparse._ArgumentGroup] = {}
@@ -245,7 +251,7 @@ class ArgumentParser(argparse.ArgumentParser):
             filter(
                 lambda f: not cls._is_attribute_inherited(dcls=model, attr=f.name),
                 fields(model),
-            )
+            ),
         )
 
         novel_field_args: List[Tuple[Field, ArgparseArg]] = [
@@ -259,7 +265,7 @@ class ArgumentParser(argparse.ArgumentParser):
             if argparse_argument.option_strings:
                 if isinstance(argparse_argument.option_strings, str):
                     argparse_argument.option_strings = [
-                        argparse_argument.option_strings
+                        argparse_argument.option_strings,
                     ]
                 for x in argparse_argument.option_strings:
                     registered_flags.append(x)
@@ -278,7 +284,7 @@ class ArgumentParser(argparse.ArgumentParser):
 
                 if not arg_flags:
                     raise ArgumentConflictError(
-                        f"Derived flag name already in use: {long_flag}"
+                        f"Derived flag name already in use: {long_flag}",
                     )
 
                 argparse_argument.option_strings = arg_flags
@@ -323,7 +329,8 @@ class ArgumentParser(argparse.ArgumentParser):
                     # this is a type-container (List, Set, Tuple, Dict, ...)
                     if is_subclass(fld_type_origin, collections.abc.Mapping):
                         fld_type = cls._extract_type_from_container(
-                            fld_type, assert_primitive=True
+                            fld_type,
+                            assert_primitive=True,
                         )
                         if not argparse_argument.action:
                             argparse_argument.action = split_csv_to_dict
@@ -332,7 +339,8 @@ class ArgumentParser(argparse.ArgumentParser):
                         or fld_type_origin is set
                     ):
                         fld_type = cls._extract_type_from_container(
-                            fld_type, assert_primitive=True
+                            fld_type,
+                            assert_primitive=True,
                         )
                         if not argparse_argument.action:
                             if fld_type_origin is set:
@@ -439,7 +447,8 @@ class ArgumentParser(argparse.ArgumentParser):
                 parser_exclusive_args["exclusive"].add_argument(*args, **kwargs)
             elif group:
                 arg_group: argparse._ArgumentGroup = parser_arg_groups.get(
-                    group, parser.add_argument_group(group)
+                    group,
+                    parser.add_argument_group(group),
                 )
                 arg_group.add_argument(*args, **kwargs)
                 parser_arg_groups[group] = arg_group
@@ -454,8 +463,10 @@ class ArgumentParser(argparse.ArgumentParser):
             fld_type.__name__ if hasattr(fld_type, "__name__") else str(fld_type)
         )
         raise UnsupportedTypeError(
-            f"Unsupported type: {fld_type_name}\n"
-            "Install 'pydantic' to support more types."
+            (
+                f"Unsupported type: {fld_type_name}\n"
+                "Install 'pydantic' to support more types."
+            ),
         )
 
     @staticmethod
@@ -468,7 +479,9 @@ class ArgumentParser(argparse.ArgumentParser):
 
     @classmethod
     def _extract_type_from_container(
-        cls, type_container: Type[Any], assert_primitive: Optional[bool] = False
+        cls,
+        type_container: Type[Any],
+        assert_primitive: Optional[bool] = False,
     ) -> Type[Any]:
         type_container_origin: Any = cls._get_type_origin(type_container)
 
@@ -510,7 +523,7 @@ class ArgumentParser(argparse.ArgumentParser):
 
         if type_container_subtype_origin is Union:
             type_container_subtype = cls._extract_type_from_container(
-                type_container_subtype
+                type_container_subtype,
             )
             type_container_subtype_origin = cls._get_type_origin(type_container_subtype)
 
@@ -526,7 +539,8 @@ class ArgumentParser(argparse.ArgumentParser):
     def _get_subparsers(self) -> Optional[argparse._SubParsersAction]:
         for a in self._actions:
             if isinstance(
-                a, argparse._SubParsersAction  # pylint: disable=protected-access
+                a,
+                argparse._SubParsersAction,  # pylint: disable=protected-access
             ):
                 return a
         return None
@@ -620,19 +634,21 @@ class ArgumentParser(argparse.ArgumentParser):
                 raise NoArgsModelError()
 
         args_union: Dict[str, Any] = self._union_args_with_model(
-            args_dict=parsed_args, args_model=args_model
+            args_dict=parsed_args,
+            args_model=args_model,
         )
 
         if not skip_pydantic_validation and self.is_pydantic_available():
             args_union = vars(
-                create_pydantic_model_from_dataclass(args_model)(**args_union)
+                create_pydantic_model_from_dataclass(args_model)(**args_union),
             )
 
         return args_model(**args_union)
 
     @staticmethod
     def _union_args_with_model(
-        args_dict: Dict[str, Any], args_model: Type[Dataclass]
+        args_dict: Dict[str, Any],
+        args_model: Type[Dataclass],
     ) -> Dict[str, Any]:
         return {k: v for k, v in args_dict.items() if k in args_model.__annotations__}
 
@@ -659,12 +675,15 @@ class ArgumentParser(argparse.ArgumentParser):
         args_model: Union[Callable[..., Any], Type[Dataclass]],
     ) -> None:
         cls._set_parser_description(
-            parser, description=cls._extract_description_from_docstring(args_model)
+            parser,
+            description=cls._extract_description_from_docstring(args_model),
         )
 
     @classmethod
     def _set_parser_description(
-        cls, parser: argparse.ArgumentParser, description: Optional[str]
+        cls,
+        parser: argparse.ArgumentParser,
+        description: Optional[str],
     ):
         if not description:
             return
@@ -682,7 +701,7 @@ class ArgumentParser(argparse.ArgumentParser):
         description_lines: Optional[List[str]] = None
 
         if args_model.__doc__ and not args_model.__doc__.startswith(
-            args_model.__name__ + "("
+            args_model.__name__ + "(",
         ):
             description_lines = args_model.__doc__.strip().splitlines()
 
@@ -709,7 +728,8 @@ class ArgumentParser(argparse.ArgumentParser):
     ) -> Any:
         if func:
             model_inst: Dataclass = parser.parse_args_to_model(
-                args=args, args_model=args_model
+                args=args,
+                args_model=args_model,
             )
             return func(**vars(model_inst))
         return None
@@ -729,7 +749,7 @@ class ArgumentParser(argparse.ArgumentParser):
         parser: ArgumentParser = cls(**parser_shared_kwargs)
 
         parser.set_defaults(
-            **{cls.ARGS_ATTRIBUTE_NAME: None, cls.FUNC_ATTRIBUTE_NAME: None}
+            **{cls.ARGS_ATTRIBUTE_NAME: None, cls.FUNC_ATTRIBUTE_NAME: None},
         )
 
         setup_func: Optional[Callable[..., Any]] = None

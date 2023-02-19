@@ -9,9 +9,9 @@ import yapx
 from yapx.arg import ArgparseArg
 from yapx.exceptions import ArgumentConflictError, ParserClosedError
 
-try:
+if sys.version_info >= (3, 8):
     from typing import Literal
-except ImportError:
+else:
     from typing_extensions import Literal
 
 
@@ -314,7 +314,10 @@ except ImportError:
     ],
 )
 def test_add_arguments(
-    name: str, type_annotation: Type[Any], default: Any, expected: ArgparseArg
+    name: str,
+    type_annotation: Type[Any],
+    default: Any,
+    expected: ArgparseArg,
 ):
     # 1. ARRANGE
     expected.dest = name
@@ -328,7 +331,8 @@ def test_add_arguments(
         argfield_kwargs["default"] = default
 
     ArgsModel: Type[yapx.types.Dataclass] = make_dataclass(
-        "ArgsModel", [(name, type_annotation, yapx.arg(**argfield_kwargs))]
+        "ArgsModel",
+        [(name, type_annotation, yapx.arg(**argfield_kwargs))],
     )
 
     # 2. ACT
@@ -426,7 +430,8 @@ def test_add_arguments_func():
 
 
 @pytest.mark.skipif(
-    sys.version_info.minor < 10, reason="test modern annotations in Python 3.10+"
+    sys.version_info.minor < 10,
+    reason="test modern annotations in Python 3.10+",
 )
 def test_add_arguments_modern():
     # pylint: disable=unused-argument,unsupported-binary-operation,unsubscriptable-object

@@ -34,7 +34,8 @@ class YapxAction(Action):
 
 
 def argparse_action(
-    func: Optional[F] = None, **kwargs: Any
+    func: Optional[F] = None,
+    **kwargs: Any,
 ) -> Union[Type[YapxAction], Callable[..., Type[YapxAction]]]:
     if not func:
         return partial(argparse_action, **kwargs)
