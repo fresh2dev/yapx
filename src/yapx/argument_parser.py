@@ -405,7 +405,7 @@ class ArgumentParser(argparse.ArgumentParser):
             if not args:
                 # positional arg
                 del kwargs["required"]
-                if not required:
+                if not required and not kwargs.get("nargs"):
                     kwargs["nargs"] = "?"
 
             if kwargs["type"] is bool:
