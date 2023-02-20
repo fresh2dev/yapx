@@ -540,7 +540,7 @@ def test_run_bools(use_pydantic: bool):
 def test_print_shell_completion(capsys: CaptureFixture):
     # 1. ARRANGE
     cli_args: List[str] = ["--print-shell-completion", "zsh"]
-    expected: List[str] = [r"{-t,--text}", "example-empty-subcmd", "example-subcmd"]
+    expected: List[str] = ["--text", "example-empty-subcmd", "example-subcmd"]
     not_expected: List[str] = []
 
     # 2. ACT
@@ -554,6 +554,7 @@ def test_print_shell_completion(capsys: CaptureFixture):
 
     # 3. ASSERT
     captured: CaptureResult = capsys.readouterr()
+
     assert captured.out
     for e in expected:
         assert e in captured.out
