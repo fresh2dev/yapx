@@ -21,12 +21,7 @@ from typing import (
     Union,
 )
 
-from yapx.exceptions import (
-    ArgumentConflictError,
-    NoArgsModelError,
-    ParserClosedError,
-    UnsupportedTypeError,
-)
+from yapx.exceptions import NoArgsModelError, ParserClosedError, UnsupportedTypeError
 
 from .actions import (
     split_csv,
@@ -41,7 +36,6 @@ from .arg import (
     _eval_type,
     convert_to_command_string,
     convert_to_flag_string,
-    convert_to_short_flag_string,
     make_dataclass_from_func,
 )
 from .argparse_action import YapxAction
@@ -259,38 +253,18 @@ class ArgumentParser(argparse.ArgumentParser):
             for x in novel_fields
         ]
 
-        registered_flags: List[str] = ["-h", "--help"]
-
-        for _fld, argparse_argument in novel_field_args:
-            if argparse_argument.option_strings:
-                if isinstance(argparse_argument.option_strings, str):
-                    argparse_argument.option_strings = [
-                        argparse_argument.option_strings,
-                    ]
-                for x in argparse_argument.option_strings:
-                    registered_flags.append(x)
-
         for fld, argparse_argument in novel_field_args:
             argparse_argument.dest = fld.name
 
-            if not argparse_argument.option_strings and not argparse_argument.pos:
-                long_flag: str = convert_to_flag_string(fld.name)
-                short_flag: str = convert_to_short_flag_string(long_flag)
-                arg_flags: List[str] = []
-
-                for flg in short_flag, long_flag:
-                    if flg not in registered_flags:
-                        arg_flags.append(flg)
-
-                if not arg_flags:
-                    raise ArgumentConflictError(
-                        f"Derived flag name already in use: {long_flag}",
-                    )
-
-                argparse_argument.option_strings = arg_flags
-
-            if argparse_argument.option_strings:
-                registered_flags.extend(argparse_argument.option_strings)
+            if argparse_argument.option_strings and isinstance(
+                argparse_argument.option_strings,
+                str,
+            ):
+                argparse_argument.option_strings = [
+                    argparse_argument.option_strings,
+                ]
+            elif not argparse_argument.option_strings and not argparse_argument.pos:
+                argparse_argument.option_strings = [convert_to_flag_string(fld.name)]
 
             if fld.default is not MISSING:
                 argparse_argument.default = fld.default
@@ -405,7 +379,7 @@ class ArgumentParser(argparse.ArgumentParser):
             if not args:
                 # positional arg
                 del kwargs["required"]
-                if not required:
+                if not required and not kwargs.get("nargs"):
                     kwargs["nargs"] = "?"
 
             if kwargs["type"] is bool:
