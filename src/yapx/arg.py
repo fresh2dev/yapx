@@ -20,10 +20,9 @@ from typing import (
 from .types import Dataclass
 
 if sys.version_info >= (3, 8):
-    from typing import Literal  # pylint: disable=unused-import
+    from typing import Literal  # pylint: disable=unused-import # noqa: F401
 else:
-    from typing_extensions import Literal  # pylint: disable=unused-import
-
+    from typing_extensions import Literal  # pylint: disable=unused-import # noqa: F401
 
 __all__ = ["arg"]
 

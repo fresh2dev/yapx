@@ -1,6 +1,8 @@
 **/secrets
 !**/*.keep
 **/*.tmp
+.python-version
+
 /public
 
 /requirements.txt

@@ -4,10 +4,17 @@ select = [
     # "D",  # pydocstyle
     "F",  # pyflakes
     "UP", # pyupgrade
-    # "I",  # isort
-    "C",  # flake8-comprehensions
+    # "I",  # isort (missing-required-import)
+    "C4",  # flake8-comprehensions
     "B",  # flake8-bugbear
-    "ANN",# flake8-annotations
+    "BLE",  # flake8-blind-except
+    "DTZ",  # flake8-datetimez
+    "EM",  # flake8-errmsg
+    "ISC",  # flake8-implicit-str-concat
+    "G",  # flake8-logging-format
+    "PIE",  # flake8-pie
+    "RSE",  # flake8-raise
+    # "ANN",# flake8-annotations
     "A",# flake8-builtins
     "COM",# flake8-commas
     "PT",# flake8-pytest-style
@@ -19,9 +26,9 @@ select = [
     "ERA",# eradicate
     "PLW",# pylint-specific warnings
     "PLE",# pylint-specific errors
-    #"PLR",# pylint-specific recommendations
-    #"PLC",# pylint-specific conventions
-    "RUF",# ruff-specific
+    "PLR",# pylint-specific refactors
+    "PLC",# pylint-specific conventions
+    # "RUF",# ruff-specific
     "TRY",# tryceratops
 ]
 ignore = [
@@ -31,7 +38,8 @@ ignore = [
 
 # Avoid trying to fix flake8-bugbear (`B`) violations.
 # Allow autofix for all enabled rules (when `--fix`) is provided.
-fixable = ["W", "E", "COM"]
+# autofix F401=unused-imports
+fixable = ["W", "E", "COM", "F401"]
 unfixable = []
 
 respect-gitignore = true
