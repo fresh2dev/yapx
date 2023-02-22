@@ -1,30 +1,81 @@
 site_name: "yapx"
 site_description: "yapx Documentation"
-site_url: "https://www.Fresh2.dev/code/r/yapx/i"
-repo_url: "https://codeberg.org/Fresh2dev/yapx"
+site_url: !ENV [MKDOCS_SITE_URL, "https://www.Fresh2.dev/code/r/yapx/i"]
+repo_url: "https://github.com/fresh2dev/yapx"
 repo_name: "Gitea"
 edit_uri_template: "src/branch/main/docs/{path}"
 docs_dir: "../docs"
 site_dir: "../public"
 
-theme:
-  name: readthedocs
+# https://stackoverflow.com/a/53336754
+copyright: '<a href="https://www.fresh2.dev"><img src="https://simpleicons.org/icons/obsidian.svg" style="height: 1.5em; filter: invert(54%) sepia(8%) saturate(3705%) hue-rotate(210deg) brightness(88%) contrast(93%);"></img></a>'
+extra:
+  generator: false
+  social:
+    - name: Fresh2.dev
+      icon: "material/language-markdown"
+      link: 'https://www.fresh2.dev'
 
 ## https://www.mkdocs.org/user-guide/writing-your-docs/#configure-pages-and-navigation
 nav:
   - Fresh2.dev: https://www.Fresh2.dev
-  - Home: index.md
-  - Recipes: recipes.md
-  - Changelog: changelog.md
-  - Contributing: contributing.md
-  - Reference:
-      - yapx: reference/yapx.md
+  - Home: README.md
+  - Changelog: CHANGELOG.md
+  - Reference: reference/
 
 watch:
   - ../src
 
+theme:
+  name: material
+  language: en
+  palette:
+    - scheme: slate
+      primary: black
+      toggle:
+        icon: material/toggle-switch-off-outline
+        name: Switch to light mode
+    - scheme: default
+      primary: deep purple
+      toggle:
+        icon: material/toggle-switch
+        name: Switch to dark mode
+  features:
+    - content.code.copy
+    - content.code.annotate
+    - navigation.instant
+    - navigation.indexes
+    - navigation.expand
+    - navigation.top
+
+extra_css:
+  - css/extra.css
+
+markdown_extensions:
+  - toc:
+      permalink: true
+      toc_depth: 3
+  - attr_list
+  - pymdownx.emoji:
+      emoji_index: !!python/name:materialx.emoji.twemoji
+      emoji_generator: !!python/name:materialx.emoji.to_svg
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.magiclink:
+      hide_protocol: true
+      repo_url_shortener: false
+      social_url_shortener: false
+  - pymdownx.saneheaders
+  - pymdownx.highlight
+  - pymdownx.superfences
+  - pymdownx.caret
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.tilde
+
 plugins:
   - search
+  - include_dir_to_nav
   - autorefs
   - mkdocstrings:
       default_handler: python
@@ -32,18 +83,19 @@ plugins:
         python:
           paths: ["src"]
           options:
-            show_bases: true
+            show_bases: false
             show_source: false
             members_order: 'source'  # 'alphabetical'
-            show_submodules: true
             docstring_style: google
-            show_signature: true
-            show_signature_annotations: true
-            separate_signature: true
+            show_submodules: false
+            show_signature: false
+            merge_init_into_class: true
+            show_signature_annotations: false
+            separate_signature: false
             show_if_no_docstring: false
             show_root_heading: false
             show_root_toc_entry: false
             show_root_full_path: false
             show_root_members_full_path: true
-            show_object_full_path: false
-            show_category_heading: false
+            show_object_full_path: true
+            show_category_heading: true
