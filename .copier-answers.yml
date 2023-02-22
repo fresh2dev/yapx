@@ -1,8 +1,8 @@
 # Changes here will be overwritten by Copier
-_commit: c3f83bc
+_commit: 43d4552
 _src_path: https://codeberg.org/Fresh2dev/copier-f2dv-project.git
 author_email: hello@Fresh2.dev
-author_name: donald
+author_name: Donald Mellenbruch
 ci_domain_name: lokalhost.net
 docs_url: https://www.Fresh2.dev/code/r/yapx/i
 funding_url: https://www.Fresh2.dev/funding
@@ -11,8 +11,8 @@ is_minimal: false
 is_python: true
 license_type: MIT
 package_name: yapx
+project_description: null
 project_name: yapx
 python_version: '3.7'
 repo_mirror: https://www.Fresh2.dev/code/r/yapx
-repo_owner: Fresh2dev
-repo_url: https://codeberg.org/Fresh2dev/yapx
+repo_url: https://github.com/fresh2dev/yapx
