@@ -1,5 +1,5 @@
 import sys
-from argparse import Action
+from argparse import Action, ArgumentError
 from dataclasses import MISSING, dataclass, make_dataclass
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Set, Tuple, Type
 
@@ -7,7 +7,7 @@ import pytest
 
 import yapx
 from yapx.arg import ArgparseArg
-from yapx.exceptions import ArgumentConflictError, ParserClosedError
+from yapx.exceptions import ParserClosedError
 
 if sys.version_info >= (3, 8):
     from typing import Literal
@@ -23,7 +23,7 @@ else:
             str,
             MISSING,
             ArgparseArg(
-                option_strings=["-a", "--a-str"],
+                option_strings=["--a-str"],
                 type=str,
                 help="(type: str)",
                 required=True,
@@ -34,7 +34,7 @@ else:
             str,
             "hello",
             ArgparseArg(
-                option_strings=["-a", "--a-str"],
+                option_strings=["--a-str"],
                 type=str,
                 help="(type: str, default: 'hello')",
                 required=False,
@@ -45,7 +45,7 @@ else:
             Optional[str],
             None,
             ArgparseArg(
-                option_strings=["-a", "--a-str"],
+                option_strings=["--a-str"],
                 type=str,
                 help="(type: str, default: None)",
                 required=False,
@@ -57,7 +57,7 @@ else:
             int,
             MISSING,
             ArgparseArg(
-                option_strings=["-a", "--a-int"],
+                option_strings=["--a-int"],
                 type=int,
                 help="(type: int)",
                 required=True,
@@ -68,7 +68,7 @@ else:
             int,
             123,
             ArgparseArg(
-                option_strings=["-a", "--a-int"],
+                option_strings=["--a-int"],
                 type=int,
                 help="(type: int, default: 123)",
                 required=False,
@@ -79,7 +79,7 @@ else:
             Optional[int],
             None,
             ArgparseArg(
-                option_strings=["-a", "--a-int"],
+                option_strings=["--a-int"],
                 type=int,
                 help="(type: int, default: None)",
                 required=False,
@@ -91,7 +91,7 @@ else:
             float,
             MISSING,
             ArgparseArg(
-                option_strings=["-a", "--a-float"],
+                option_strings=["--a-float"],
                 type=float,
                 help="(type: float)",
                 required=True,
@@ -102,7 +102,7 @@ else:
             float,
             3.14,
             ArgparseArg(
-                option_strings=["-a", "--a-float"],
+                option_strings=["--a-float"],
                 type=float,
                 help="(type: float, default: 3.14)",
                 required=False,
@@ -114,7 +114,7 @@ else:
             bool,
             MISSING,
             ArgparseArg(
-                option_strings=["-a", "--a-bool"],
+                option_strings=["--a-bool"],
                 type=None,
                 help="(type: bool, default: False)",
                 nargs=0,
@@ -123,13 +123,13 @@ else:
                 default=False,
             ),
         ),
-        # bool (default=True)
+        # bool (True)
         (
             "a_bool",
             bool,
             True,
             ArgparseArg(
-                option_strings=["-a", "--a-bool"],
+                option_strings=["--a-bool"],
                 type=None,
                 help="(type: bool, default: True)",
                 nargs=0,
@@ -143,7 +143,7 @@ else:
             List[str],
             MISSING,
             ArgparseArg(
-                option_strings=["-a", "--a-list"],
+                option_strings=["--a-list"],
                 type=str,
                 help="(type: List[str])",
                 nargs="+",
@@ -155,7 +155,7 @@ else:
             List[str],
             list,
             ArgparseArg(
-                option_strings=["-a", "--a-list"],
+                option_strings=["--a-list"],
                 type=str,
                 help="(type: List[str], default: [])",
                 nargs="*",
@@ -168,7 +168,7 @@ else:
             Tuple[str],
             MISSING,
             ArgparseArg(
-                option_strings=["-a", "--a-tuple"],
+                option_strings=["--a-tuple"],
                 type=str,
                 help="(type: Tuple[str])",
                 nargs="+",
@@ -180,7 +180,7 @@ else:
             Tuple[str],
             tuple,
             ArgparseArg(
-                option_strings=["-a", "--a-tuple"],
+                option_strings=["--a-tuple"],
                 type=str,
                 help="(type: Tuple[str], default: ())",
                 nargs="*",
@@ -193,7 +193,7 @@ else:
             Sequence[str],
             MISSING,
             ArgparseArg(
-                option_strings=["-a", "--a-sequence"],
+                option_strings=["--a-sequence"],
                 type=str,
                 help="(type: Sequence[str])",
                 nargs="+",
@@ -205,7 +205,7 @@ else:
             Sequence[str],
             list,
             ArgparseArg(
-                option_strings=["-a", "--a-sequence"],
+                option_strings=["--a-sequence"],
                 type=str,
                 help="(type: Sequence[str], default: [])",
                 nargs="*",
@@ -218,7 +218,7 @@ else:
             Set[str],
             MISSING,
             ArgparseArg(
-                option_strings=["-a", "--a-set"],
+                option_strings=["--a-set"],
                 type=str,
                 help="(type: Set[str])",
                 nargs="+",
@@ -230,7 +230,7 @@ else:
             Set[str],
             set,
             ArgparseArg(
-                option_strings=["-a", "--a-set"],
+                option_strings=["--a-set"],
                 type=str,
                 help="(type: Set[str], default: set())",
                 nargs="*",
@@ -243,7 +243,7 @@ else:
             Dict[str, str],
             MISSING,
             ArgparseArg(
-                option_strings=["-a", "--a-dict"],
+                option_strings=["--a-dict"],
                 type=str,
                 help="(type: Dict[str, str])",
                 nargs="+",
@@ -255,7 +255,7 @@ else:
             Dict[str, str],
             dict,
             ArgparseArg(
-                option_strings=["-a", "--a-dict"],
+                option_strings=["--a-dict"],
                 type=str,
                 help="(type: Dict[str, str], default: {})",
                 nargs="*",
@@ -268,7 +268,7 @@ else:
             Mapping[str, str],
             MISSING,
             ArgparseArg(
-                option_strings=["-a", "--a-mapping"],
+                option_strings=["--a-mapping"],
                 type=str,
                 help="(type: Mapping[str, str])",
                 nargs="+",
@@ -280,7 +280,7 @@ else:
             Mapping[str, str],
             dict,
             ArgparseArg(
-                option_strings=["-a", "--a-mapping"],
+                option_strings=["--a-mapping"],
                 type=str,
                 help="(type: Mapping[str, str], default: {})",
                 nargs="*",
@@ -292,7 +292,7 @@ else:
             Literal["one", "two", "three"],
             "two",
             ArgparseArg(
-                option_strings=["-a", "--a-literal"],
+                option_strings=["--a-literal"],
                 type=str,
                 help="(type: Literal['one', 'two', 'three'], default: 'two')",
                 choices=["one", "two", "three"],
@@ -304,7 +304,7 @@ else:
             Literal[1, 2, 3],
             2,
             ArgparseArg(
-                option_strings=["-a", "--a-literal-int"],
+                option_strings=["--a-literal-int"],
                 type=int,
                 help="(type: Literal[1, 2, 3], default: 2)",
                 choices=[1, 2, 3],
@@ -385,29 +385,14 @@ def test_add_arguments_conflict():
 
     # 2. ACT
     parser: yapx.ArgumentParser = yapx.ArgumentParser()
-    parser.add_arguments(ArgsModel)
+    with pytest.raises(ArgumentError):
+        parser.add_arguments(ArgsModel)
 
     result: ArgsModel = parser.parse_args_to_model(cli_args)
 
     # 3. ASSERT
     assert not result.value
     assert result.conflict == expected
-
-
-def test_add_arguments_conflict_error():
-    # 1. ARRANGE
-    @dataclass
-    class ArgsModel:
-        help: str
-
-    # 2. ACT
-    parser: yapx.ArgumentParser = yapx.ArgumentParser()
-
-    with pytest.raises(ArgumentConflictError) as excinfo:
-        parser.add_arguments(ArgsModel)
-
-    # 3. ASSERT
-    assert excinfo.value
 
 
 def test_add_arguments_func():
