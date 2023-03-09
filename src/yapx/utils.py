@@ -1,7 +1,7 @@
 import dataclasses
 import sys
 from contextlib import suppress
-from typing import Any, Dict, List, Tuple, Type
+from typing import Any, Dict, List, Tuple, Type, Union
 
 # pylint: disable=unused-import
 from .arg import (
@@ -27,8 +27,19 @@ else:
     from typing_extensions import TypeGuard
 
 
-def str2bool(string: str) -> bool:
-    return string.lower() in ("1", "true", "t", "yes", "y")
+def str2bool(value: Union[str, bool]) -> bool:
+    if isinstance(value, bool):
+        return value
+
+    value_lower: str = value.lower()
+
+    if value_lower in ("1", "true", "t", "yes", "y"):
+        return True
+
+    if value_lower in ("0", "false", "f", "no", "n"):
+        return False
+
+    raise ValueError(f"Invalid literal for bool(): {value}")
 
 
 def is_dataclass_type(candidate: Any) -> TypeGuard[Type[Dataclass]]:

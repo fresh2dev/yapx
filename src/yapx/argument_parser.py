@@ -35,7 +35,6 @@ from .arg import (
     ArgparseArg,
     _eval_type,
     convert_to_command_string,
-    convert_to_flag_string,
     make_dataclass_from_func,
 )
 from .argparse_action import YapxAction
@@ -124,9 +123,7 @@ class ArgumentParser(argparse.ArgumentParser):
         help_txt: Optional[str] = (
             None
             if not add_help
-            else description_txt.splitlines()[0]
-            if description_txt
-            else ""
+            else description_txt.splitlines()[0] if description_txt else ""
         )
 
         parser = subparsers.add_parser(
@@ -249,32 +246,24 @@ class ArgumentParser(argparse.ArgumentParser):
         )
 
         novel_field_args: List[Tuple[Field, ArgparseArg]] = [
-            (x, x.metadata.get(ARGPARSE_ARG_METADATA_KEY, ArgparseArg()))
-            for x in novel_fields
+            (x, x.metadata.get(ARGPARSE_ARG_METADATA_KEY)) for x in novel_fields
         ]
 
         for fld, argparse_argument in novel_field_args:
-            argparse_argument.dest = fld.name
+            if argparse_argument is None:
+                argparse_argument = ArgparseArg(dest=fld.name)
 
-            if argparse_argument.option_strings and isinstance(
-                argparse_argument.option_strings,
-                str,
-            ):
-                argparse_argument.option_strings = [
-                    argparse_argument.option_strings,
-                ]
-            elif not argparse_argument.option_strings and not argparse_argument.pos:
-                argparse_argument.option_strings = [convert_to_flag_string(fld.name)]
-
-            if fld.default is not MISSING:
-                argparse_argument.default = fld.default
-                argparse_argument.required = False
-            elif fld.default_factory is not MISSING:
-                argparse_argument.default = fld.default_factory()
-                argparse_argument.required = False
+                if fld.default is not MISSING:
+                    argparse_argument.default = fld.default
+                    argparse_argument.required = False
+                elif fld.default_factory is not MISSING:
+                    argparse_argument.default = fld.default_factory()
+                    argparse_argument.required = False
+                else:
+                    argparse_argument.default = None
+                    argparse_argument.required = True
             else:
-                argparse_argument.default = None
-                argparse_argument.required = True
+                argparse_argument.set_dest(fld.name)
 
             fld_type: Union[str, Type[Any]] = fld.type
 
@@ -333,14 +322,14 @@ class ArgumentParser(argparse.ArgumentParser):
                         # store desired types for casting later
                         if fld_type in (str, int, float) or is_subclass(fld_type, Enum):
                             # pylint: disable=protected-access
-                            parser._inner_type_conversions[
-                                argparse_argument.dest
-                            ] = fld_type
+                            parser._inner_type_conversions[argparse_argument.dest] = (
+                                fld_type
+                            )
                         elif fld_type is bool:
                             # pylint: disable=protected-access
-                            parser._inner_type_conversions[
-                                argparse_argument.dest
-                            ] = str2bool
+                            parser._inner_type_conversions[argparse_argument.dest] = (
+                                str2bool
+                            )
                         elif not cls.is_pydantic_available():
                             cls._raise_unsupported_type_error(fld_type)
 
@@ -390,12 +379,35 @@ class ArgumentParser(argparse.ArgumentParser):
                         kwargs.pop(k, None)
                     required = False
                     kwargs["required"] = False
-                    if fld.default is not True:
-                        if kwargs["default"] is None:
-                            kwargs["default"] = False
+                    if not kwargs["action"]:
                         kwargs["action"] = "store_true"
-                    else:
-                        kwargs["action"] = "store_false"
+                if kwargs.get("default") in (MISSING, None):
+                    kwargs["default"] = False
+
+            # if given `default` cast it to the expected type.
+            if kwargs.get("default") is not MISSING:
+                if kwargs.get("action") and is_subclass(
+                    kwargs["action"],
+                    YapxAction,
+                ):
+                    # https://stackoverflow.com/a/24448351
+                    dummy_namespace: object = type("", (), {})()
+                    kwargs["action"](option_strings=args, dest=kwargs["dest"])(
+                        parser=parser,
+                        namespace=dummy_namespace,
+                        values=kwargs["default"],
+                    )
+                    kwargs["default"] = getattr(dummy_namespace, kwargs["dest"])
+                elif (
+                    argparse_argument.type
+                    and kwargs["default"] is not None
+                    and not is_instance(kwargs["default"], argparse_argument.type)
+                ):
+                    kwargs["default"] = (
+                        str2bool(kwargs["default"])
+                        if argparse_argument.type is bool
+                        else argparse_argument.type(kwargs["default"])
+                    )
 
             help_msg: str = f"type: {help_type}"
             # pylint: disable=protected-access
@@ -532,25 +544,12 @@ class ArgumentParser(argparse.ArgumentParser):
         args: Optional[Sequence[str]] = None,
         namespace: Optional[argparse.Namespace] = None,
     ) -> argparse.Namespace:
-        """parse args, and be sure to run all actions,
-        even if arg was not specified (when value is default)
-        see: https://stackoverflow.com/a/21588198
-        """
         parsed: argparse.Namespace = super().parse_args(args=args, namespace=namespace)
 
         # delete vars created by shtab
         if self.is_shtab_available():
             sh_complete_attr = "print_shell_completion"
             delattr(parsed, sh_complete_attr)
-
-        # always run YapxActions
-        for a in self._actions:
-            if (
-                isinstance(a, YapxAction)
-                and hasattr(parsed, a.dest)
-                and getattr(parsed, a.dest) == a.default
-            ):
-                a(parser=self, namespace=parsed, values=a.default)
 
         return parsed
 

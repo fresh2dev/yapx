@@ -11,7 +11,7 @@ def test_str2bool_true(x):
     assert yapx.utils.str2bool(x) is True
 
 
-@pytest.mark.parametrize("x", ["tru", "0", "false", "f", "no", "n"])
+@pytest.mark.parametrize("x", ["0", "false", "f", "no", "n"])
 def test_str2bool_false(x):
     assert yapx.utils.str2bool(x) is False
 
