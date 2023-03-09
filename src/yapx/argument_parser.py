@@ -65,6 +65,8 @@ if sys.version_info >= (3, 8):
 else:
     from typing_extensions import Literal
 
+if sys.version_info >= (3, 10):
+    from types import UnionType  # pylint: disable=unused-import # noqa: F401
 
 T = TypeVar("T")
 
@@ -269,17 +271,22 @@ class ArgumentParser(argparse.ArgumentParser):
 
             # basic support for handling deferred annotation evaluation,
             # when using `from __future__ import annotations`
-            if isinstance(fld_type, str):
+            if is_instance(fld_type, str):
                 fld_type = _eval_type(fld_type)
                 assert not isinstance(fld_type, str)
 
-            if cls._get_type_origin(fld_type) is Union:
-                fld_type = cls._extract_type_from_container(fld_type)
+            if (
+                sys.version_info >= (3, 10) and is_instance(fld_type, UnionType)
+            ) or cls._get_type_origin(fld_type) is Union:
+                fld_type = cls._extract_type_from_container(
+                    fld_type,
+                    is_union_type=True,
+                )
 
             help_type: str = (
                 fld_type.__name__
-                if isinstance(fld_type, type)
-                else str(fld_type).split(".")[-1]
+                if is_instance(fld_type, type)
+                else str(fld_type).rsplit(".", maxsplit=1)[-1]
             )
 
             fld_type_origin: Optional[Type[Any]] = cls._get_type_origin(fld_type)
@@ -467,12 +474,17 @@ class ArgumentParser(argparse.ArgumentParser):
     def _extract_type_from_container(
         cls,
         type_container: Type[Any],
-        assert_primitive: Optional[bool] = False,
+        assert_primitive: bool = False,
+        is_union_type: bool = False,
     ) -> Type[Any]:
-        type_container_origin: Any = cls._get_type_origin(type_container)
+        type_container_origin: Any = (
+            Union if is_union_type else cls._get_type_origin(type_container)
+        )
 
         if type_container_origin is None:
-            raise TypeError(f"Given type is not a container: {type_container.__name__}")
+            raise TypeError(
+                f"Given type is not a container: {type_container.__name__}",
+            )
 
         type_container_args = cls._get_type_args(type_container)
 
