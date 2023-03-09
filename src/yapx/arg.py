@@ -49,7 +49,17 @@ class ArgparseArg:
     _env_var: Union[None, str, Sequence[str]] = None
 
     def __post_init__(self) -> None:
-        if self.dest and not self.option_strings:
+        self.set_dest(self.dest)
+
+    def set_dest(self, value: Optional[str]) -> None:
+        self.dest = value
+
+        if self.option_strings:
+            if self.pos:
+                self.option_strings = None
+            elif isinstance(self.option_strings, str):
+                self.option_strings = [self.option_strings]
+        elif self.dest and not self.pos:
             self.option_strings = [convert_to_flag_string(self.dest)]
 
     def asdict(self) -> Dict[str, Any]:
@@ -85,17 +95,19 @@ def arg(
                     default = value_from_file
                     break
 
-    required = default is MISSING
-
     metadata: Dict[str, ArgparseArg] = {
         ARGPARSE_ARG_METADATA_KEY: ArgparseArg(
             action=action,
             pos=pos,
-            option_strings=[flags] if isinstance(flags, str) else flags,
-            required=required,
+            option_strings=flags,
+            required=bool(default is MISSING),
+            default=(
+                None
+                if default is MISSING
+                else default() if callable(default) else default
+            ),
             group=group,
             exclusive=exclusive,
-            default=(None if required else default() if callable(default) else default),
             help=help,
             metavar=metavar,
             _env_var=env,

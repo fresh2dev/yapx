@@ -133,7 +133,7 @@ else:
                 type=None,
                 help="(type: bool, default: True)",
                 nargs=0,
-                const=False,
+                const=True,
                 required=False,
             ),
         ),
