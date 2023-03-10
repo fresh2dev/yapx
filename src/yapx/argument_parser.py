@@ -39,7 +39,7 @@ from .arg import (
 )
 from .argparse_action import YapxAction
 from .types import Dataclass, NoneType
-from .utils import is_dataclass_type, is_instance, is_subclass, str2bool
+from .utils import is_dataclass_type, str2bool, try_isinstance, try_issubclass
 
 __all__ = ["ArgumentParser", "run", "run_command"]
 
@@ -271,12 +271,12 @@ class ArgumentParser(argparse.ArgumentParser):
 
             # basic support for handling deferred annotation evaluation,
             # when using `from __future__ import annotations`
-            if is_instance(fld_type, str):
+            if try_isinstance(fld_type, str):
                 fld_type = _eval_type(fld_type)
                 assert not isinstance(fld_type, str)
 
             if (
-                sys.version_info >= (3, 10) and is_instance(fld_type, UnionType)
+                sys.version_info >= (3, 10) and try_isinstance(fld_type, UnionType)
             ) or cls._get_type_origin(fld_type) is Union:
                 fld_type = cls._extract_type_from_container(
                     fld_type,
@@ -285,7 +285,7 @@ class ArgumentParser(argparse.ArgumentParser):
 
             help_type: str = (
                 fld_type.__name__
-                if is_instance(fld_type, type)
+                if try_isinstance(fld_type, type)
                 else str(fld_type).rsplit(".", maxsplit=1)[-1]
             )
 
@@ -297,7 +297,7 @@ class ArgumentParser(argparse.ArgumentParser):
                         fld_type = type(argparse_argument.choices[0])
                 else:
                     # this is a type-container (List, Set, Tuple, Dict, ...)
-                    if is_subclass(fld_type_origin, collections.abc.Mapping):
+                    if try_issubclass(fld_type_origin, collections.abc.Mapping):
                         fld_type = cls._extract_type_from_container(
                             fld_type,
                             assert_primitive=True,
@@ -305,7 +305,7 @@ class ArgumentParser(argparse.ArgumentParser):
                         if not argparse_argument.action:
                             argparse_argument.action = split_csv_to_dict
                     elif (
-                        is_subclass(fld_type_origin, collections.abc.Iterable)
+                        try_issubclass(fld_type_origin, collections.abc.Iterable)
                         or fld_type_origin is set
                     ):
                         fld_type = cls._extract_type_from_container(
@@ -322,12 +322,15 @@ class ArgumentParser(argparse.ArgumentParser):
                     elif not cls.is_pydantic_available():
                         cls._raise_unsupported_type_error(fld_type)
 
-                    if is_subclass(fld_type, Enum):
+                    if try_issubclass(fld_type, Enum):
                         argparse_argument.choices = [x.name for x in fld_type]
 
                     if isinstance(parser, cls):
                         # store desired types for casting later
-                        if fld_type in (str, int, float) or is_subclass(fld_type, Enum):
+                        if fld_type in (str, int, float) or try_issubclass(
+                            fld_type,
+                            Enum,
+                        ):
                             # pylint: disable=protected-access
                             parser._inner_type_conversions[argparse_argument.dest] = (
                                 fld_type
@@ -346,7 +349,7 @@ class ArgumentParser(argparse.ArgumentParser):
 
                     argparse_argument.nargs = "+" if argparse_argument.required else "*"
 
-            elif is_subclass(fld_type, Enum):
+            elif try_issubclass(fld_type, Enum):
                 argparse_argument.choices = [x.name for x in fld_type]
                 argparse_argument.action = str2enum
                 # pylint: disable=protected-access
@@ -393,7 +396,7 @@ class ArgumentParser(argparse.ArgumentParser):
 
             # if given `default` cast it to the expected type.
             if kwargs.get("default") is not MISSING:
-                if kwargs.get("action") and is_subclass(
+                if kwargs.get("action") and try_issubclass(
                     kwargs["action"],
                     YapxAction,
                 ):
@@ -408,7 +411,7 @@ class ArgumentParser(argparse.ArgumentParser):
                 elif (
                     argparse_argument.type
                     and kwargs["default"] is not None
-                    and not is_instance(kwargs["default"], argparse_argument.type)
+                    and not try_isinstance(kwargs["default"], argparse_argument.type)
                 ):
                     kwargs["default"] = (
                         str2bool(kwargs["default"])
@@ -496,14 +499,14 @@ class ArgumentParser(argparse.ArgumentParser):
 
         if (
             type_container_origin is Union
-            or is_subclass(type_container_origin, collections.abc.Sequence)
+            or try_issubclass(type_container_origin, collections.abc.Sequence)
             or type_container_origin is set
         ):
             if len(results) != 1:
                 results.clear()
             else:
                 type_container_subtype = results[0]
-        elif is_subclass(type_container_origin, collections.abc.Mapping):
+        elif try_issubclass(type_container_origin, collections.abc.Mapping):
             if len(results) != 2:
                 results.clear()
             else:
@@ -786,7 +789,7 @@ class ArgumentParser(argparse.ArgumentParser):
             args=_args,
         )
 
-        if is_instance(setup_result, GeneratorType):
+        if try_isinstance(setup_result, GeneratorType):
             with suppress(StopIteration):
                 func_result = next(setup_result)
         else:
@@ -801,7 +804,7 @@ class ArgumentParser(argparse.ArgumentParser):
                     args=_args,
                 )
         finally:
-            if is_instance(setup_result, GeneratorType):
+            if try_isinstance(setup_result, GeneratorType):
                 for gen_result in setup_result:
                     if not func:
                         func_result = gen_result

@@ -46,13 +46,13 @@ def is_dataclass_type(candidate: Any) -> TypeGuard[Type[Dataclass]]:
     return dataclasses.is_dataclass(candidate)
 
 
-def is_instance(candidate: Any, test_type: Type[Any]) -> bool:
+def try_isinstance(candidate: Any, test_type: Type[Any]) -> bool:
     with suppress(TypeError):
         return isinstance(candidate, test_type)
     return False
 
 
-def is_subclass(candidate: Any, test_type: Type[Any]) -> bool:
+def try_issubclass(candidate: Any, test_type: Type[Any]) -> bool:
     with suppress(TypeError):
         return issubclass(candidate, test_type)
     return False
