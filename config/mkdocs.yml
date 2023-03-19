@@ -1,27 +1,28 @@
 site_name: "yapx"
-site_description: "yapx Documentation"
+site_description: "yapx Docs"
 site_url: !ENV [MKDOCS_SITE_URL, "https://www.Fresh2.dev/code/r/yapx/i"]
-repo_url: "https://github.com/fresh2dev/yapx"
-repo_name: "Gitea"
-edit_uri_template: "src/branch/main/docs/{path}"
+repo_url: "https://www.github.com/fresh2dev/yapx"
+repo_name: "fresh2dev/yapx"
+edit_uri: "edit/main/docs"
+#edit_uri_template: "src/branch/main/docs/{path}"
 docs_dir: "../docs"
 site_dir: "../public"
 
-# https://stackoverflow.com/a/53336754
-copyright: '<a href="https://www.fresh2.dev"><img src="https://simpleicons.org/icons/obsidian.svg" style="height: 1.5em; filter: invert(54%) sepia(8%) saturate(3705%) hue-rotate(210deg) brightness(88%) contrast(93%);"></img></a>'
+copyright: '<a href="https://www.fresh2.dev"><img src="https://img.fresh2.dev/fresh2dev.svg" style="height: 3em; margin-right: 1em; filter: invert(100%);"></img></a> &copy; 2023 <a rel="license" target="_blank" href="http://creativecommons.org/licenses/by-sa/4.0/"><img alt="Creative Commons License" style="border-width:0; margin-left: 1em;" src="https://i.creativecommons.org/l/by-sa/4.0/88x31.png" /></a>'
 extra:
   generator: false
-  social:
-    - name: Fresh2.dev
-      icon: "material/language-markdown"
-      link: 'https://www.fresh2.dev'
+  social: []
+    # - name: Fresh2.dev
+    #   icon: "material/home"
+    #   link: 'https://www.fresh2.dev'
 
 ## https://www.mkdocs.org/user-guide/writing-your-docs/#configure-pages-and-navigation
 nav:
-  - Fresh2.dev: https://www.Fresh2.dev
-  - Home: README.md
-  - Changelog: CHANGELOG.md
+  - Home: index.md
+  - Changelog: changelog.md
+  - License: license.md
   - Reference: reference/
+  - Comments: comments.md
 
 watch:
   - ../src
@@ -29,6 +30,7 @@ watch:
 theme:
   name: material
   language: en
+  custom_dir: overrides
   palette:
     - scheme: slate
       primary: black
@@ -47,9 +49,11 @@ theme:
     - navigation.indexes
     - navigation.expand
     - navigation.top
+    - announce.dismiss
+    # - navigation.footer
 
-extra_css:
-  - css/extra.css
+# extra_css:
+#   - css/extra.css
 
 markdown_extensions:
   - toc:
