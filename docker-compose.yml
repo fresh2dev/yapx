@@ -14,10 +14,12 @@ services:
     healthcheck:
       disable: true
     deploy:
-      mode: global
+      # mode: global
+      mode: replicated
+      replicas: ${APP_REPLICAS:-1}
       placement:
         preferences: []
-        max_replicas_per_node: 1
+        max_replicas_per_node: ${APP_REPLICAS_PER_NODE:-${APP_REPLICAS:-1}}
         constraints:
           - "node.labels.${APP_PLACEMENT_LABEL:-frontend} == true"
           # - "node.role == manager"
