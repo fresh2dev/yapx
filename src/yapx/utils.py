@@ -1,6 +1,7 @@
 import dataclasses
 import sys
 from contextlib import suppress
+from functools import wraps
 from typing import Any, Dict, List, Tuple, Type, Union
 
 # pylint: disable=unused-import
@@ -46,15 +47,17 @@ def is_dataclass_type(candidate: Any) -> TypeGuard[Type[Dataclass]]:
     return dataclasses.is_dataclass(candidate)
 
 
-def is_instance(candidate: Any, test_type: Type[Any]) -> bool:
+@wraps(isinstance)
+def try_isinstance(*args: Any, **kwargs: Any) -> bool:
     with suppress(TypeError):
-        return isinstance(candidate, test_type)
+        return isinstance(*args, **kwargs)
     return False
 
 
-def is_subclass(candidate: Any, test_type: Type[Any]) -> bool:
+@wraps(issubclass)
+def try_issubclass(*args: Any, **kwargs: Any) -> bool:
     with suppress(TypeError):
-        return issubclass(candidate, test_type)
+        return issubclass(*args, **kwargs)
     return False
 
 

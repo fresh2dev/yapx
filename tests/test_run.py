@@ -9,6 +9,7 @@ from _pytest.capture import CaptureFixture, CaptureResult
 
 import yapx
 import yapx.argument_parser
+from yapx.exceptions import MutuallyExclusiveArgumentError
 
 
 def example_setup(text: str = "world") -> str:
@@ -535,6 +536,66 @@ def test_run_bools(use_pydantic: bool):
     assert isinstance(result, list)
 
     assert result == expected
+
+
+@pytest.mark.parametrize("use_pydantic", [False, True])
+def test_run_pos_list(use_pydantic: bool):
+    def _func(
+        this: Optional[List[str]] = yapx.arg(None, pos=True, exclusive=True),
+        that: Optional[List[str]] = yapx.arg(None, exclusive=True),
+    ) -> List[int]:
+        return this, that
+
+    # 1. ARRANGE
+    cli_args: List[str] = ["--that", "world"]
+
+    # 2. ACT
+    try:
+        if not use_pydantic:
+            mock.patch.object(
+                yapx.argument_parser.create_pydantic_model_from_dataclass,
+                attribute="__module__",
+                new_callable=mock.PropertyMock(return_value="yapx.argument_parser"),
+            ).start()
+
+        with mock.patch.object(yapx.argument_parser.sys, "argv", [""] + cli_args):
+            result: List[Any] = yapx.run(_func)
+    finally:
+        mock.patch.stopall()
+
+    # 3. ASSERT
+    assert result
+
+
+@pytest.mark.parametrize("use_pydantic", [False, True])
+def test_run_exclusive(use_pydantic: bool):
+    def _func(
+        this: Optional[List[str]] = yapx.arg(None, pos=True, exclusive=True),
+        that: Optional[List[str]] = yapx.arg(None, exclusive=True),
+        the: Optional[bool] = yapx.arg(None, exclusive=True),
+    ) -> List[int]:
+        return this, that, the
+
+    # 1. ARRANGE
+    cli_args: List[str] = ["hello", "--that", "world"]
+
+    # 2. ACT
+    try:
+        if not use_pydantic:
+            mock.patch.object(
+                yapx.argument_parser.create_pydantic_model_from_dataclass,
+                attribute="__module__",
+                new_callable=mock.PropertyMock(return_value="yapx.argument_parser"),
+            ).start()
+
+        with mock.patch.object(
+            yapx.argument_parser.sys,
+            "argv",
+            [""] + cli_args,
+        ), pytest.raises(MutuallyExclusiveArgumentError):
+            yapx.run(_func)
+    finally:
+        mock.patch.stopall()
 
 
 def test_print_shell_completion(capsys: CaptureFixture):

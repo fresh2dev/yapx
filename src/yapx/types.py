@@ -21,6 +21,8 @@ class Dataclass(Protocol):
 class ArgumentParser(Protocol):
     kv_separator = str
 
+    _mutually_exclusive_args: Dict[str, Dict[str, Optional[str]]]
+
     _inner_type_conversions: Dict[str, type]
 
     def print_help(self) -> None:

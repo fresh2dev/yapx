@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Optional, Set, Tuple, Type, TypeVar
 
 from .argparse_action import YapxAction, argparse_action
 from .types import ArgumentParser, ArgValueType
-from .utils import coalesce, is_instance, is_subclass
+from .utils import coalesce, try_isinstance, try_issubclass
 
 # @argparse_action
 # # pylint: disable=unused-argument
@@ -31,7 +31,7 @@ def _split_csv_sequence(
         values = [values]
     elif (
         values is None
-        or not is_subclass(type(values), collections.abc.Sequence)
+        or not try_issubclass(type(values), collections.abc.Sequence)
         or len(values) == 0
         or not isinstance(values[0], str)
     ):
@@ -61,11 +61,11 @@ def _split_csv_sequence(
                     target_type=target_type,
                 ),
             )
-        elif target_type and not is_instance(value, target_type):
+        elif target_type and not try_isinstance(value, target_type):
             all_values.append(
                 (
                     target_type[value]
-                    if is_subclass(target_type, Enum)
+                    if try_issubclass(target_type, Enum)
                     else target_type(value)
                 ),
             )
@@ -172,7 +172,7 @@ def str2enum(
             action.dest,
         )
     )
-    if is_instance(values, target_type):
+    if try_isinstance(values, target_type):
         return values
 
     return target_type[values]

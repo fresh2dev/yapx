@@ -25,19 +25,19 @@ def test_is_dataclass_type():
     assert yapx.utils.is_dataclass_type(Something())
 
 
-def test_is_instance():
-    assert yapx.utils.is_instance("", str)
-    assert not yapx.utils.is_instance(0, str)
-    assert not yapx.utils.is_instance(None, str)
+def test_try_isinstance():
+    assert yapx.utils.try_isinstance("", str)
+    assert not yapx.utils.try_isinstance(0, str)
+    assert not yapx.utils.try_isinstance(None, str)
 
 
-def test_is_subclass():
+def test_try_issubclass():
     class Something(str):
         ...
 
-    assert yapx.utils.is_subclass(Something, str)
-    assert not yapx.utils.is_subclass(Something(), str)
-    assert not yapx.utils.is_subclass(None, str)
+    assert yapx.utils.try_issubclass(Something, str)
+    assert not yapx.utils.try_issubclass(Something(), str)
+    assert not yapx.utils.try_issubclass(None, str)
 
 
 def test_coalesce():
