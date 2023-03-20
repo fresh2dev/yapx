@@ -15,3 +15,11 @@ class UnsupportedTypeError(Exception):
 
 class NoArgsModelError(Exception):
     ...
+
+
+class MutuallyExclusiveArgumentError(Exception):
+    ...
+
+
+class MutuallyExclusiveRequiredError(Exception):
+    ...

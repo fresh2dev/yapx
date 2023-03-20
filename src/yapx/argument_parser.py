@@ -21,8 +21,6 @@ from typing import (
     Union,
 )
 
-from yapx.exceptions import NoArgsModelError, ParserClosedError, UnsupportedTypeError
-
 from .actions import (
     split_csv,
     split_csv_to_dict,
@@ -38,6 +36,13 @@ from .arg import (
     make_dataclass_from_func,
 )
 from .argparse_action import YapxAction
+from .exceptions import (
+    MutuallyExclusiveArgumentError,
+    MutuallyExclusiveRequiredError,
+    NoArgsModelError,
+    ParserClosedError,
+    UnsupportedTypeError,
+)
 from .types import Dataclass, NoneType
 from .utils import is_dataclass_type, str2bool, try_isinstance, try_issubclass
 
@@ -89,6 +94,11 @@ class ArgumentParser(argparse.ArgumentParser):
             add_argument_to(self, "--print-shell-completion")
 
         self.kv_separator = "="
+
+        self._mutually_exclusive_args: Dict[
+            Optional[Callable[..., Any]],
+            Dict[str, List[Tuple[str, Optional[str]]]],
+        ] = defaultdict(lambda: defaultdict(list))
 
         self._inner_type_conversions: Dict[str, Union[type, Callable[[str], Any]]] = {}
 
@@ -226,17 +236,15 @@ class ArgumentParser(argparse.ArgumentParser):
             )
         parser.set_defaults(**{cls.ARGS_ATTRIBUTE_NAME: model})
 
-        parser_required_args: Dict[str, argparse._ArgumentGroup] = defaultdict(
-            lambda: parser.add_argument_group("required arguments"),
-        )
-        parser_optional_args: Dict[str, argparse._ArgumentGroup] = defaultdict(
-            lambda: parser.add_argument_group("optional arguments"),
-        )
-        parser_exclusive_args: Dict[str, argparse._ArgumentGroup] = defaultdict(
-            lambda: parser.add_argument_group(
-                "mutually-exclusive arguments",
-            ).add_mutually_exclusive_group(),
-        )
+        # parser_required_args: Dict[str, argparse._ArgumentGroup] = defaultdict(
+        #     lambda: parser.add_argument_group("required arguments"),
+        # )
+        # parser_optional_args: Dict[str, argparse._ArgumentGroup] = defaultdict(
+        #     lambda: parser.add_argument_group("optional arguments"),
+        # )
+        # parser_exclusive_args: Dict[str, argparse._ArgumentGroup] = defaultdict(
+        #     lambda: parser.add_argument_group(description="mutually-exclusive arguments"),
+        # )
 
         parser_arg_groups: Dict[str, argparse._ArgumentGroup] = {}
 
@@ -391,8 +399,8 @@ class ArgumentParser(argparse.ArgumentParser):
                     kwargs["required"] = False
                     if not kwargs["action"]:
                         kwargs["action"] = "store_true"
-                if kwargs.get("default") in (MISSING, None):
-                    kwargs["default"] = False
+                if kwargs.get("default") == MISSING:
+                    kwargs["default"] = None
 
             # if given `default` cast it to the expected type.
             if kwargs.get("default") is not MISSING:
@@ -419,39 +427,73 @@ class ArgumentParser(argparse.ArgumentParser):
                         else argparse_argument.type(kwargs["default"])
                     )
 
-            help_msg: str = f"type: {help_type}"
+            help_msg_parts: List[str] = [f"Type: {help_type}"]
+
             # pylint: disable=protected-access
-            if not required:
+            if required:
+                help_msg_parts.append("Required")
+            else:
                 help_default = kwargs.get("default")
                 if isinstance(help_default, str):
                     help_default = f"'{help_default}'"
-                help_msg += f", default: {help_default}"
+                help_msg_parts.append(f"Default: {help_default}")
+
+            if kwargs.pop("exclusive", False):
+                help_msg_parts.append("M.X.")
 
             if argparse_argument._env_var:
-                help_msg += f", env: {argparse_argument._env_var}"
-            help_msg = f"({help_msg})"
+                help_msg_parts.append(f"Env: {argparse_argument._env_var}")
+
+            help_msg: str = f"> {', '.join(help_msg_parts)}"
 
             if kwargs.get("help"):
                 kwargs["help"] += " " + help_msg
             else:
                 kwargs["help"] = help_msg
 
-            exclusive: Optional[bool] = kwargs.pop("exclusive", False)
             group: Optional[str] = kwargs.pop("group", None)
 
-            if exclusive:
-                parser_exclusive_args["exclusive"].add_argument(*args, **kwargs)
-            elif group:
-                arg_group: argparse._ArgumentGroup = parser_arg_groups.get(
-                    group,
-                    parser.add_argument_group(group),
-                )
-                arg_group.add_argument(*args, **kwargs)
+            if not group:
+                group = "Arguments"
+
+            # if exclusive:
+            #     parser_exclusive_args["exclusive"].add_argument(*args, **kwargs)
+            # elif group:
+            #     arg_group: argparse._ArgumentGroup = parser_arg_groups.get(
+            #         group,
+            #         parser.add_argument_group(group),
+            #     )
+            #     arg_group.add_argument(*args, **kwargs)
+            #     parser_arg_groups[group] = arg_group
+            # elif required:
+            #     parser_required_args["required"].add_argument(*args, **kwargs)
+            # else:
+            #     parser_optional_args["optional"].add_argument(*args, **kwargs)
+
+            arg_group: argparse._ArgumentGroup = parser_arg_groups.get(group, None)
+
+            if not arg_group:
+                arg_group = parser.add_argument_group(group)
                 parser_arg_groups[group] = arg_group
-            elif required:
-                parser_required_args["required"].add_argument(*args, **kwargs)
-            else:
-                parser_optional_args["optional"].add_argument(*args, **kwargs)
+
+            if argparse_argument.exclusive:
+                if required:
+                    err: str = (
+                        "A mutually-exclusive argument cannot be required:"
+                        f" {argparse_argument.dest}"
+                    )
+                    raise MutuallyExclusiveRequiredError(err)
+
+                parser._mutually_exclusive_args[
+                    parser._defaults.get(cls.FUNC_ATTRIBUTE_NAME)
+                ][group].append(
+                    (
+                        argparse_argument.dest,
+                        args[-1] if args else None,
+                    ),
+                )
+
+            arg_group.add_argument(*args, **kwargs)
 
     @classmethod
     def _raise_unsupported_type_error(cls, fld_type):
@@ -565,6 +607,44 @@ class ArgumentParser(argparse.ArgumentParser):
         if self.is_shtab_available():
             sh_complete_attr = "print_shell_completion"
             delattr(parsed, sh_complete_attr)
+
+        func_mx_arg_groups: Dict[str, List[Tuple[str, Optional[str]]]] = (
+            self._mutually_exclusive_args.get(
+                getattr(parsed, self.FUNC_ATTRIBUTE_NAME, None),
+                {},
+            )
+        )
+        for g_args in func_mx_arg_groups.values():
+            # argparse will always return a list when the argument type is `list | None`,
+            # so we exclude both null and empty values
+            # e.g.,: parser = argparse.ArgumentParser(); g = parser.add_mutually_exclusive_group(); g.add_argument("test", nargs="*", default=None); g.add_argument("--test2", default=None); parser.parse_args(["--test2", "aye"])
+            mx_flags_found: List[str] = [
+                flag if flag else dest
+                for dest, flag in g_args
+                if hasattr(parsed, dest)
+                for attr_value in [getattr(parsed, dest)]
+                if (
+                    (
+                        try_isinstance(attr_value, str)
+                        or not try_isinstance(
+                            attr_value,
+                            collections.abc.Iterable,
+                        )
+                    )
+                    and attr_value is not None
+                )
+                or (
+                    not try_isinstance(attr_value, str)
+                    and try_isinstance(
+                        attr_value,
+                        collections.abc.Iterable,
+                    )
+                    and attr_value
+                )
+            ]
+
+            if len(mx_flags_found) > 1:
+                raise MutuallyExclusiveArgumentError(", ".join(mx_flags_found))
 
         return parsed
 

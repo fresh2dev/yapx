@@ -25,7 +25,7 @@ else:
             ArgparseArg(
                 option_strings=["--a-str"],
                 type=str,
-                help="(type: str)",
+                help="> Type: str, Required",
                 required=True,
             ),
         ),
@@ -36,7 +36,7 @@ else:
             ArgparseArg(
                 option_strings=["--a-str"],
                 type=str,
-                help="(type: str, default: 'hello')",
+                help="> Type: str, Default: 'hello'",
                 required=False,
             ),
         ),
@@ -47,7 +47,7 @@ else:
             ArgparseArg(
                 option_strings=["--a-str"],
                 type=str,
-                help="(type: str, default: None)",
+                help="> Type: str, Default: None",
                 required=False,
             ),
         ),
@@ -59,7 +59,7 @@ else:
             ArgparseArg(
                 option_strings=["--a-int"],
                 type=int,
-                help="(type: int)",
+                help="> Type: int, Required",
                 required=True,
             ),
         ),
@@ -70,7 +70,7 @@ else:
             ArgparseArg(
                 option_strings=["--a-int"],
                 type=int,
-                help="(type: int, default: 123)",
+                help="> Type: int, Default: 123",
                 required=False,
             ),
         ),
@@ -81,7 +81,7 @@ else:
             ArgparseArg(
                 option_strings=["--a-int"],
                 type=int,
-                help="(type: int, default: None)",
+                help="> Type: int, Default: None",
                 required=False,
             ),
         ),
@@ -93,7 +93,7 @@ else:
             ArgparseArg(
                 option_strings=["--a-float"],
                 type=float,
-                help="(type: float)",
+                help="> Type: float, Required",
                 required=True,
             ),
         ),
@@ -104,7 +104,7 @@ else:
             ArgparseArg(
                 option_strings=["--a-float"],
                 type=float,
-                help="(type: float, default: 3.14)",
+                help="> Type: float, Default: 3.14",
                 required=False,
             ),
         ),
@@ -116,11 +116,11 @@ else:
             ArgparseArg(
                 option_strings=["--a-bool"],
                 type=None,
-                help="(type: bool, default: False)",
+                help="> Type: bool, Default: None",
                 nargs=0,
                 const=True,
                 required=False,
-                default=False,
+                default=None,
             ),
         ),
         # bool (True)
@@ -131,7 +131,7 @@ else:
             ArgparseArg(
                 option_strings=["--a-bool"],
                 type=None,
-                help="(type: bool, default: True)",
+                help="> Type: bool, Default: True",
                 nargs=0,
                 const=True,
                 required=False,
@@ -145,7 +145,7 @@ else:
             ArgparseArg(
                 option_strings=["--a-list"],
                 type=str,
-                help="(type: List[str])",
+                help="> Type: List[str], Required",
                 nargs="+",
                 required=True,
             ),
@@ -157,7 +157,7 @@ else:
             ArgparseArg(
                 option_strings=["--a-list"],
                 type=str,
-                help="(type: List[str], default: [])",
+                help="> Type: List[str], Default: []",
                 nargs="*",
                 required=False,
             ),
@@ -170,7 +170,7 @@ else:
             ArgparseArg(
                 option_strings=["--a-tuple"],
                 type=str,
-                help="(type: Tuple[str])",
+                help="> Type: Tuple[str], Required",
                 nargs="+",
                 required=True,
             ),
@@ -182,7 +182,7 @@ else:
             ArgparseArg(
                 option_strings=["--a-tuple"],
                 type=str,
-                help="(type: Tuple[str], default: ())",
+                help="> Type: Tuple[str], Default: ()",
                 nargs="*",
                 required=False,
             ),
@@ -195,7 +195,7 @@ else:
             ArgparseArg(
                 option_strings=["--a-sequence"],
                 type=str,
-                help="(type: Sequence[str])",
+                help="> Type: Sequence[str], Required",
                 nargs="+",
                 required=True,
             ),
@@ -207,7 +207,7 @@ else:
             ArgparseArg(
                 option_strings=["--a-sequence"],
                 type=str,
-                help="(type: Sequence[str], default: [])",
+                help="> Type: Sequence[str], Default: []",
                 nargs="*",
                 required=False,
             ),
@@ -220,7 +220,7 @@ else:
             ArgparseArg(
                 option_strings=["--a-set"],
                 type=str,
-                help="(type: Set[str])",
+                help="> Type: Set[str], Required",
                 nargs="+",
                 required=True,
             ),
@@ -232,7 +232,7 @@ else:
             ArgparseArg(
                 option_strings=["--a-set"],
                 type=str,
-                help="(type: Set[str], default: set())",
+                help="> Type: Set[str], Default: set()",
                 nargs="*",
                 required=False,
             ),
@@ -245,7 +245,7 @@ else:
             ArgparseArg(
                 option_strings=["--a-dict"],
                 type=str,
-                help="(type: Dict[str, str])",
+                help="> Type: Dict[str, str], Required",
                 nargs="+",
                 required=True,
             ),
@@ -257,7 +257,7 @@ else:
             ArgparseArg(
                 option_strings=["--a-dict"],
                 type=str,
-                help="(type: Dict[str, str], default: {})",
+                help="> Type: Dict[str, str], Default: {}",
                 nargs="*",
                 required=False,
             ),
@@ -270,7 +270,7 @@ else:
             ArgparseArg(
                 option_strings=["--a-mapping"],
                 type=str,
-                help="(type: Mapping[str, str])",
+                help="> Type: Mapping[str, str], Required",
                 nargs="+",
                 required=True,
             ),
@@ -282,7 +282,7 @@ else:
             ArgparseArg(
                 option_strings=["--a-mapping"],
                 type=str,
-                help="(type: Mapping[str, str], default: {})",
+                help="> Type: Mapping[str, str], Default: {}",
                 nargs="*",
                 required=False,
             ),
@@ -294,7 +294,7 @@ else:
             ArgparseArg(
                 option_strings=["--a-literal"],
                 type=str,
-                help="(type: Literal['one', 'two', 'three'], default: 'two')",
+                help="> Type: Literal['one', 'two', 'three'], Default: 'two'",
                 choices=["one", "two", "three"],
                 required=False,
             ),
@@ -306,7 +306,7 @@ else:
             ArgparseArg(
                 option_strings=["--a-literal-int"],
                 type=int,
-                help="(type: Literal[1, 2, 3], default: 2)",
+                help="> Type: Literal[1, 2, 3], Default: 2",
                 choices=[1, 2, 3],
                 required=False,
             ),
