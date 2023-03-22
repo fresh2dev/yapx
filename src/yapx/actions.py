@@ -129,13 +129,9 @@ def split_csv_to_set(
     return None
 
 
-@argparse_action
-def split_csv_to_dict(
+def _split_csv_to_dict(
     values: ArgValueType,
-    *,
-    action: YapxAction,
-    parser: ArgumentParser,
-    **_kwargs: Any,
+    kv_separator: str,
 ) -> Optional[Dict[str, Optional[Any]]]:
     split_values: Optional[List[Optional[Any]]] = _split_csv_sequence(
         values,
@@ -151,9 +147,20 @@ def split_csv_to_dict(
             )
             for x in split_values
             if x
-            for x_split in [x.split(parser.kv_separator, maxsplit=1)]
+            for x_split in [x.split(kv_separator, maxsplit=1)]
         }
     return None
+
+
+@argparse_action
+def split_csv_to_dict(
+    values: ArgValueType,
+    *,
+    action: YapxAction,
+    parser: ArgumentParser,
+    **_kwargs: Any,
+) -> Optional[Dict[str, Optional[Any]]]:
+    return _split_csv_to_dict(values, kv_separator=parser.kv_separator)
 
 
 @argparse_action

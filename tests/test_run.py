@@ -621,3 +621,28 @@ def test_print_shell_completion(capsys: CaptureFixture):
         assert e in captured.out
     for ne in not_expected:
         assert ne not in captured.out
+
+
+def test_extra_args():
+    # 1. ARRANGE
+    cli_args: List[str] = ["subcmd", "what", "in", "the", "world=this"]
+    expected: List[str] = cli_args[1:]
+
+    def _setup(_extra_args: Optional[List[str]] = None, **kwargs) -> str:
+        assert _extra_args[0] in kwargs
+        assert kwargs["world"] == "this"
+        return _extra_args
+
+    def _subcmd(_relay_value: Any) -> str:
+        assert _relay_value == expected
+        return _relay_value
+
+    # 2. ACT
+    result = yapx.run(
+        _setup,
+        _subcmd,
+        _args=cli_args,
+    )
+
+    # 3. ASSERT
+    assert result == expected

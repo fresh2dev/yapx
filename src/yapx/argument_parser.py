@@ -2,9 +2,10 @@ import argparse
 import collections.abc
 import sys
 from collections import defaultdict
-from contextlib import suppress
 from dataclasses import MISSING, Field, fields
 from enum import Enum
+from functools import wraps
+from inspect import signature
 from types import GeneratorType
 from typing import (
     IO,
@@ -22,6 +23,7 @@ from typing import (
 )
 
 from .actions import (
+    _split_csv_to_dict,
     split_csv,
     split_csv_to_dict,
     split_csv_to_set,
@@ -596,21 +598,18 @@ class ArgumentParser(argparse.ArgumentParser):
 
         return subparsers
 
-    def parse_args(  # type: ignore[override]
+    def _post_parse_args(  # type: ignore[override]
         self,
-        args: Optional[Sequence[str]] = None,
-        namespace: Optional[argparse.Namespace] = None,
+        namespace: argparse.Namespace,
     ) -> argparse.Namespace:
-        parsed: argparse.Namespace = super().parse_args(args=args, namespace=namespace)
-
         # delete vars created by shtab
-        if self.is_shtab_available():
-            sh_complete_attr = "print_shell_completion"
-            delattr(parsed, sh_complete_attr)
+        sh_complete_attr = "print_shell_completion"
+        if hasattr(namespace, sh_complete_attr):
+            delattr(namespace, sh_complete_attr)
 
         func_mx_arg_groups: Dict[str, List[Tuple[str, Optional[str]]]] = (
             self._mutually_exclusive_args.get(
-                getattr(parsed, self.FUNC_ATTRIBUTE_NAME, None),
+                getattr(namespace, self.FUNC_ATTRIBUTE_NAME, None),
                 {},
             )
         )
@@ -621,8 +620,8 @@ class ArgumentParser(argparse.ArgumentParser):
             mx_flags_found: List[str] = [
                 flag if flag else dest
                 for dest, flag in g_args
-                if hasattr(parsed, dest)
-                for attr_value in [getattr(parsed, dest)]
+                if hasattr(namespace, dest)
+                for attr_value in [getattr(namespace, dest)]
                 if (
                     (
                         try_isinstance(attr_value, str)
@@ -646,7 +645,25 @@ class ArgumentParser(argparse.ArgumentParser):
             if len(mx_flags_found) > 1:
                 raise MutuallyExclusiveArgumentError(", ".join(mx_flags_found))
 
-        return parsed
+        return namespace
+
+    def parse_args(  # type: ignore[override]
+        self,
+        args: Optional[Sequence[str]] = None,
+        namespace: Optional[argparse.Namespace] = None,
+    ) -> argparse.Namespace:
+        parsed: argparse.Namespace = super().parse_args(args=args, namespace=namespace)
+        return self._post_parse_args(parsed)
+
+    def parse_known_args(  # type: ignore[override]
+        self,
+        args: Optional[Sequence[str]] = None,
+        namespace: Optional[argparse.Namespace] = None,
+    ) -> Tuple[argparse.Namespace, List[str]]:
+        parsed: argparse.Namespace
+        unknown: List[str]
+        parsed, unknown = super().parse_known_args(args=args, namespace=namespace)
+        return self._post_parse_args(parsed), unknown
 
     @staticmethod
     def is_pydantic_available() -> bool:
@@ -790,17 +807,62 @@ class ArgumentParser(argparse.ArgumentParser):
     @staticmethod
     def _run_func(
         parser: "ArgumentParser",
-        func: Optional[Callable[..., Any]] = None,
-        args_model: Optional[Type[Any]] = None,
-        args: Optional[List[str]] = None,
+        func: Callable[..., Any],
+        args_model: Type[Any],
+        args: List[str],
+        parent_func: Optional[Callable[..., Any]] = None,
+        relay_value: Optional[Any] = None,
     ) -> Any:
-        if func:
-            model_inst: Dataclass = parser.parse_args_to_model(
+        kwargs: Dict[str, Optional[Any]] = {}
+
+        extra_args_ok: bool = False
+        accepts_kwargs: bool = False
+        accepts_extra_args: bool = False
+        accepts_relay_value: bool = False
+
+        for p in signature(func).parameters.values():
+            if str(p).startswith("**"):
+                accepts_kwargs = True
+            elif p.name == "_extra_args":
+                accepts_extra_args = True
+            elif p.name == "_relay_value":
+                accepts_relay_value = True
+
+        extra_args_ok = accepts_kwargs or accepts_extra_args
+        if not extra_args_ok and parent_func:
+            extra_args_ok = any(
+                str(p).startswith("**") or p.name == "_extra_args"
+                for p in signature(parent_func).parameters.values()
+            )
+
+        model_inst: Dataclass
+        if extra_args_ok:
+            unknown_args: List[str]
+            model_inst, unknown_args = parser.parse_known_args_to_model(
                 args=args,
                 args_model=args_model,
             )
-            return func(**vars(model_inst))
-        return None
+            if unknown_args:
+                if accepts_extra_args:
+                    kwargs["_extra_args"] = unknown_args
+
+                if accepts_kwargs:
+                    kwargs.update(
+                        _split_csv_to_dict(
+                            unknown_args,
+                            kv_separator=parser.kv_separator,
+                        ),
+                    )
+        else:
+            model_inst = parser.parse_args_to_model(
+                args=args,
+                args_model=args_model,
+            )
+
+        if accepts_relay_value:
+            kwargs["_relay_value"] = relay_value
+
+        return func(**vars(model_inst), **kwargs)
 
     @classmethod
     def _run(
@@ -854,42 +916,51 @@ class ArgumentParser(argparse.ArgumentParser):
             parser.print_help(full=True)
             parser.exit()
 
-        parsed_args: Dict[str, Any] = vars(parser.parse_args(_args))
+        known_args: argparse.Namespace
+        known_args, _ = parser.parse_known_args(_args)
+        parsed_args: Dict[str, Any] = vars(known_args)
 
         # parsed_args.get(cls.COMMAND_ATTRIBUTE_NAME)
 
         func: Optional[Callable[..., Any]] = parsed_args.get(cls.FUNC_ATTRIBUTE_NAME)
         args_model: Optional[Type[Any]] = parsed_args.get(cls.ARGS_ATTRIBUTE_NAME)
-        func_result: Any = None
+        relay_value: Any = None
 
-        setup_result: Any = cls._run_func(
-            parser=parser,
-            func=setup_func,
-            args_model=setup_func_arg_model,
-            args=_args,
-        )
+        setup_result: Any = None
+        if setup_func:
+            assert setup_func_arg_model
+            setup_result = cls._run_func(
+                parser=parser,
+                func=setup_func,
+                args_model=setup_func_arg_model,
+                args=_args,
+            )
 
         if try_isinstance(setup_result, GeneratorType):
-            with suppress(StopIteration):
-                func_result = next(setup_result)
+            try:
+                relay_value = next(setup_result)
+            except StopIteration:
+                relay_value = setup_result
         else:
-            func_result = setup_result
+            relay_value = setup_result
 
         try:
             if func:
-                func_result = cls._run_func(
+                relay_value = cls._run_func(
                     parser=parser,
                     func=func,
                     args_model=args_model,
                     args=_args,
+                    parent_func=setup_func,
+                    relay_value=relay_value,
                 )
         finally:
             if try_isinstance(setup_result, GeneratorType):
                 for gen_result in setup_result:
                     if not func:
-                        func_result = gen_result
+                        relay_value = gen_result
 
-        return func_result
+        return relay_value
 
 
 def run(

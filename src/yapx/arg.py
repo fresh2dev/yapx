@@ -3,7 +3,7 @@ import sys
 from argparse import Action
 from contextlib import suppress
 from dataclasses import MISSING, Field, dataclass, field, make_dataclass
-from inspect import _empty, signature
+from inspect import Parameter, _empty, signature
 from typing import (
     Any,
     Callable,
@@ -193,8 +193,11 @@ def make_dataclass_from_func(
         # via `from __future__ import annotations`
         type_hints = {}
 
+    param: Parameter
     for param in func_signature.parameters.values():
-        if not include_private_params and param.name.startswith("_"):
+        if str(param).startswith("*") or (
+            not include_private_params and param.name.startswith("_")
+        ):
             continue
 
         annotation: Type[Any] = (
