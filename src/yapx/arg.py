@@ -17,12 +17,22 @@ from typing import (
     get_type_hints,
 )
 
+import yapx  # pylint: disable=unused-import # noqa: F401
+
 from .types import Dataclass
 
 if sys.version_info >= (3, 8):
     from typing import Literal  # pylint: disable=unused-import # noqa: F401
 else:
     from typing_extensions import Literal  # pylint: disable=unused-import # noqa: F401
+
+if sys.version_info >= (3, 9):
+    from typing import Annotated  # pylint: disable=unused-import # noqa: F401
+else:
+    from typing_extensions import (  # pylint: disable=unused-import # noqa: F401
+        Annotated,
+    )
+
 
 __all__ = ["arg"]
 
@@ -119,9 +129,7 @@ def arg(
     default_param: str = "default_factory" if callable(default) else "default"
     kwargs[default_param] = default
 
-    fld: Field = field(**kwargs)
-    assert isinstance(fld, Field)
-    return fld
+    return field(**kwargs)
 
 
 def convert_to_command_string(x: str) -> str:
@@ -187,7 +195,10 @@ def make_dataclass_from_func(
     func_signature = signature(func)
     type_hints: Dict[str, Any]
     try:
-        type_hints = get_type_hints(func)
+        include_extras: Dict[str, bool] = {}
+        if sys.version_info >= (3, 9):
+            include_extras["include_extras"] = True
+        type_hints = get_type_hints(func, **include_extras)
     except (TypeError, NameError):
         # this can happen if deferred evaluation is used,
         # via `from __future__ import annotations`

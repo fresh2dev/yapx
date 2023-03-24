@@ -72,6 +72,11 @@ if sys.version_info >= (3, 8):
 else:
     from typing_extensions import Literal
 
+if sys.version_info >= (3, 9):
+    from typing import _AnnotatedAlias
+else:
+    from typing_extensions import _AnnotatedAlias
+
 if sys.version_info >= (3, 10):
     from types import UnionType  # pylint: disable=unused-import # noqa: F401
 
@@ -193,29 +198,6 @@ class ArgumentParser(argparse.ArgumentParser):
     ) -> None:
         """
         Derived from: https://github.com/mivade/argparse_dataclass
-
-        License
-        -------
-        MIT License
-
-        Copyright (c) 2021 Michael V. DePalatis and contributors
-
-        Permission is hereby granted, free of charge, to any person obtaining a copy
-        of this software and associated documentation files (the "Software"), to deal
-        in the Software without restriction, including without limitation the rights
-        to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-        copies of the Software, and to permit persons to whom the Software is
-        furnished to do so, subject to the following conditions:
-        The above copyright notice and this permission notice shall be included in all
-        copies or substantial portions of the Software.
-
-        THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-        IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-        FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-        AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-        LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-        OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-        SOFTWARE.
         """
 
         model: Type[Dataclass]
@@ -226,20 +208,10 @@ class ArgumentParser(argparse.ArgumentParser):
             model = make_dataclass_from_func(args_model)
 
         if parser.get_default(cls.ARGS_ATTRIBUTE_NAME):
-            raise ParserClosedError(
-                "This parser already has args from another dataclass",
-            )
-        parser.set_defaults(**{cls.ARGS_ATTRIBUTE_NAME: model})
+            err: str = "This parser already has args from another dataclass"
+            raise ParserClosedError(err)
 
-        # parser_required_args: Dict[str, argparse._ArgumentGroup] = defaultdict(
-        #     lambda: parser.add_argument_group("required arguments"),
-        # )
-        # parser_optional_args: Dict[str, argparse._ArgumentGroup] = defaultdict(
-        #     lambda: parser.add_argument_group("optional arguments"),
-        # )
-        # parser_exclusive_args: Dict[str, argparse._ArgumentGroup] = defaultdict(
-        #     lambda: parser.add_argument_group(description="mutually-exclusive arguments"),
-        # )
+        parser.set_defaults(**{cls.ARGS_ATTRIBUTE_NAME: model})
 
         parser_arg_groups: Dict[str, argparse._ArgumentGroup] = {}
 
@@ -255,6 +227,44 @@ class ArgumentParser(argparse.ArgumentParser):
         ]
 
         for fld, argparse_argument in novel_field_args:
+            fld_type: Union[str, Type[Any]] = fld.type
+
+            # basic support for handling deferred annotation evaluation,
+            # when using `from __future__ import annotations`
+            if try_isinstance(fld_type, str):
+                fld_type = _eval_type(fld_type)
+            assert not try_isinstance(fld_type, str)
+
+            if (
+                sys.version_info >= (3, 10) and try_isinstance(fld_type, UnionType)
+            ) or cls._get_type_origin(fld_type) is Union:
+                fld_type = cls._extract_type_from_container(
+                    fld_type,
+                    is_union_type=True,
+                )
+
+            if try_isinstance(fld_type, _AnnotatedAlias):
+                for x in cls._get_type_metadata(fld_type):
+                    if isinstance(x, Field) and ARGPARSE_ARG_METADATA_KEY in x.metadata:
+                        argparse_argument = x.metadata[ARGPARSE_ARG_METADATA_KEY]
+                        break
+
+                fld_type = cls._get_type_origin(fld_type)
+
+                if (
+                    sys.version_info >= (3, 10) and try_isinstance(fld_type, UnionType)
+                ) or cls._get_type_origin(fld_type) is Union:
+                    fld_type = cls._extract_type_from_container(
+                        fld_type,
+                        is_union_type=True,
+                    )
+
+            help_type: str = (
+                fld_type.__name__
+                if try_isinstance(fld_type, type)
+                else str(fld_type).rsplit(".", maxsplit=1)[-1]
+            )
+
             if argparse_argument is None:
                 argparse_argument = ArgparseArg(dest=fld.name)
 
@@ -269,28 +279,6 @@ class ArgumentParser(argparse.ArgumentParser):
                     argparse_argument.required = True
             else:
                 argparse_argument.set_dest(fld.name)
-
-            fld_type: Union[str, Type[Any]] = fld.type
-
-            # basic support for handling deferred annotation evaluation,
-            # when using `from __future__ import annotations`
-            if try_isinstance(fld_type, str):
-                fld_type = _eval_type(fld_type)
-                assert not isinstance(fld_type, str)
-
-            if (
-                sys.version_info >= (3, 10) and try_isinstance(fld_type, UnionType)
-            ) or cls._get_type_origin(fld_type) is Union:
-                fld_type = cls._extract_type_from_container(
-                    fld_type,
-                    is_union_type=True,
-                )
-
-            help_type: str = (
-                fld_type.__name__
-                if try_isinstance(fld_type, type)
-                else str(fld_type).rsplit(".", maxsplit=1)[-1]
-            )
 
             fld_type_origin: Optional[Type[Any]] = cls._get_type_origin(fld_type)
             if fld_type_origin:
@@ -510,6 +498,10 @@ class ArgumentParser(argparse.ArgumentParser):
     def _get_type_args(t: Type[Any]) -> Tuple[Type[Any], ...]:
         return getattr(t, "__args__", ())
 
+    @staticmethod
+    def _get_type_metadata(t: Type[Any]) -> Tuple[Type[Any], ...]:
+        return getattr(t, "__metadata__", ())
+
     @classmethod
     def _extract_type_from_container(
         cls,
@@ -709,7 +701,7 @@ class ArgumentParser(argparse.ArgumentParser):
         if not args_model:
             args_model = parsed_args.get(self.ARGS_ATTRIBUTE_NAME)
             if not args_model:
-                raise NoArgsModelError()
+                raise NoArgsModelError
 
         args_union: Dict[str, Any] = self._union_args_with_model(
             args_dict=parsed_args,
@@ -803,30 +795,38 @@ class ArgumentParser(argparse.ArgumentParser):
         func: Callable[..., Any],
         args_model: Type[Any],
         args: List[str],
-        parent_func: Optional[Callable[..., Any]] = None,
+        linked_func: Optional[Callable[..., Any]] = None,
         relay_value: Optional[Any] = None,
     ) -> Any:
-        kwargs: Dict[str, Optional[Any]] = {}
+        func_args: List[str] = []
+        func_kwargs: Dict[str, Optional[Any]] = {}
 
         extra_args_ok: bool = False
         accepts_kwargs: bool = False
+        accepts_pos_args: bool = False
         accepts_extra_args: bool = False
         accepts_relay_value: bool = False
 
         for p in signature(func).parameters.values():
             if str(p).startswith("**"):
                 accepts_kwargs = True
+            elif str(p).startswith("*"):
+                accepts_pos_args = True
             elif p.name == "_extra_args":
                 accepts_extra_args = True
             elif p.name == "_relay_value":
                 accepts_relay_value = True
 
-        extra_args_ok = accepts_kwargs or accepts_extra_args
-        if not extra_args_ok and parent_func:
+        extra_args_ok = accepts_pos_args or accepts_kwargs or accepts_extra_args
+
+        if not extra_args_ok and linked_func:
             extra_args_ok = any(
-                str(p).startswith("**") or p.name == "_extra_args"
-                for p in signature(parent_func).parameters.values()
+                str(p).startswith("*") or p.name == "_extra_args"
+                for p in signature(linked_func).parameters.values()
             )
+
+        if accepts_relay_value:
+            func_kwargs["_relay_value"] = relay_value
 
         model_inst: Dataclass
         if extra_args_ok:
@@ -835,27 +835,27 @@ class ArgumentParser(argparse.ArgumentParser):
                 args=args,
                 args_model=args_model,
             )
-            if unknown_args:
-                if accepts_extra_args:
-                    kwargs["_extra_args"] = unknown_args
 
-                if accepts_kwargs:
-                    kwargs.update(
-                        _split_csv_to_dict(
-                            unknown_args,
-                            kv_separator=parser.kv_separator,
-                        ),
-                    )
+            if accepts_extra_args:
+                func_kwargs["_extra_args"] = unknown_args
+
+            if accepts_pos_args:
+                func_args = unknown_args
+
+            if accepts_kwargs:
+                func_kwargs.update(
+                    _split_csv_to_dict(
+                        unknown_args,
+                        kv_separator=parser.kv_separator,
+                    ),
+                )
         else:
             model_inst = parser.parse_args_to_model(
                 args=args,
                 args_model=args_model,
             )
 
-        if accepts_relay_value:
-            kwargs["_relay_value"] = relay_value
-
-        return func(**vars(model_inst), **kwargs)
+        return func(*func_args, **vars(model_inst), **func_kwargs)
 
     @classmethod
     def _run(
@@ -903,7 +903,7 @@ class ArgumentParser(argparse.ArgumentParser):
             **kwargs,
         )
 
-        if not _args:
+        if _args is None:
             _args = sys.argv[1:]
 
         if _print_help or "--help-full" in _args:
@@ -927,6 +927,7 @@ class ArgumentParser(argparse.ArgumentParser):
                 parser=parser,
                 func=setup_func,
                 args_model=setup_func_arg_model,
+                linked_func=func,
                 args=_args,
             )
 
@@ -945,7 +946,7 @@ class ArgumentParser(argparse.ArgumentParser):
                     func=func,
                     args_model=args_model,
                     args=_args,
-                    parent_func=setup_func,
+                    linked_func=setup_func,
                     relay_value=relay_value,
                 )
         finally:
