@@ -105,9 +105,11 @@ def split_csv_to_tuple(
             action.dest,
         ),
     )
-    if split_values is not None:
-        return tuple(split_values)
-    return None
+
+    if split_values is None:
+        return None
+
+    return tuple(split_values)
 
 
 @argparse_action
@@ -118,15 +120,52 @@ def split_csv_to_set(
     parser: ArgumentParser,
     **_kwargs: Any,
 ) -> Optional[Set[Optional[Any]]]:
+    if try_isinstance(values, set):
+        return values
+
     split_values: Optional[List[Optional[Any]]] = _split_csv_sequence(
         values,
         target_type=parser._inner_type_conversions.get(  # pylint: disable=protected-access
             action.dest,
         ),
     )
-    if split_values is not None:
-        return set(split_values)
-    return None
+    if split_values is None:
+        return None
+
+    return set(split_values)
+
+
+def _split_csv_to_dict(
+    values: ArgValueType,
+    kv_separator: str,
+    target_value_type: Optional[Type[Any]] = None,
+) -> Optional[Dict[str, Optional[Any]]]:
+    if try_isinstance(values, dict):
+        return values
+
+    split_values: Optional[List[Optional[Any]]] = _split_csv_sequence(
+        values,
+        target_type=str,
+    )
+
+    if split_values is None:
+        return None
+
+    return {
+        x_split[0].strip(): (
+            v if v is None or target_value_type is None else target_value_type(v)
+        )
+        for x in split_values
+        if x
+        for x_split in [x.split(kv_separator, maxsplit=1)]
+        for v in [
+            (
+                None
+                if len(x_split) < 2
+                else coalesce(x_split[1].strip(), None, null_or_empty=True)
+            ),
+        ]
+    }
 
 
 @argparse_action
@@ -137,23 +176,14 @@ def split_csv_to_dict(
     parser: ArgumentParser,
     **_kwargs: Any,
 ) -> Optional[Dict[str, Optional[Any]]]:
-    split_values: Optional[List[Optional[Any]]] = _split_csv_sequence(
+    return _split_csv_to_dict(
         values,
-        target_type=str,
+        kv_separator=parser.kv_separator,
+        target_value_type=parser._inner_type_conversions.get(  # pylint: disable=protected-access
+            action.dest,
+            str,
+        ),
     )
-
-    if split_values is not None:
-        return {
-            x_split[0].strip(): (
-                None
-                if len(x_split) < 2
-                else coalesce(x_split[1].strip(), None, null_or_empty=True)
-            )
-            for x in split_values
-            if x
-            for x_split in [x.split(parser.kv_separator, maxsplit=1)]
-        }
-    return None
 
 
 @argparse_action

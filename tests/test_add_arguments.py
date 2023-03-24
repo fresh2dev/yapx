@@ -14,10 +14,52 @@ if sys.version_info >= (3, 8):
 else:
     from typing_extensions import Literal
 
+if sys.version_info >= (3, 9):
+    from typing import Annotated, _AnnotatedAlias
+else:
+    from typing_extensions import Annotated, _AnnotatedAlias
+
 
 @pytest.mark.parametrize(
     ("name", "type_annotation", "default", "expected"),
     [
+        # str, annotated
+        (
+            "a_str",
+            Annotated[str, "nothingburger"],
+            MISSING,
+            ArgparseArg(
+                option_strings=["--a-str"],
+                type=str,
+                help="> Type: str, Required",
+                required=True,
+            ),
+        ),
+        (
+            "a_str",
+            Annotated[str, yapx.arg("hello")],
+            MISSING,
+            ArgparseArg(
+                option_strings=["--a-str"],
+                type=str,
+                help="> Type: str, Default: 'hello'",
+                required=False,
+                default="hello",
+            ),
+        ),
+        (
+            "a_str",
+            Annotated[Optional[str], yapx.arg("hello")],
+            None,
+            ArgparseArg(
+                option_strings=["--a-str"],
+                type=str,
+                help="> Type: str, Default: 'hello'",
+                required=False,
+                default="hello",
+            ),
+        ),
+        # str
         (
             "a_str",
             str,
@@ -38,6 +80,7 @@ else:
                 type=str,
                 help="> Type: str, Default: 'hello'",
                 required=False,
+                default="hello",
             ),
         ),
         (
@@ -49,6 +92,7 @@ else:
                 type=str,
                 help="> Type: str, Default: None",
                 required=False,
+                default=None,
             ),
         ),
         # int
@@ -72,6 +116,7 @@ else:
                 type=int,
                 help="> Type: int, Default: 123",
                 required=False,
+                default=123,
             ),
         ),
         (
@@ -83,6 +128,7 @@ else:
                 type=int,
                 help="> Type: int, Default: None",
                 required=False,
+                default=None,
             ),
         ),
         # float
@@ -106,6 +152,7 @@ else:
                 type=float,
                 help="> Type: float, Default: 3.14",
                 required=False,
+                default=3.14,
             ),
         ),
         # bool
@@ -135,6 +182,7 @@ else:
                 nargs=0,
                 const=True,
                 required=False,
+                default=True,
             ),
         ),
         # list
@@ -160,6 +208,7 @@ else:
                 help="> Type: List[str], Default: []",
                 nargs="*",
                 required=False,
+                default=[],
             ),
         ),
         # tuple
@@ -185,6 +234,7 @@ else:
                 help="> Type: Tuple[str], Default: ()",
                 nargs="*",
                 required=False,
+                default=(),
             ),
         ),
         # sequence
@@ -210,6 +260,7 @@ else:
                 help="> Type: Sequence[str], Default: []",
                 nargs="*",
                 required=False,
+                default=[],
             ),
         ),
         # set
@@ -235,6 +286,7 @@ else:
                 help="> Type: Set[str], Default: set()",
                 nargs="*",
                 required=False,
+                default=set(),
             ),
         ),
         # dict
@@ -260,6 +312,7 @@ else:
                 help="> Type: Dict[str, str], Default: {}",
                 nargs="*",
                 required=False,
+                default={},
             ),
         ),
         # mapping
@@ -285,6 +338,7 @@ else:
                 help="> Type: Mapping[str, str], Default: {}",
                 nargs="*",
                 required=False,
+                default={},
             ),
         ),
         (
@@ -297,6 +351,7 @@ else:
                 help="> Type: Literal['one', 'two', 'three'], Default: 'two'",
                 choices=["one", "two", "three"],
                 required=False,
+                default="two",
             ),
         ),
         (
@@ -309,6 +364,7 @@ else:
                 help="> Type: Literal[1, 2, 3], Default: 2",
                 choices=[1, 2, 3],
                 required=False,
+                default=2,
             ),
         ),
     ],
@@ -322,17 +378,12 @@ def test_add_arguments(
     # 1. ARRANGE
     expected.dest = name
 
-    argfield_kwargs: Dict[str, Any] = {}
-    if default is not MISSING:
-        if default and callable(default):
-            expected.default = default()
-        else:
-            expected.default = default
-        argfield_kwargs["default"] = default
+    if not isinstance(type_annotation, _AnnotatedAlias):
+        default = yapx.arg(default=default)
 
     ArgsModel: Type[yapx.types.Dataclass] = make_dataclass(
         "ArgsModel",
-        [(name, type_annotation, yapx.arg(**argfield_kwargs))],
+        [(name, type_annotation, default)],
     )
 
     # 2. ACT

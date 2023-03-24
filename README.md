@@ -25,6 +25,6 @@
 
 *Brought to you by...*
 
-[![](https://img.fresh2.dev/fresh2dev.svg)](https://www.fresh2.dev)
+<a href="https://www.fresh2.dev"><img src="https://img.fresh2.dev/fresh2dev.svg" style="filter: invert(50%);"></img></a>
 
 ---
