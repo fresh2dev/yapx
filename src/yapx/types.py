@@ -1,8 +1,27 @@
 import sys
 from typing import Any, Dict, Optional, Sequence, Union
 
-__all__ = ["Dataclass", "ArgumentParser", "NoneType", "ArgValueType"]
+__all__ = [
+    "Dataclass",
+    "ArgumentParser",
+    "NoneType",
+    "ArgValueType",
+    "Literal",
+    "Annotated",
+    "Protocol",
+]
 
+if sys.version_info >= (3, 8):
+    from typing import Literal  # pylint: disable=unused-import # noqa: F401
+else:
+    from typing_extensions import Literal  # pylint: disable=unused-import # noqa: F401
+
+if sys.version_info >= (3, 9):
+    from typing import Annotated  # pylint: disable=unused-import # noqa: F401
+else:
+    from typing_extensions import (  # pylint: disable=unused-import # noqa: F401
+        Annotated,
+    )
 
 if sys.version_info >= (3, 8):
     from typing import Protocol
