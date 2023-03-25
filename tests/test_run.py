@@ -664,9 +664,10 @@ def test_annotated():
         *args,
         value: Annotated[int, yapx.arg(expected_value)],
         value2: int = yapx.arg(expected_value),
-        value3: Optional[Annotated[int, yapx.arg(expected_value)]] = None,
+        value3: Annotated[Optional[int], yapx.arg(expected_value)] = None,
+        value4: Annotated[float, yapx.arg()] = expected_value,
     ) -> str:
-        return args, value, value2, value3
+        return args, value, value2, value3, value4
 
     # 2. ACT
     result = yapx.run(

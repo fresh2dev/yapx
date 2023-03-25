@@ -223,7 +223,8 @@ class ArgumentParser(argparse.ArgumentParser):
         )
 
         novel_field_args: List[Tuple[Field, ArgparseArg]] = [
-            (x, x.metadata.get(ARGPARSE_ARG_METADATA_KEY)) for x in novel_fields
+            (x, x.metadata.get(ARGPARSE_ARG_METADATA_KEY, ArgparseArg()))
+            for x in novel_fields
         ]
 
         for fld, argparse_argument in novel_field_args:
@@ -265,20 +266,15 @@ class ArgumentParser(argparse.ArgumentParser):
                 else str(fld_type).rsplit(".", maxsplit=1)[-1]
             )
 
-            if argparse_argument is None:
-                argparse_argument = ArgparseArg(dest=fld.name)
+            argparse_argument.set_dest(fld.name)
 
+            if argparse_argument.required:
                 if fld.default is not MISSING:
                     argparse_argument.default = fld.default
                     argparse_argument.required = False
                 elif fld.default_factory is not MISSING:
                     argparse_argument.default = fld.default_factory()
                     argparse_argument.required = False
-                else:
-                    argparse_argument.default = None
-                    argparse_argument.required = True
-            else:
-                argparse_argument.set_dest(fld.name)
 
             fld_type_origin: Optional[Type[Any]] = cls._get_type_origin(fld_type)
             if fld_type_origin:
