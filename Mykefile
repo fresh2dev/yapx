@@ -10,20 +10,9 @@ myke.require(
         "--extra-index-url",
         "https://codeberg.org/api/packages/Fresh2dev/pypi/simple",
     ],
-    mykefiles="0.0.1a3.dev53",
+    mykefiles="0.0.1a3.dev56",
 )
 from mykefiles import py_pkg  # noqa
-
-# @myke.task(root=True)
-# def setup():
-#     # setup
-#     ...
-#
-#     yield
-#
-#     # teardown
-#     ...
-
 
 if __name__ == "__main__":
     myke.main(__file__)
