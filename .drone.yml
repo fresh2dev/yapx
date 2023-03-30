@@ -26,7 +26,7 @@ data:
     [
       {
         "name": "py-test",
-        "image": "registry.lokalhost.net/fresh2dev/myke:0.0.1a22",
+        "image": "registry.lokalhost.net/fresh2dev/myke:733f44c",
         "commands": [
           "myke py-requirements",
           "myke py-reports",
@@ -41,42 +41,39 @@ data:
     [
       {
         "name": "py-build-package",
-        "image": "registry.lokalhost.net/fresh2dev/myke:0.0.1a22",
+        "image": "registry.lokalhost.net/fresh2dev/myke:733f44c",
         "environment": {
           "PYPI_CREDS": {"from_secret": "PYPI_CREDS"}
         },
         "commands": [
           "echo \"$PYPI_CREDS\" > ~/.pypirc",
           "myke py-set-version --repository lokalhost",
-          "myke py-requirements --extras build",
           "myke py-build"
         ],
         "when": {}
       },
       {
         "name": "py-publish-sandbox",
-        "image": "registry.lokalhost.net/fresh2dev/myke:0.0.1a22",
+        "image": "registry.lokalhost.net/fresh2dev/myke:733f44c",
         "environment": {
           "PYPI_CREDS": {"from_secret": "PYPI_CREDS"},
           "TWINE_CERT": "/etc/ssl/certs/ca-certificates.crt"
         },
         "commands": [
           "echo \"$PYPI_CREDS\" > ~/.pypirc",
-          "myke py-requirements --extras build",
           "myke py-publish --repository lokalhost"
         ],
         "when": {}
       },
       {
         "name": "py-publish-dev",
-        "image": "registry.lokalhost.net/fresh2dev/myke:0.0.1a22",
+        "image": "registry.lokalhost.net/fresh2dev/myke:733f44c",
         "environment": {
           "PYPI_CREDS": {"from_secret": "PYPI_CREDS"},
           "TWINE_CERT": "/etc/ssl/certs/ca-certificates.crt"
         },
         "commands": [
           "echo \"$PYPI_CREDS\" > ~/.pypirc",
-          "myke py-requirements --extras build",
           "myke py-publish --repository codeberg"
         ],
         "when": {
@@ -85,14 +82,13 @@ data:
       },
       {
         "name": "py-publish-test",
-        "image": "registry.lokalhost.net/fresh2dev/myke:0.0.1a22",
+        "image": "registry.lokalhost.net/fresh2dev/myke:733f44c",
         "environment": {
           "PYPI_CREDS": {"from_secret": "PYPI_CREDS"},
           "TWINE_CERT": "/etc/ssl/certs/ca-certificates.crt"
         },
         "commands": [
           "echo \"$PYPI_CREDS\" > ~/.pypirc",
-          "myke py-requirements --extras build",
           "myke py-publish --repository testpypi"
         ],
         "when": {
@@ -101,14 +97,13 @@ data:
       },
       {
         "name": "py-publish-prod",
-        "image": "registry.lokalhost.net/fresh2dev/myke:0.0.1a22",
+        "image": "registry.lokalhost.net/fresh2dev/myke:733f44c",
         "environment": {
           "PYPI_CREDS": {"from_secret": "PYPI_CREDS"},
           "TWINE_CERT": "/etc/ssl/certs/ca-certificates.crt"
         },
         "commands": [
           "echo \"$PYPI_CREDS\" > ~/.pypirc",
-          "myke py-requirements --extras build",
           "myke py-publish --repository pypi"
         ],
         "when": {
