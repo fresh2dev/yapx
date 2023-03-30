@@ -1,6 +1,5 @@
 import collections.abc
 import shlex
-from enum import Enum
 from typing import Any, Dict, List, Optional, Set, Tuple, Type, TypeVar
 
 from .argparse_action import YapxAction, argparse_action
@@ -25,7 +24,7 @@ T = TypeVar("T", bound=type)
 
 def _split_csv_sequence(
     values: ArgValueType,
-    target_type: Optional[T],
+    target_type: T,
 ) -> Optional[List[T]]:
     if isinstance(values, str) and values:
         values = [values]
@@ -61,16 +60,8 @@ def _split_csv_sequence(
                     target_type=target_type,
                 ),
             )
-        elif target_type and not try_isinstance(value, target_type):
-            all_values.append(
-                (
-                    target_type[value]
-                    if try_issubclass(target_type, Enum)
-                    else target_type(value)
-                ),
-            )
         else:
-            all_values.append(value)
+            all_values.append(target_type(value))
 
     return all_values
 
@@ -184,25 +175,3 @@ def split_csv_to_dict(
             str,
         ),
     )
-
-
-@argparse_action
-def str2enum(
-    values: ArgValueType,
-    *,
-    action: YapxAction,
-    parser: ArgumentParser,
-    **_kwargs: Any,
-) -> Optional[Enum]:
-    if values is None:
-        return None
-
-    target_type: Type[Enum] = (
-        parser._inner_type_conversions.get(  # pylint: disable=protected-access
-            action.dest,
-        )
-    )
-    if try_isinstance(values, target_type):
-        return values
-
-    return target_type[values]
