@@ -1,15 +1,6 @@
 import sys
+from enum import Enum
 from typing import Any, Dict, Optional, Sequence, Union
-
-__all__ = [
-    "Dataclass",
-    "ArgumentParser",
-    "NoneType",
-    "ArgValueType",
-    "Literal",
-    "Annotated",
-    "Protocol",
-]
 
 if sys.version_info >= (3, 8):
     from typing import Literal  # pylint: disable=unused-import # noqa: F401
@@ -31,6 +22,17 @@ else:
 NoneType = type(None)
 
 ArgValueType = Union[None, str, Sequence[str]]
+
+__all__ = [
+    "Dataclass",
+    "ArgumentParser",
+    "NoneType",
+    "ArgValueType",
+    "Literal",
+    "Enum",
+    "Annotated",
+    "Protocol",
+]
 
 
 class Dataclass(Protocol):

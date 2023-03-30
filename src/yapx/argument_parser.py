@@ -4,7 +4,7 @@ import sys
 from collections import defaultdict
 from dataclasses import MISSING, Field, fields
 from enum import Enum
-from functools import wraps
+from functools import partial, wraps
 from inspect import signature
 from types import GeneratorType
 from typing import (
@@ -28,7 +28,6 @@ from .actions import (
     split_csv_to_dict,
     split_csv_to_set,
     split_csv_to_tuple,
-    str2enum,
 )
 from .arg import (
     ARGPARSE_ARG_METADATA_KEY,
@@ -43,28 +42,21 @@ from .exceptions import (
     MutuallyExclusiveRequiredError,
     NoArgsModelError,
     ParserClosedError,
-    UnsupportedTypeError,
+    raise_unsupported_type_error,
 )
 from .types import Dataclass, NoneType
-from .utils import is_dataclass_type, str2bool, try_isinstance, try_issubclass
+from .utils import (
+    add_argument_to,
+    cast_type,
+    create_pydantic_model_from_dataclass,
+    is_dataclass_type,
+    is_pydantic_available,
+    is_shtab_available,
+    try_isinstance,
+    try_issubclass,
+)
 
 __all__ = ["ArgumentParser", "run", "run_command"]
-
-
-try:
-    from pydantic.dataclasses import create_pydantic_model_from_dataclass
-except ModuleNotFoundError:
-
-    def create_pydantic_model_from_dataclass():
-        ...
-
-
-try:
-    from shtab import add_argument_to
-except ModuleNotFoundError:
-
-    def add_argument_to():
-        ...
 
 
 if sys.version_info >= (3, 8):
@@ -97,7 +89,7 @@ class ArgumentParser(argparse.ArgumentParser):
     ):
         super().__init__(*args, prog=prog, add_help=add_help, **kwargs)
 
-        if self.is_shtab_available():
+        if is_shtab_available():
             add_argument_to(self, "--print-shell-completion")
 
         self.kv_separator = "="
@@ -306,29 +298,18 @@ class ArgumentParser(argparse.ArgumentParser):
                                 argparse_argument.action = split_csv_to_tuple
                             else:
                                 argparse_argument.action = split_csv
-                    elif not cls.is_pydantic_available():
-                        cls._raise_unsupported_type_error(fld_type)
+                    elif not is_pydantic_available():
+                        raise_unsupported_type_error(fld_type)
 
                     if try_issubclass(fld_type, Enum):
                         argparse_argument.choices = [x.name for x in fld_type]
 
                     if isinstance(parser, cls):
                         # store desired types for casting later
-                        if fld_type in (str, int, float) or try_issubclass(
-                            fld_type,
-                            Enum,
-                        ):
-                            # pylint: disable=protected-access
-                            parser._inner_type_conversions[argparse_argument.dest] = (
-                                fld_type
-                            )
-                        elif fld_type is bool:
-                            # pylint: disable=protected-access
-                            parser._inner_type_conversions[argparse_argument.dest] = (
-                                str2bool
-                            )
-                        elif not cls.is_pydantic_available():
-                            cls._raise_unsupported_type_error(fld_type)
+                        # pylint: disable=protected-access
+                        parser._inner_type_conversions[argparse_argument.dest] = (
+                            partial(cast_type, target_type=fld_type)
+                        )
 
                     # type-containers must only contain strings
                     # until parsed by argparse.
@@ -337,18 +318,9 @@ class ArgumentParser(argparse.ArgumentParser):
                     argparse_argument.nargs = "+" if argparse_argument.required else "*"
 
             elif try_issubclass(fld_type, Enum):
-                argparse_argument.choices = [x.name for x in fld_type]
-                argparse_argument.action = str2enum
-                # pylint: disable=protected-access
-                parser._inner_type_conversions[argparse_argument.dest] = fld_type
-                fld_type = str
+                argparse_argument.choices = list(fld_type)
 
-            if fld_type in (str, int, float, bool):
-                argparse_argument.type = fld_type
-            elif not cls.is_pydantic_available():
-                cls._raise_unsupported_type_error(fld_type)
-            else:
-                argparse_argument.type = str
+            argparse_argument.type = partial(cast_type, target_type=fld_type)
 
             kwargs: Dict[str, Any] = argparse_argument.asdict()
             del kwargs["pos"]
@@ -368,18 +340,13 @@ class ArgumentParser(argparse.ArgumentParser):
                 if not required and not kwargs.get("nargs"):
                     kwargs["nargs"] = "?"
 
-            if kwargs["type"] is bool:
-                if not args:
-                    kwargs["type"] = str2bool
-                else:
-                    for k in "type", "nargs", "const", "choices", "metavar":
-                        kwargs.pop(k, None)
-                    required = False
-                    kwargs["required"] = False
-                    if not kwargs["action"]:
-                        kwargs["action"] = "store_true"
-                if kwargs.get("default") == MISSING:
-                    kwargs["default"] = None
+            if fld_type is bool and args:
+                for k in "type", "nargs", "const", "choices", "metavar":
+                    kwargs.pop(k, None)
+                required = False
+                kwargs["required"] = False
+                if not kwargs["action"]:
+                    kwargs["action"] = "store_true"
 
             # if given `default` cast it to the expected type.
             if kwargs.get("default") is not MISSING:
@@ -395,16 +362,8 @@ class ArgumentParser(argparse.ArgumentParser):
                         values=kwargs["default"],
                     )
                     kwargs["default"] = getattr(dummy_namespace, kwargs["dest"])
-                elif (
-                    argparse_argument.type
-                    and kwargs["default"] is not None
-                    and not try_isinstance(kwargs["default"], argparse_argument.type)
-                ):
-                    kwargs["default"] = (
-                        str2bool(kwargs["default"])
-                        if argparse_argument.type is bool
-                        else argparse_argument.type(kwargs["default"])
-                    )
+                else:
+                    kwargs["default"] = argparse_argument.type(kwargs["default"])
 
             help_msg_parts: List[str] = [f"Type: {help_type}"]
 
@@ -474,18 +433,6 @@ class ArgumentParser(argparse.ArgumentParser):
 
             arg_group.add_argument(*args, **kwargs)
 
-    @classmethod
-    def _raise_unsupported_type_error(cls, fld_type):
-        fld_type_name: str = (
-            fld_type.__name__ if hasattr(fld_type, "__name__") else str(fld_type)
-        )
-        raise UnsupportedTypeError(
-            (
-                f"Unsupported type: {fld_type_name}\n"
-                "Install 'pydantic' to support more types."
-            ),
-        )
-
     @staticmethod
     def _get_type_origin(t: Type[Any]) -> Optional[Type[Any]]:
         return getattr(t, "__origin__", None)
@@ -539,8 +486,8 @@ class ArgumentParser(argparse.ArgumentParser):
                 if key_type is not str:
                     raise TypeError("Dictionary keys must be type `str`")
                 type_container_subtype = value_type
-        elif not cls.is_pydantic_available():
-            cls._raise_unsupported_type_error(type_container)
+        elif not is_pydantic_available():
+            raise_unsupported_type_error(type_container)
 
         if not results:
             raise TypeError("Too many types in container")
@@ -556,9 +503,9 @@ class ArgumentParser(argparse.ArgumentParser):
         if (
             assert_primitive
             and type_container_subtype_origin
-            and not cls.is_pydantic_available()
+            and not is_pydantic_available()
         ):
-            cls._raise_unsupported_type_error(type_container_subtype_origin)
+            raise_unsupported_type_error(type_container_subtype_origin)
 
         return type_container_subtype
 
@@ -646,14 +593,6 @@ class ArgumentParser(argparse.ArgumentParser):
         parsed, unknown = super().parse_known_args(args=args, namespace=namespace)
         return self._post_parse_args(parsed), unknown
 
-    @staticmethod
-    def is_pydantic_available() -> bool:
-        return create_pydantic_model_from_dataclass.__module__ != __name__
-
-    @staticmethod
-    def is_shtab_available() -> bool:
-        return add_argument_to.__module__ != __name__
-
     def parse_known_args_to_model(
         self,
         args: Optional[Sequence[str]] = None,
@@ -704,7 +643,7 @@ class ArgumentParser(argparse.ArgumentParser):
             args_model=args_model,
         )
 
-        if not skip_pydantic_validation and self.is_pydantic_available():
+        if not skip_pydantic_validation and is_pydantic_available():
             args_union = vars(
                 create_pydantic_model_from_dataclass(args_model)(**args_union),
             )
