@@ -798,14 +798,26 @@ class ArgumentParser(argparse.ArgumentParser):
         *args: Optional[Callable[..., Any]],
         _args: Optional[List[str]] = None,
         _prog: Optional[str] = None,
-        _no_help: bool = False,
+        _help_flags: Optional[List[str]] = None,
+        _no_help: bool = False,  # TODO: deprecate
         _print_help: bool = False,
         _no_docstring_description: bool = False,
         **kwargs: Callable[..., Any],
     ) -> Any:
-        parser_shared_kwargs: Dict[str, Any] = {"prog": _prog, "add_help": not _no_help}
+        parser_shared_kwargs: Dict[str, Any] = {
+            "prog": _prog,
+            "add_help": _help_flags is None and not _no_help,
+        }
 
         parser: ArgumentParser = cls(**parser_shared_kwargs)
+
+        if _help_flags:
+            parser.add_argument(
+                *_help_flags,
+                default=argparse.SUPPRESS,
+                action="help",
+                help="Show this help message and exit.",
+            )
 
         parser.set_defaults(
             **{cls.ARGS_ATTRIBUTE_NAME: None, cls.FUNC_ATTRIBUTE_NAME: None},
@@ -841,7 +853,12 @@ class ArgumentParser(argparse.ArgumentParser):
         if _args is None:
             _args = sys.argv[1:]
 
-        if _print_help or "--help-full" in _args:
+        if not _help_flags and "--help-full" in _args:
+            _print_help = True
+        elif _help_flags and f"--{_help_flags[-1].lstrip('-')}-full" in _args:
+            _print_help = True
+
+        if _print_help:
             parser.print_help(full=True)
             parser.exit()
 
