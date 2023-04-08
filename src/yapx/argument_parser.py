@@ -741,6 +741,7 @@ class ArgumentParser(argparse.ArgumentParser):
         accepts_pos_args: bool = False
         accepts_extra_args: bool = False
         accepts_relay_value: bool = False
+        accepts_cli_flag: bool = False
 
         for p in signature(func).parameters.values():
             if str(p).startswith("**"):
@@ -751,6 +752,14 @@ class ArgumentParser(argparse.ArgumentParser):
                 accepts_extra_args = True
             elif p.name == "_relay_value":
                 accepts_relay_value = True
+            elif p.name == "_called_from_cli":
+                accepts_cli_flag = True
+
+        if accepts_relay_value:
+            func_kwargs["_relay_value"] = relay_value
+
+        if accepts_cli_flag:
+            func_kwargs["_called_from_cli"] = True
 
         extra_args_ok = accepts_pos_args or accepts_kwargs or accepts_extra_args
 
@@ -759,9 +768,6 @@ class ArgumentParser(argparse.ArgumentParser):
                 str(p).startswith("*") or p.name == "_extra_args"
                 for p in signature(linked_func).parameters.values()
             )
-
-        if accepts_relay_value:
-            func_kwargs["_relay_value"] = relay_value
 
         model_inst: Dataclass
         if extra_args_ok:

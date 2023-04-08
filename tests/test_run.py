@@ -597,14 +597,19 @@ def test_extra_args():
     cli_args: List[str] = ["subcmd", "what", "in", "the", "world=this"]
     expected: List[str] = cli_args[1:]
 
-    def _setup(*args, _extra_args: Optional[List[str]] = None, **kwargs) -> str:
+    def _setup(
+        *args,
+        _extra_args: Optional[List[str]] = None,
+        **kwargs,
+    ) -> str:
         assert args == tuple(_extra_args)
         assert _extra_args[0] in kwargs
         assert kwargs["world"] == "this"
         return _extra_args
 
-    def _subcmd(_relay_value: Any) -> str:
+    def _subcmd(_relay_value: Any, _called_from_cli=False) -> str:
         assert _relay_value == expected
+        assert _called_from_cli is True
         return _relay_value
 
     # 2. ACT
