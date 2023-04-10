@@ -114,7 +114,9 @@ def arg(
             default=(
                 None
                 if default is MISSING
-                else default() if callable(default) else default
+                else default()
+                if callable(default)
+                else default
             ),
             group=group,
             exclusive=exclusive,

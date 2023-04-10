@@ -301,9 +301,9 @@ class ArgumentParser(argparse.ArgumentParser):
                     if isinstance(parser, cls):
                         # store desired types for casting later
                         # pylint: disable=protected-access
-                        parser._inner_type_conversions[argparse_argument.dest] = (
-                            partial(cast_type, target_type=fld_type)
-                        )
+                        parser._inner_type_conversions[
+                            argparse_argument.dest
+                        ] = partial(cast_type, target_type=fld_type)
 
                     # type-containers must only contain strings
                     # until parsed by argparse.
@@ -529,11 +529,12 @@ class ArgumentParser(argparse.ArgumentParser):
         if hasattr(namespace, sh_complete_attr):
             delattr(namespace, sh_complete_attr)
 
-        func_mx_arg_groups: Dict[str, List[Tuple[str, Optional[str]]]] = (
-            self._mutually_exclusive_args.get(
-                getattr(namespace, self.FUNC_ATTRIBUTE_NAME, None),
-                {},
-            )
+        func_mx_arg_groups: Dict[
+            str,
+            List[Tuple[str, Optional[str]]],
+        ] = self._mutually_exclusive_args.get(
+            getattr(namespace, self.FUNC_ATTRIBUTE_NAME, None),
+            {},
         )
         for g_args in func_mx_arg_groups.values():
             # argparse will always return a list when the argument type is `list | None`,

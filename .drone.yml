@@ -26,9 +26,9 @@ data:
     [
       {
         "name": "py-test",
-        "image": "registry.lokalhost.net/fresh2dev/myke:733f44c",
+        "image": "registry.lokalhost.net/fresh2dev/myke:503df81",
         "commands": [
-          "myke py-requirements",
+          "myke py-install",
           "myke py-reports",
           "myke py-build"
         ],
@@ -41,20 +41,20 @@ data:
     [
       {
         "name": "py-build-package",
-        "image": "registry.lokalhost.net/fresh2dev/myke:733f44c",
+        "image": "registry.lokalhost.net/fresh2dev/myke:503df81",
         "environment": {
           "PYPI_CREDS": {"from_secret": "PYPI_CREDS"}
         },
         "commands": [
           "echo \"$PYPI_CREDS\" > ~/.pypirc",
-          "myke py-set-version --repository lokalhost",
+          "myke py-version-set --repository lokalhost",
           "myke py-build"
         ],
         "when": {}
       },
       {
         "name": "py-publish-sandbox",
-        "image": "registry.lokalhost.net/fresh2dev/myke:733f44c",
+        "image": "registry.lokalhost.net/fresh2dev/myke:503df81",
         "environment": {
           "PYPI_CREDS": {"from_secret": "PYPI_CREDS"},
           "TWINE_CERT": "/etc/ssl/certs/ca-certificates.crt"
@@ -67,7 +67,7 @@ data:
       },
       {
         "name": "py-publish-dev",
-        "image": "registry.lokalhost.net/fresh2dev/myke:733f44c",
+        "image": "registry.lokalhost.net/fresh2dev/myke:503df81",
         "environment": {
           "PYPI_CREDS": {"from_secret": "PYPI_CREDS"},
           "TWINE_CERT": "/etc/ssl/certs/ca-certificates.crt"
@@ -82,7 +82,7 @@ data:
       },
       {
         "name": "py-publish-test",
-        "image": "registry.lokalhost.net/fresh2dev/myke:733f44c",
+        "image": "registry.lokalhost.net/fresh2dev/myke:503df81",
         "environment": {
           "PYPI_CREDS": {"from_secret": "PYPI_CREDS"},
           "TWINE_CERT": "/etc/ssl/certs/ca-certificates.crt"
@@ -97,7 +97,7 @@ data:
       },
       {
         "name": "py-publish-prod",
-        "image": "registry.lokalhost.net/fresh2dev/myke:733f44c",
+        "image": "registry.lokalhost.net/fresh2dev/myke:503df81",
         "environment": {
           "PYPI_CREDS": {"from_secret": "PYPI_CREDS"},
           "TWINE_CERT": "/etc/ssl/certs/ca-certificates.crt"
