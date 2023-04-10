@@ -594,17 +594,19 @@ def test_print_shell_completion(capsys: CaptureFixture):
 
 def test_extra_args():
     # 1. ARRANGE
-    cli_args: List[str] = ["subcmd", "what", "in", "the", "world=this"]
-    expected: List[str] = cli_args[1:]
+    cli_args: List[str] = ["subcmd", "what", "in", "the", "--world=this", "--wat"]
+    expected: List[str] = [x for x in cli_args[1:] if not x.startswith("-")]
 
     def _setup(
         *args,
         _extra_args: Optional[List[str]] = None,
+        _extra_kwargs: Optional[Dict[str, str]] = None,
         **kwargs,
     ) -> str:
         assert args == tuple(_extra_args)
-        assert _extra_args[0] in kwargs
-        assert kwargs["world"] == "this"
+        assert kwargs == _extra_kwargs
+        assert kwargs["--world"] == "this"
+        assert kwargs["--wat"] is None
         return _extra_args
 
     def _subcmd(_relay_value: Any, _called_from_cli=False) -> str:
@@ -658,6 +660,7 @@ def test_run_everything(use_pydantic: bool):
     def _func(
         *args: str,
         _extra_args: List[str],
+        _extra_kwargs: Dict[str, str],
         v1,
         v2: str,
         v3: Annotated[str, yapx.arg("hello_v3")],
@@ -712,7 +715,7 @@ def test_run_everything(use_pydantic: bool):
     ) -> None:
         assert args
         assert args == tuple(_extra_args)
-        assert args[0] in kwargs
+        assert kwargs == _extra_kwargs
         assert _relay_value == "hello_relay"
 
         assert v1 == "hello_v1"

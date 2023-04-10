@@ -22,13 +22,7 @@ from typing import (
     Union,
 )
 
-from .actions import (
-    _split_csv_to_dict,
-    split_csv,
-    split_csv_to_dict,
-    split_csv_to_set,
-    split_csv_to_tuple,
-)
+from .actions import split_csv, split_csv_to_dict, split_csv_to_set, split_csv_to_tuple
 from .arg import (
     ARGPARSE_ARG_METADATA_KEY,
     ArgparseArg,
@@ -724,8 +718,9 @@ class ArgumentParser(argparse.ArgumentParser):
 
         return "\n".join(x.strip() for x in description_lines)
 
-    @staticmethod
+    @classmethod
     def _run_func(
+        cls,
         parser: "ArgumentParser",
         func: Callable[..., Any],
         args_model: Type[Any],
@@ -737,35 +732,36 @@ class ArgumentParser(argparse.ArgumentParser):
         func_kwargs: Dict[str, Optional[Any]] = {}
 
         extra_args_ok: bool = False
-        accepts_kwargs: bool = False
-        accepts_pos_args: bool = False
+
+        accepts_args: bool = False
         accepts_extra_args: bool = False
-        accepts_relay_value: bool = False
-        accepts_cli_flag: bool = False
+
+        accepts_kwargs: bool = False
+        accepts_extra_kwargs: bool = False
 
         for p in signature(func).parameters.values():
             if str(p).startswith("**"):
                 accepts_kwargs = True
             elif str(p).startswith("*"):
-                accepts_pos_args = True
+                accepts_args = True
             elif p.name == "_extra_args":
                 accepts_extra_args = True
+            elif p.name == "_extra_kwargs":
+                accepts_extra_kwargs = True
+            elif p.name == "_all_args":
+                func_kwargs["_all_args"] = args
             elif p.name == "_relay_value":
-                accepts_relay_value = True
+                func_kwargs["_relay_value"] = relay_value
             elif p.name == "_called_from_cli":
-                accepts_cli_flag = True
+                func_kwargs["_called_from_cli"] = True
 
-        if accepts_relay_value:
-            func_kwargs["_relay_value"] = relay_value
-
-        if accepts_cli_flag:
-            func_kwargs["_called_from_cli"] = True
-
-        extra_args_ok = accepts_pos_args or accepts_kwargs or accepts_extra_args
+        extra_args_ok = (
+            accepts_args or accepts_kwargs or accepts_extra_args or accepts_extra_kwargs
+        )
 
         if not extra_args_ok and linked_func:
             extra_args_ok = any(
-                str(p).startswith("*") or p.name == "_extra_args"
+                str(p).startswith("*") or p.name in ("_extra_args", "_extra_kwargs")
                 for p in signature(linked_func).parameters.values()
             )
 
@@ -777,19 +773,40 @@ class ArgumentParser(argparse.ArgumentParser):
                 args_model=args_model,
             )
 
+            if accepts_kwargs or accepts_extra_kwargs:
+                unknown_name_map: Dict[str, str] = {}
+                unknown_parser: ArgumentParser = cls()
+                for x in unknown_args:
+                    if x.startswith("-"):
+                        x_flag: str = x.split("=", maxsplit=1)[0]
+                        x_flag_bare = x_flag.lstrip("-")
+                        if x_flag_bare:
+                            unknown_parser.add_argument(
+                                x_flag,
+                                nargs="?",
+                                default=None,
+                                required=False,
+                            )
+                            unknown_name_map[x_flag_bare] = x_flag
+
+                parsed_unknown, unknown_args = unknown_parser.parse_known_args(
+                    args=unknown_args,
+                )
+
+                extra_kwargs: Dict[str, str] = {
+                    unknown_name_map[k]: v for k, v in vars(parsed_unknown).items()
+                }
+                if accepts_kwargs:
+                    func_kwargs.update(extra_kwargs)
+                if accepts_extra_kwargs:
+                    func_kwargs["_extra_kwargs"] = extra_kwargs
+
+            if accepts_args:
+                func_args = unknown_args
+
             if accepts_extra_args:
                 func_kwargs["_extra_args"] = unknown_args
 
-            if accepts_pos_args:
-                func_args = unknown_args
-
-            if accepts_kwargs:
-                func_kwargs.update(
-                    _split_csv_to_dict(
-                        unknown_args,
-                        kv_separator=parser.kv_separator,
-                    ),
-                )
         else:
             model_inst = parser.parse_args_to_model(
                 args=args,
