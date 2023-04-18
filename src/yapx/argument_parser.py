@@ -934,31 +934,14 @@ class ArgumentParser(argparse.ArgumentParser):
         return relay_value
 
 
+@wraps(ArgumentParser._run)  # pylint: disable=protected-access
 def run(
     *args: Optional[Callable[..., Any]],
-    _args: Optional[List[str]] = None,
-    _prog: Optional[str] = None,
-    _no_help: bool = False,
-    _print_help: bool = False,
-    _no_docstring_description: bool = False,
     **kwargs: Callable[..., Any],
 ) -> Any:
-    # pylint: disable=protected-access
-    return ArgumentParser._run(
-        *args,
-        _args=_args,
-        _prog=_prog,
-        _no_help=_no_help,
-        _print_help=_print_help,
-        _no_docstring_description=_no_docstring_description,
-        **kwargs,
-    )
+    return ArgumentParser._run(*args, **kwargs)  # pylint: disable=protected-access
 
 
 @wraps(run)
 def run_command(*args, **kwargs) -> Any:
-    return run(
-        None,
-        *args,
-        **kwargs,
-    )
+    return run(None, *args, **kwargs)
