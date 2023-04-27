@@ -4,6 +4,7 @@ from argparse import Action
 from contextlib import suppress
 from dataclasses import MISSING, Field, dataclass, field, make_dataclass
 from inspect import Parameter, _empty, signature
+from pathlib import Path
 from typing import (
     Any,
     Callable,
@@ -98,12 +99,13 @@ def arg(
                 break
 
             env_file = os.getenv(e + "_FILE", None)
-            if env_file and os.path.exists(env_file):
-                with open(env_file, encoding="utf8") as f:
-                    value_from_file = f.read().strip()
-                if value_from_file:
-                    default = value_from_file
-                    break
+            if env_file:
+                env_file_path: Path = Path(env_file)
+                if env_file_path.exists():
+                    value_from_file = env_file_path.read_text(encoding="utf-8").strip()
+                    if value_from_file:
+                        default = value_from_file
+                        break
 
     metadata: Dict[str, ArgparseArg] = {
         ARGPARSE_ARG_METADATA_KEY: ArgparseArg(
