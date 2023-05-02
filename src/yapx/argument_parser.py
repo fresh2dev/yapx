@@ -343,7 +343,11 @@ class ArgumentParser(argparse.ArgumentParser):
                     kwargs["action"] = "store_true"
 
             # if given `default` cast it to the expected type.
-            if kwargs.get("default") is not MISSING:
+            if (
+                fld.default is not MISSING
+                or fld.default_factory is not MISSING
+                or kwargs.get("default") is not None
+            ):
                 if kwargs.get("action") and try_issubclass(
                     kwargs["action"],
                     YapxAction,
@@ -358,6 +362,31 @@ class ArgumentParser(argparse.ArgumentParser):
                     kwargs["default"] = getattr(dummy_namespace, kwargs["dest"])
                 else:
                     kwargs["default"] = argparse_argument.type(kwargs["default"])
+
+                # validate parsed default against 'choices'
+                if kwargs.get("choices"):
+                    d: Any = kwargs["default"]
+                    if try_isinstance(d, str) or not try_isinstance(
+                        d,
+                        collections.abc.Iterable,
+                    ):
+                        d = [d]
+
+                    for x in d:
+                        if (
+                            x not in kwargs["choices"]
+                            and (
+                                not try_isinstance(x, Enum)
+                                or x.name not in kwargs["choices"]
+                            )
+                            # not if arg is 'Optional' and value is 'None'
+                            and not (not kwargs.get("required") and x is None)
+                        ):
+                            err: str = (
+                                f"Invalid value '{x}' for argument '{kwargs['dest']}';"
+                                f" must be one of: {kwargs['choices']}"
+                            )
+                            raise ValueError(err)
 
             help_msg_parts: List[str] = [f"Type: {help_type}"]
 
