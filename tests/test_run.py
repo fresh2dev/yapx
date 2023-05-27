@@ -1,6 +1,6 @@
 import os
 import re
-import sys
+from argparse import ArgumentError
 from enum import Enum, auto
 from ipaddress import IPv4Address
 from pathlib import Path
@@ -12,12 +12,7 @@ from _pytest.capture import CaptureFixture, CaptureResult
 
 import yapx
 import yapx.argument_parser
-from yapx.exceptions import MutuallyExclusiveArgumentError
-
-if sys.version_info >= (3, 9):
-    from typing import Annotated
-else:
-    from typing_extensions import Annotated
+from yapx.types import Annotated
 
 
 def example_setup(text: str = "world") -> str:
@@ -561,7 +556,7 @@ def test_run_exclusive(use_pydantic: bool):
             yapx.argument_parser.sys,
             "argv",
             [""] + cli_args,
-        ), pytest.raises(MutuallyExclusiveArgumentError):
+        ), pytest.raises((ArgumentError, SystemExit)):
             yapx.run(_func)
     finally:
         mock.patch.stopall()

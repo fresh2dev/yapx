@@ -1,27 +1,12 @@
+from argparse import ArgumentTypeError
 from typing import Any, Optional, Type
-
-
-class ArgumentConflictError(Exception):
-    ...
-
-
-class ParserClosedError(Exception):
-    ...
 
 
 class NoArgsModelError(Exception):
     ...
 
 
-class MutuallyExclusiveArgumentError(Exception):
-    ...
-
-
-class MutuallyExclusiveRequiredError(Exception):
-    ...
-
-
-class UnsupportedTypeError(TypeError):
+class UnsupportedTypeError(ArgumentTypeError):
     ...
 
 

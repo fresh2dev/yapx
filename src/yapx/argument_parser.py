@@ -31,13 +31,7 @@ from .arg import (
     make_dataclass_from_func,
 )
 from .argparse_action import YapxAction
-from .exceptions import (
-    MutuallyExclusiveArgumentError,
-    MutuallyExclusiveRequiredError,
-    NoArgsModelError,
-    ParserClosedError,
-    raise_unsupported_type_error,
-)
+from .exceptions import NoArgsModelError, raise_unsupported_type_error
 from .types import Dataclass, NoneType
 from .utils import (
     add_argument_to,
@@ -195,7 +189,7 @@ class ArgumentParser(argparse.ArgumentParser):
 
         if parser.get_default(cls.ARGS_ATTRIBUTE_NAME):
             err: str = "This parser already has args from another dataclass"
-            raise ParserClosedError(err)
+            parser.error(err)
 
         parser.set_defaults(**{cls.ARGS_ATTRIBUTE_NAME: model})
 
@@ -386,7 +380,7 @@ class ArgumentParser(argparse.ArgumentParser):
                                 f"Invalid value '{x}' for argument '{kwargs['dest']}';"
                                 f" must be one of: {kwargs['choices']}"
                             )
-                            raise ValueError(err)
+                            parser.error(err)
 
             help_msg_parts: List[str] = [f"Type: {help_type}"]
 
@@ -443,7 +437,7 @@ class ArgumentParser(argparse.ArgumentParser):
                         "A mutually-exclusive argument cannot be required:"
                         f" {argparse_argument.dest}"
                     )
-                    raise MutuallyExclusiveRequiredError(err)
+                    parser.error(err)
 
                 parser._mutually_exclusive_args[
                     parser._defaults.get(cls.FUNC_ATTRIBUTE_NAME)
@@ -595,7 +589,10 @@ class ArgumentParser(argparse.ArgumentParser):
             ]
 
             if len(mx_flags_found) > 1:
-                raise MutuallyExclusiveArgumentError(", ".join(mx_flags_found))
+                err: str = "These arguments are mutually exclusive: " + ", ".join(
+                    mx_flags_found,
+                )
+                self.error(err)
 
         return namespace
 
