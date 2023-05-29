@@ -665,6 +665,7 @@ class ArgumentParser(argparse.ArgumentParser):
         )
 
         if not skip_pydantic_validation and is_pydantic_available():
+            # pylint: disable=not-callable
             args_union = vars(
                 create_pydantic_model_from_dataclass(args_model)(**args_union),
             )

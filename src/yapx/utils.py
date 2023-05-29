@@ -15,6 +15,7 @@ from .exceptions import raise_unsupported_type_error
 from .types import Dataclass
 
 __all__ = [
+    "add_argument_to",
     "convert_to_command_string",
     "convert_to_flag_string",
     "make_dataclass_from_func",
