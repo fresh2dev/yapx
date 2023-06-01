@@ -22,24 +22,30 @@ from typing import (
     Union,
 )
 
+from .__version__ import __version__
 from .actions import split_csv, split_csv_to_dict, split_csv_to_set, split_csv_to_tuple
 from .arg import (
     ARGPARSE_ARG_METADATA_KEY,
     ArgparseArg,
     _eval_type,
     convert_to_command_string,
+    convert_to_flag_string,
     make_dataclass_from_func,
 )
 from .argparse_action import YapxAction
 from .exceptions import NoArgsModelError, raise_unsupported_type_error
 from .types import Dataclass, NoneType
 from .utils import (
+    CommandSchema,
+    Trogon,
     add_argument_to,
+    build_trogon_schema,
     cast_type,
     create_pydantic_model_from_dataclass,
     is_dataclass_type,
     is_pydantic_available,
     is_shtab_available,
+    is_tui_available,
     try_isinstance,
     try_issubclass,
 )
@@ -72,10 +78,17 @@ class ArgumentParser(argparse.ArgumentParser):
         self,
         *args: Any,
         prog: Optional[str] = None,
+        description: Optional[str] = None,
         add_help: bool = True,
         **kwargs: Any,
     ):
-        super().__init__(*args, prog=prog, add_help=add_help, **kwargs)
+        super().__init__(
+            *args,
+            prog=prog,
+            description=description,
+            add_help=add_help,
+            **kwargs,
+        )
 
         if is_shtab_available():
             add_argument_to(self, "--print-shell-completion")
@@ -89,11 +102,23 @@ class ArgumentParser(argparse.ArgumentParser):
 
         self._inner_type_conversions: Dict[str, Union[type, Callable[[str], Any]]] = {}
 
+        self._tui_schemas: Optional[Dict[str, CommandSchema]] = (
+            {} if is_tui_available() else None
+        )
+
     def add_arguments(
         self,
         args_model: Union[Callable[..., Any], Type[Dataclass]],
     ) -> None:
-        self._add_arguments(self, args_model)
+        added_args: List[ArgparseArg] = self._add_arguments(self, args_model)
+
+        if self._tui_schemas is not None:
+            tui_schema: CommandSchema = build_trogon_schema(
+                name=self.prog,
+                description=self.description,
+                args=added_args,
+            )
+            self._tui_schemas[tui_schema.name] = tui_schema
 
     def add_command(
         self,
@@ -130,8 +155,17 @@ class ArgumentParser(argparse.ArgumentParser):
         if description_txt:
             self._set_parser_description(parser=parser, description=description_txt)
 
-        if args_model:
-            self._add_arguments(parser, args_model)
+        added_args: Optional[List[ArgparseArg]] = (
+            self._add_arguments(parser, args_model) if args_model else None
+        )
+
+        if self._tui_schemas is not None:
+            tui_schema: CommandSchema = build_trogon_schema(
+                name=name,
+                description=description_txt,
+                args=added_args,
+            )
+            self._tui_schemas[tui_schema.name] = tui_schema
 
         return parser
 
@@ -175,7 +209,7 @@ class ArgumentParser(argparse.ArgumentParser):
         cls,
         parser: argparse.ArgumentParser,
         args_model: Union[Callable[..., Any], Type[Dataclass]],
-    ) -> None:
+    ) -> List[ArgparseArg]:
         """
         Derived from: https://github.com/mivade/argparse_dataclass
         """
@@ -188,7 +222,7 @@ class ArgumentParser(argparse.ArgumentParser):
             model = make_dataclass_from_func(args_model)
 
         if parser.get_default(cls.ARGS_ATTRIBUTE_NAME):
-            err: str = "This parser already has args from another dataclass"
+            err: str = "This parser already contains arguments from another dataclass."
             parser.error(err)
 
         parser.set_defaults(**{cls.ARGS_ATTRIBUTE_NAME: model})
@@ -206,6 +240,8 @@ class ArgumentParser(argparse.ArgumentParser):
             (x, x.metadata.get(ARGPARSE_ARG_METADATA_KEY, ArgparseArg()))
             for x in novel_fields
         ]
+
+        added_args: List[ArgparseArg] = []
 
         for fld, argparse_argument in novel_field_args:
             fld_type: Union[str, Type[Any]] = fld.type
@@ -308,9 +344,10 @@ class ArgumentParser(argparse.ArgumentParser):
             elif try_issubclass(fld_type, Enum):
                 argparse_argument.choices = list(fld_type)
 
-            argparse_argument.type = partial(cast_type, target_type=fld_type)
+            argparse_argument.type = fld_type
 
             kwargs: Dict[str, Any] = argparse_argument.asdict()
+            kwargs["type"] = partial(cast_type, target_type=fld_type)
             del kwargs["pos"]
 
             option_strings: Optional[List[str]] = kwargs.pop("option_strings")
@@ -327,14 +364,6 @@ class ArgumentParser(argparse.ArgumentParser):
                 del kwargs["required"]
                 if not required and not kwargs.get("nargs"):
                     kwargs["nargs"] = "?"
-
-            if fld_type is bool and args:
-                for k in "type", "nargs", "const", "choices", "metavar":
-                    kwargs.pop(k, None)
-                required = False
-                kwargs["required"] = False
-                if not kwargs["action"]:
-                    kwargs["action"] = "store_true"
 
             # if given `default` cast it to the expected type.
             if (
@@ -355,7 +384,7 @@ class ArgumentParser(argparse.ArgumentParser):
                     )
                     kwargs["default"] = getattr(dummy_namespace, kwargs["dest"])
                 else:
-                    kwargs["default"] = argparse_argument.type(kwargs["default"])
+                    kwargs["default"] = kwargs["type"](kwargs["default"])
 
                 # validate parsed default against 'choices'
                 if kwargs.get("choices"):
@@ -381,6 +410,14 @@ class ArgumentParser(argparse.ArgumentParser):
                                 f" must be one of: {kwargs['choices']}"
                             )
                             parser.error(err)
+
+            if argparse_argument.type is bool and args:
+                for k in "type", "nargs", "const", "choices", "metavar":
+                    kwargs.pop(k, None)
+                required = False
+                kwargs["required"] = False
+                if not kwargs["action"]:
+                    kwargs["action"] = "store_true"
 
             help_msg_parts: List[str] = [f"Type: {help_type}"]
 
@@ -411,20 +448,6 @@ class ArgumentParser(argparse.ArgumentParser):
             if not group:
                 group = "Arguments"
 
-            # if exclusive:
-            #     parser_exclusive_args["exclusive"].add_argument(*args, **kwargs)
-            # elif group:
-            #     arg_group: argparse._ArgumentGroup = parser_arg_groups.get(
-            #         group,
-            #         parser.add_argument_group(group),
-            #     )
-            #     arg_group.add_argument(*args, **kwargs)
-            #     parser_arg_groups[group] = arg_group
-            # elif required:
-            #     parser_required_args["required"].add_argument(*args, **kwargs)
-            # else:
-            #     parser_optional_args["optional"].add_argument(*args, **kwargs)
-
             arg_group: argparse._ArgumentGroup = parser_arg_groups.get(group, None)
 
             if not arg_group:
@@ -449,6 +472,10 @@ class ArgumentParser(argparse.ArgumentParser):
                 )
 
             arg_group.add_argument(*args, **kwargs)
+
+            added_args.append(argparse_argument)
+
+        return added_args
 
     @staticmethod
     def _get_type_origin(t: Type[Any]) -> Optional[Type[Any]]:
@@ -696,17 +723,6 @@ class ArgumentParser(argparse.ArgumentParser):
                     subparser.print_help(file)
 
     @classmethod
-    def _docstring_to_description(
-        cls,
-        parser: argparse.ArgumentParser,
-        args_model: Union[Callable[..., Any], Type[Dataclass]],
-    ) -> None:
-        cls._set_parser_description(
-            parser,
-            description=cls._extract_description_from_docstring(args_model),
-        )
-
-    @classmethod
     def _set_parser_description(
         cls,
         parser: argparse.ArgumentParser,
@@ -745,6 +761,24 @@ class ArgumentParser(argparse.ArgumentParser):
             description_lines = description_lines[:text_block_ends_at]
 
         return "\n".join(x.strip() for x in description_lines)
+
+    def _show_tui(self) -> None:
+        assert self._tui_schemas
+
+        root_schema: CommandSchema = self._tui_schemas.pop(
+            self.prog,
+            build_trogon_schema(
+                name=self.prog,
+                description=self.description,
+            ),
+        )
+
+        Trogon.from_schemas(
+            root_schema,
+            *self._tui_schemas.values(),
+            app_name=self.prog,
+            app_version=__version__,
+        ).run()
 
     @classmethod
     def _run_func(
@@ -849,26 +883,40 @@ class ArgumentParser(argparse.ArgumentParser):
         *args: Optional[Callable[..., Any]],
         _args: Optional[List[str]] = None,
         _prog: Optional[str] = None,
-        _help_flags: Optional[List[str]] = None,
-        _no_help: bool = False,  # TODO: deprecate
         _print_help: bool = False,
+        _help_flags: Optional[List[Optional[str]]] = None,
+        _tui_flags: Optional[List[Optional[str]]] = None,
         _no_docstring_description: bool = False,
         **kwargs: Callable[..., Any],
     ) -> Any:
         parser_shared_kwargs: Dict[str, Any] = {
             "prog": _prog,
-            "add_help": _help_flags is None and not _no_help,
+            "add_help": _help_flags is None,
         }
 
         parser: ArgumentParser = cls(**parser_shared_kwargs)
 
         if _help_flags:
+            if isinstance(_help_flags, str):
+                _help_flags = [_help_flags]
+            _help_flags = [
+                convert_to_flag_string(x) if x is not None else x for x in _help_flags
+            ]
             parser.add_argument(
-                *_help_flags,
+                *[x for x in _help_flags if x],
                 default=argparse.SUPPRESS,
                 action="help",
                 help="Show this help message and exit.",
             )
+
+        if _tui_flags is None:
+            _tui_flags = ["--tui"]
+        elif _tui_flags:
+            if isinstance(_tui_flags, str):
+                _tui_flags = [_tui_flags]
+            _tui_flags = [
+                convert_to_flag_string(x) if x is not None else x for x in _tui_flags
+            ]
 
         parser.set_defaults(
             **{cls.ARGS_ATTRIBUTE_NAME: None, cls.FUNC_ATTRIBUTE_NAME: None},
@@ -883,12 +931,14 @@ class ArgumentParser(argparse.ArgumentParser):
 
             if setup_func:
                 setup_func_arg_model = make_dataclass_from_func(setup_func)
-                parser.add_arguments(setup_func_arg_model)
                 if not _no_docstring_description:
-                    cls._docstring_to_description(
+                    cls._set_parser_description(
                         parser=parser,
-                        args_model=setup_func_arg_model,
+                        description=cls._extract_description_from_docstring(
+                            setup_func_arg_model,
+                        ),
                     )
+                parser.add_arguments(setup_func_arg_model)
 
             _cmd_funcs: Iterable[Optional[Callable[..., Any]]] = args[1:]
             assert isinstance(_cmd_funcs, tuple)
@@ -904,14 +954,34 @@ class ArgumentParser(argparse.ArgumentParser):
         if _args is None:
             _args = sys.argv[1:]
 
-        if not _help_flags and "--help-full" in _args:
-            _print_help = True
-        elif _help_flags and f"--{_help_flags[-1].lstrip('-')}-full" in _args:
-            _print_help = True
+        _show_tui: bool = False
+
+        if not _print_help:
+            if not _args:
+                # auto-show tui/help if no args given and 'None' is in _flags
+                _show_tui = None in _tui_flags and is_tui_available()
+                _print_help = not _show_tui and _help_flags and None in _help_flags
+            else:
+                if _help_flags:
+                    _print_help = (
+                        f"{[convert_to_flag_string(x) for x in _help_flags if x][-1]}-full"
+                        in _args
+                    )
+                else:
+                    _print_help = "--help-full" in _args
+
+                if not _print_help:
+                    _show_tui = any(x in _args for x in _tui_flags)
 
         if _print_help:
             parser.print_help(full=True)
             parser.exit()
+        elif _show_tui:
+            if not is_tui_available():
+                parser.error("Missing 'trogon' library. Try `pip install yapx[tui]`")
+            else:
+                parser._show_tui()
+                parser.exit()
 
         known_args: argparse.Namespace
         known_args, _ = parser.parse_known_args(_args)

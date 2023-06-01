@@ -162,7 +162,8 @@ def convert_to_command_string(x: str) -> str:
 
 
 def convert_to_flag_string(x: str) -> str:
-    return "--" + convert_to_command_string(x)
+    cmd_str: str = convert_to_command_string(x)
+    return "--" + cmd_str if len(cmd_str) > 1 else "-" + cmd_str
 
 
 def convert_to_short_flag_string(x: str) -> str:

@@ -58,18 +58,19 @@ pydantic = [
 shtab = [
     "shtab==1.5.8",
 ]
+tui = [
+    "trogon-yapx==0.4.0.post1.dev1",
+]
 extras = [
     "pydantic>=1.10.3,<2",
     "shtab==1.5.8",
+    "trogon-yapx==0.4.0.post1.dev1",
 ]
 
 [project.urls]
 Homepage = "https://www.Fresh2.dev/code/r/yapx/i"
 Repository = "https://www.github.com/fresh2dev/yapx"
 Funding = "https://www.Fresh2.dev/funding"
-
-[project.scripts]
-yapx = "yapx.__main__:main"
 
 [tool.setuptools.package-data]
 "*" = ["**"]
