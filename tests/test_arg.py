@@ -21,15 +21,20 @@ def test_convert_to_command_string() -> None:
 
 
 def test_convert_to_flag_string() -> None:
+    assert convert_to_flag_string("--test") == "--test"
     assert convert_to_flag_string("test") == "--test"
     assert convert_to_flag_string("  -TeST  ") == "--test"
     assert convert_to_flag_string("test_this") == "--test-this"
+    assert convert_to_flag_string("t") == "-t"
+    assert convert_to_flag_string("-t") == "-t"
 
 
 def test_convert_to_short_flag_string() -> None:
     assert convert_to_short_flag_string("test") == "-t"
     assert convert_to_short_flag_string("  --TeST  ") == "-t"
     assert convert_to_short_flag_string("test_this") == "-t"
+    assert convert_to_flag_string("t") == "-t"
+    assert convert_to_flag_string("-t") == "-t"
 
 
 def test_argument_parser_arg_defaults():

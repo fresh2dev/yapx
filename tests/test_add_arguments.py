@@ -7,17 +7,12 @@ import pytest
 
 import yapx
 from yapx.arg import ArgparseArg
-from yapx.exceptions import ParserClosedError
-
-if sys.version_info >= (3, 8):
-    from typing import Literal
-else:
-    from typing_extensions import Literal
+from yapx.types import Annotated, Literal
 
 if sys.version_info >= (3, 9):
-    from typing import Annotated, _AnnotatedAlias
+    from typing import _AnnotatedAlias
 else:
-    from typing_extensions import Annotated, _AnnotatedAlias
+    from typing_extensions import _AnnotatedAlias
 
 
 @pytest.mark.parametrize(
@@ -393,7 +388,7 @@ def test_add_arguments_twice():
     parser.add_arguments(ArgsModel)
 
     # 3. ASSERT
-    with pytest.raises(ParserClosedError):
+    with pytest.raises((ArgumentError, SystemExit)):
         parser.add_arguments(ArgsModel)
 
 
@@ -409,7 +404,7 @@ def test_add_arguments_conflict():
 
     # 2. ACT
     parser: yapx.ArgumentParser = yapx.ArgumentParser()
-    with pytest.raises(ArgumentError):
+    with pytest.raises((ArgumentError, SystemExit)):
         parser.add_arguments(ArgsModel)
 
     result: ArgsModel = parser.parse_args_to_model(cli_args)

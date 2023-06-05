@@ -4,6 +4,7 @@ from argparse import Action
 from contextlib import suppress
 from dataclasses import MISSING, Field, dataclass, field, make_dataclass
 from inspect import Parameter, _empty, signature
+from pathlib import Path
 from typing import (
     Any,
     Callable,
@@ -88,6 +89,43 @@ def arg(
     metavar: Optional[str] = None,
     action: Union[None, str, Type[Action]] = None,
 ) -> Field:
+    """Provides an interface to modify argument options.
+
+    Args:
+        default: default value for the argument.
+            If not given, argument is required.
+        env: list of environment variables that will provide the argument value.
+        pos: if True, argument is positional (no flags).
+        group: group for the argument.
+        exclusive: if True, this arg cannot be specified along with another exclusive arg in the same group.
+        flags: list of flags to use for the argument.
+        help: help text / description
+        metavar: variable name printed in help text.
+        action: custom action for this argument.
+
+    Examples:
+        >>> import yapx
+        >>> from yapx.types import Annotated
+        ...
+        >>> def say_hello(
+        ...     value = yapx.arg(default='World')
+        ... ):
+        ...     print(f"Hello {value}")
+        ...
+        >>> yapx.run(say_hello, _args=[])
+        Hello World
+
+        >>> import yapx
+        >>> from yapx.types import Annotated
+        ...
+        >>> def say_hello(
+        ...     value: Annotated[str, yapx.arg(default='World')]
+        ... ):
+        ...     print(f"Hello {value}")
+        ...
+        >>> yapx.run(say_hello, _args=[])
+        Hello World
+    """
     if env:
         if isinstance(env, str):
             env = [env]
@@ -98,12 +136,13 @@ def arg(
                 break
 
             env_file = os.getenv(e + "_FILE", None)
-            if env_file and os.path.exists(env_file):
-                with open(env_file, encoding="utf8") as f:
-                    value_from_file = f.read().strip()
-                if value_from_file:
-                    default = value_from_file
-                    break
+            if env_file:
+                env_file_path: Path = Path(env_file)
+                if env_file_path.exists():
+                    value_from_file = env_file_path.read_text(encoding="utf-8").strip()
+                    if value_from_file:
+                        default = value_from_file
+                        break
 
     metadata: Dict[str, ArgparseArg] = {
         ARGPARSE_ARG_METADATA_KEY: ArgparseArg(
@@ -114,7 +153,9 @@ def arg(
             default=(
                 None
                 if default is MISSING
-                else default() if callable(default) else default
+                else default()
+                if callable(default)
+                else default
             ),
             group=group,
             exclusive=exclusive,
@@ -158,7 +199,8 @@ def convert_to_command_string(x: str) -> str:
 
 
 def convert_to_flag_string(x: str) -> str:
-    return "--" + convert_to_command_string(x)
+    cmd_str: str = convert_to_command_string(x)
+    return "--" + cmd_str if len(cmd_str) > 1 else "-" + cmd_str
 
 
 def convert_to_short_flag_string(x: str) -> str:
