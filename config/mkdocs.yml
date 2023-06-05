@@ -19,9 +19,15 @@ extra:
 ## https://www.mkdocs.org/user-guide/writing-your-docs/#configure-pages-and-navigation
 nav:
   - Home: index.md
-  - Articles: pages/
   - Changelog: changelog.md
   - License: license.md
+  - Articles:
+      - 'page/commands.md'
+      - 'page/types.md'
+      - 'page/arguments.md'
+      - 'page/completion.md'
+      - 'page/tui.md'
+      - 'page/related.md'
   - Reference: reference/
   - Discussion: comments.md
 
@@ -34,12 +40,12 @@ theme:
   custom_dir: overrides
   palette:
     - scheme: slate
-      primary: black
+      primary: teal
       toggle:
         icon: material/toggle-switch-off-outline
         name: Switch to light mode
     - scheme: default
-      primary: deep purple
+      primary: teal
       toggle:
         icon: material/toggle-switch
         name: Switch to dark mode

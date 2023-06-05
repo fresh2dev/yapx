@@ -1,4 +1,4 @@
-# Similar Projects
+# Related Projects
 
 ## [argparse](https://docs.python.org/3/library/argparse.html)
 
@@ -27,6 +27,6 @@ Another trusted Python library for the command-line, with an emphasis on task ex
 
 ## [myke](https://github.com/fresh2dev/myke)
 
-`myke` is a superset of the yapx project with an emphasis on task execution, à la `make`. yapx is the library and myke is the instantiation of it.
+`myke` is a superset of the yapx project with an emphasis on task execution, à la `make`. yapx is the library and myke is an instantiation of it.
 
 Read more about myke @ https://www.Fresh2.dev/code/r/myke/i

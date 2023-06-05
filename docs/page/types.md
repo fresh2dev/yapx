@@ -1,4 +1,4 @@
-# Supported Types
+# Type Annotations
 
 yapx makes direct use of Python type-annotations to offer type-validation and other conveniences.
 
@@ -37,9 +37,7 @@ c=2.718 <class 'float'>
 d=True <class 'bool'>
 ```
 
-## Type Annotations
-
-The use of type-annotations allows `yapx` to accept and validate more complex arguments types such as `list`, `set`, and even `dict`.
+The use of type-annotations (aka "type-hints") allows `yapx` to accept and validate more complex arguments types such as `list`, `set`, and even `dict`.
 
 ```python hl_lines="6-13 31-42 54-61" linenums="0"
 >>> import yapx

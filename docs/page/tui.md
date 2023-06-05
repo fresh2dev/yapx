@@ -1,4 +1,4 @@
-# TUI Support
+# CLI to TUI
 
 When the [trogon](https://github.com/Textualize/trogon) library is present, yapx will allow your app to be presented as a terminal user interface (TUI) simply by using the command-line flag `--tui`.
 
