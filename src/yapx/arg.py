@@ -89,6 +89,43 @@ def arg(
     metavar: Optional[str] = None,
     action: Union[None, str, Type[Action]] = None,
 ) -> Field:
+    """Provides an interface to modify argument options.
+
+    Args:
+        default: default value for the argument.
+            If not given, argument is required.
+        env: list of environment variables that will provide the argument value.
+        pos: if True, argument is positional (no flags).
+        group: group for the argument.
+        exclusive: if True, this arg cannot be specified along with another exclusive arg in the same group.
+        flags: list of flags to use for the argument.
+        help: help text / description
+        metavar: variable name printed in help text.
+        action: custom action for this argument.
+
+    Examples:
+        >>> import yapx
+        >>> from yapx.types import Annotated
+        ...
+        >>> def say_hello(
+        ...     value = yapx.arg(default='World')
+        ... ):
+        ...     print(f"Hello {value}")
+        ...
+        >>> yapx.run(say_hello, _args=[])
+        Hello World
+
+        >>> import yapx
+        >>> from yapx.types import Annotated
+        ...
+        >>> def say_hello(
+        ...     value: Annotated[str, yapx.arg(default='World')]
+        ... ):
+        ...     print(f"Hello {value}")
+        ...
+        >>> yapx.run(say_hello, _args=[])
+        Hello World
+    """
     if env:
         if isinstance(env, str):
             env = [env]

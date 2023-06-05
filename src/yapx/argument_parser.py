@@ -4,7 +4,7 @@ import sys
 from collections import defaultdict
 from dataclasses import MISSING, Field, fields
 from enum import Enum
-from functools import partial, wraps
+from functools import partial
 from inspect import signature
 from types import GeneratorType
 from typing import (
@@ -50,7 +50,7 @@ from .utils import (
     try_issubclass,
 )
 
-__all__ = ["ArgumentParser", "run", "run_command"]
+__all__ = ["ArgumentParser", "run", "run_commands"]
 
 
 if sys.version_info >= (3, 8):
@@ -110,6 +110,53 @@ class ArgumentParser(argparse.ArgumentParser):
         self,
         args_model: Union[Callable[..., Any], Type[Dataclass]],
     ) -> None:
+        """Add arguments from the given function or dataframe.
+
+        Args:
+            args_model: a function or dataclass from which to derive arguments.
+
+        Examples:
+            >>> import yapx
+            >>> from dataclasses import dataclass
+            ...
+            >>> @dataclass
+            ... class AddNums:
+            ...     x: int
+            ...     y: int
+            ...
+            >>> parser = yapx.ArgumentParser()
+            >>> parser.add_arguments(AddNums)
+            >>> parser.set_defaults(_func=lambda x, y: x+y)
+            >>> parsed = parser.parse_args(['-x', '1', '-y', '2'])
+            ...
+            >>> type(parsed)
+            <class 'argparse.Namespace'>
+            >>> (parsed.x, parsed.y)
+            (1, 2)
+            >>> parsed._args_model(x=parsed.x, y=parsed.y)
+            AddNums(x=1, y=2)
+            >>> parsed._func(x=parsed.x, y=parsed.y)
+            3
+
+            >>> import yapx
+            ...
+            >>> def add_nums(x: int, y: int):
+            ...     return x + y
+            ...
+            >>> parser = yapx.ArgumentParser()
+            >>> parser.add_arguments(add_nums)
+            >>> parser.set_defaults(_func=add_nums)
+            >>> parsed = parser.parse_args(['-x', '1', '-y', '2'])
+            ...
+            >>> type(parsed)
+            <class 'argparse.Namespace'>
+            >>> (parsed.x, parsed.y)
+            (1, 2)
+            >>> parsed._args_model(x=parsed.x, y=parsed.y)
+            Dataclass_add_nums(x=1, y=2)
+            >>> parsed._func(x=parsed.x, y=parsed.y)
+            3
+        """
         added_args: List[ArgparseArg] = self._add_arguments(self, args_model)
 
         if self._tui_schemas is not None:
@@ -128,6 +175,68 @@ class ArgumentParser(argparse.ArgumentParser):
         add_help: bool = True,
         **kwargs: Any,
     ) -> argparse.ArgumentParser:
+        """Create a new subcommand and add arguments from the given function or dataframe to it.
+
+        Args:
+            name: name of the command
+            args_model: a function or dataclass from which to derive arguments.
+            no_docstring_description: if True, do not use use the docstrings as the description
+            add_help: add `--help` flag to this command
+
+        Returns:
+            the new argparse subparser
+
+        Examples:
+            >>> import yapx
+            >>> from dataclasses import dataclass
+            ...
+            >>> @dataclass
+            ... class AddNums:
+            ...     x: int
+            ...     y: int
+            ...
+            >>> parser = yapx.ArgumentParser()
+            >>> subparser_1 = parser.add_command('add', AddNums)
+            >>> subparser_1.set_defaults(_func=lambda x, y: x+y)
+            >>> subparser_2 = parser.add_command('subtract', AddNums)
+            >>> subparser_2.set_defaults(_func=lambda x, y: x-y)
+            ...
+            >>> parsed = parser.parse_args(['add', '-x', '1', '-y', '2'])
+            ...
+            >>> type(parsed)
+            <class 'argparse.Namespace'>
+            >>> (parsed.x, parsed.y)
+            (1, 2)
+            >>> parsed._args_model(x=parsed.x, y=parsed.y)
+            AddNums(x=1, y=2)
+            >>> parsed._func(x=parsed.x, y=parsed.y)
+            3
+
+            >>> import yapx
+            ...
+            >>> def add_nums(x: int, y: int):
+            ...     return x + y
+            ...
+            >>> def subtract_nums(x: int, y: int):
+            ...     return x - y
+            ...
+            >>> parser = yapx.ArgumentParser()
+            >>> subparser_1 = parser.add_command('add', add_nums)
+            >>> subparser_1.set_defaults(_func=add_nums)
+            >>> subparser_2 = parser.add_command('subtract', subtract_nums)
+            >>> subparser_2.set_defaults(_func=subtract_nums)
+            ...
+            >>> parsed = parser.parse_args(['subtract', '-x', '1', '-y', '2'])
+            ...
+            >>> type(parsed)
+            <class 'argparse.Namespace'>
+            >>> (parsed.x, parsed.y)
+            (1, 2)
+            >>> parsed._args_model(x=parsed.x, y=parsed.y)
+            Dataclass_subtract_nums(x=1, y=2)
+            >>> parsed._func(x=parsed.x, y=parsed.y)
+            -1
+        """
         subparsers: argparse.Action = self._get_or_add_subparsers()
 
         # pylint: disable=protected-access
@@ -307,6 +416,11 @@ class ArgumentParser(argparse.ArgumentParser):
                         )
                         if not argparse_argument.action:
                             argparse_argument.action = split_csv_to_dict
+
+                        argparse_argument.nargs = (
+                            "+" if argparse_argument.required else "*"
+                        )
+
                     elif (
                         try_issubclass(fld_type_origin, collections.abc.Iterable)
                         or fld_type_origin is set
@@ -322,6 +436,11 @@ class ArgumentParser(argparse.ArgumentParser):
                                 argparse_argument.action = split_csv_to_tuple
                             else:
                                 argparse_argument.action = split_csv
+
+                        argparse_argument.nargs = (
+                            "+" if argparse_argument.required else "*"
+                        )
+
                     elif not is_pydantic_available():
                         raise_unsupported_type_error(fld_type)
 
@@ -338,8 +457,6 @@ class ArgumentParser(argparse.ArgumentParser):
                     # type-containers must only contain strings
                     # until parsed by argparse.
                     fld_type = str
-
-                    argparse_argument.nargs = "+" if argparse_argument.required else "*"
 
             elif try_issubclass(fld_type, Enum):
                 argparse_argument.choices = list(fld_type)
@@ -647,6 +764,35 @@ class ArgumentParser(argparse.ArgumentParser):
         args_model: Optional[Type[Dataclass]] = None,
         skip_pydantic_validation: bool = False,
     ) -> Tuple[Dataclass, List[str]]:
+        """Use parsed args to instantiate the given data model.
+
+        Args:
+            args:
+            args_model:
+            skip_pydantic_validation:
+
+        Examples:
+            >>> import yapx
+            >>> from dataclasses import dataclass
+            ...
+            >>> @dataclass
+            ... class AddNums:
+            ...     x: int
+            ...     y: int
+            ...
+            >>> parser = yapx.ArgumentParser()
+            >>> parser.add_arguments(AddNums)
+            >>> parsed, unknown = parser.parse_known_args_to_model(['-x', '1', '-y', '2', '-z', '3'])
+            ...
+            >>> type(parsed)
+            <class 'yapx.argument_parser.AddNums'>
+            >>> (parsed.x, parsed.y)
+            (1, 2)
+            >>> unknown
+            ['-z', '3']
+
+        """
+
         parsed_args: argparse.Namespace
         unknown_args: List[str]
         parsed_args, unknown_args = self.parse_known_args(args)
@@ -666,6 +812,32 @@ class ArgumentParser(argparse.ArgumentParser):
         args_model: Optional[Type[Dataclass]] = None,
         skip_pydantic_validation: bool = False,
     ) -> Dataclass:
+        """Use parsed args to instantiate the given data model.
+
+        Args:
+            args:
+            args_model:
+            skip_pydantic_validation:
+
+        Examples:
+            >>> import yapx
+            >>> from dataclasses import dataclass
+            ...
+            >>> @dataclass
+            ... class AddNums:
+            ...     x: int
+            ...     y: int
+            ...
+            >>> parser = yapx.ArgumentParser()
+            >>> parser.add_arguments(AddNums)
+            >>> parsed = parser.parse_args_to_model(['-x', '1', '-y', '2'])
+            ...
+            >>> type(parsed)
+            <class 'yapx.argument_parser.AddNums'>
+            >>> (parsed.x, parsed.y)
+            (1, 2)
+
+        """
         parsed_args: argparse.Namespace = self.parse_args(args)
         return self._parse_args_to_model(
             args=parsed_args,
@@ -711,6 +883,25 @@ class ArgumentParser(argparse.ArgumentParser):
         file: Optional[IO[str]] = None,
         full: bool = False,
     ) -> None:
+        """Print CLI help.
+
+        Args:
+            full: if True, print help for all commands.
+
+        Examples:
+            >>> import yapx
+            >>> from dataclasses import dataclass
+            ...
+            >>> @dataclass
+            ... class AddNums:
+            ...     x: int
+            ...     y: int
+            ...
+            >>> parser = yapx.ArgumentParser()
+            >>> parser.add_arguments(AddNums)
+            ...
+            >>> parser.print_help(full=True)  #doctest: +SKIP
+        """
         super().print_help(file)
 
         if full:
@@ -889,6 +1080,37 @@ class ArgumentParser(argparse.ArgumentParser):
         _no_docstring_description: bool = False,
         **kwargs: Callable[..., Any],
     ) -> Any:
+        """Use given functions to construct a CLI, parse the args, and invoke the appropriate command.
+
+        *args: 1st arg is root-command; subsequent args are sub-commands.
+        **kwargs: sub-commands with specific names.
+        _args: arguments to parse (default=sys.argv[1:]).
+        _prog: name of the program.
+        _print_help: will print help and exit.
+        _help_flags: list of flags that activate help (default=['-h', '--help']).
+            Provide an empty list `[]` to disable help.
+        _tui_flags: list of flags that activate the TUI (default=['--tui']).
+            Provide a list containing 'None' `[None]` to activate the TUI when no args are given.
+        _no_docstring_description: do not use docstrings for command descriptions
+
+        Examples:
+            >>> import yapx
+            ...
+            >>> def print_nums(*args):
+            ...     print('Args: ', *args)
+            ...
+            >>> def find_evens(*args):
+            ...     return [x for x in args if int(x) % 2 == 0]
+            ...
+            >>> def find_odds(*args):
+            ...     return [x for x in args if int(x) % 2 != 0]
+            ...
+            >>> cli_args = ['find-odds', '1', '2', '3', '4', '5']
+            >>> yapx.run(print_nums, find_evens, find_odds, _args=cli_args)
+            Args:  1 2 3 4 5
+            ['1', '3', '5']
+        """
+
         parser_shared_kwargs: Dict[str, Any] = {
             "prog": _prog,
             "add_help": _help_flags is None,
@@ -1031,14 +1253,106 @@ class ArgumentParser(argparse.ArgumentParser):
         return relay_value
 
 
-@wraps(ArgumentParser._run)  # pylint: disable=protected-access
 def run(
     *args: Optional[Callable[..., Any]],
+    _args: Optional[List[str]] = None,
+    _prog: Optional[str] = None,
+    _print_help: bool = False,
+    _help_flags: Optional[List[Optional[str]]] = None,
+    _tui_flags: Optional[List[Optional[str]]] = None,
+    _no_docstring_description: bool = False,
     **kwargs: Callable[..., Any],
 ) -> Any:
-    return ArgumentParser._run(*args, **kwargs)  # pylint: disable=protected-access
+    """Use given functions to construct a CLI, parse the args, and invoke the appropriate command.
+
+    Args:
+        *args: 1st arg is root-command; subsequent args are sub-commands.
+        **kwargs: sub-commands with specific names.
+        _args: arguments to parse (default=sys.argv[1:]).
+        _prog: name of the program.
+        _print_help: will print help and exit.
+        _help_flags: list of flags that activate help (default=['-h', '--help']).
+            Provide an empty list `[]` to disable help.
+        _tui_flags: list of flags that activate the TUI (default=['--tui']).
+            Provide a list containing 'None' `[None]` to activate the TUI when no args are given.
+        _no_docstring_description: do not use docstrings for command descriptions
+
+    Examples:
+        >>> import yapx
+        ...
+        >>> def print_nums(*args):
+        ...     print('Args: ', *args)
+        ...
+        >>> def find_evens(*args):
+        ...     return [x for x in args if int(x) % 2 == 0]
+        ...
+        >>> def find_odds(*args):
+        ...     return [x for x in args if int(x) % 2 != 0]
+        ...
+        >>> cli_args = ['find-odds', '1', '2', '3', '4', '5']
+        >>> yapx.run(print_nums, find_evens, find_odds, _args=cli_args)
+        Args:  1 2 3 4 5
+        ['1', '3', '5']
+    """
+    # pylint: disable=protected-access
+    return ArgumentParser._run(
+        *args,
+        _args=_args,
+        _prog=_prog,
+        _print_help=_print_help,
+        _help_flags=_help_flags,
+        _tui_flags=_tui_flags,
+        _no_docstring_description=_no_docstring_description,
+        **kwargs,
+    )
 
 
-@wraps(run)
-def run_command(*args, **kwargs) -> Any:
-    return run(None, *args, **kwargs)
+def run_commands(
+    *args: Optional[Callable[..., Any]],
+    _args: Optional[List[str]] = None,
+    _prog: Optional[str] = None,
+    _print_help: bool = False,
+    _help_flags: Optional[List[Optional[str]]] = None,
+    _tui_flags: Optional[List[Optional[str]]] = None,
+    _no_docstring_description: bool = False,
+    **kwargs: Callable[..., Any],
+) -> Any:
+    """Use given functions to construct a CLI, parse the args, and invoke the appropriate command.
+
+    Args:
+        *args: functions to add as sub-commands.
+        **kwargs: sub-commands with specific names.
+        _args: arguments to parse (default=sys.argv[1:]).
+        _prog: name of the program.
+        _print_help: will print help and exit.
+        _help_flags: list of flags that activate help (default=['-h', '--help']).
+            Provide an empty list `[]` to disable help.
+        _tui_flags: list of flags that activate the TUI (default=['--tui']).
+            Provide a list containing 'None' `[None]` to activate the TUI when no args are given.
+        _no_docstring_description: do not use docstrings for command descriptions
+
+    Examples:
+        >>> import yapx
+        ...
+        >>> def find_evens(*args):
+        ...     return [x for x in args if int(x) % 2 == 0]
+        ...
+        >>> def find_odds(*args):
+        ...     return [x for x in args if int(x) % 2 != 0]
+        ...
+        >>> cli_args = ['find-odds', '1', '2', '3', '4', '5']
+        >>> yapx.run_commands(find_evens, find_odds, _args=cli_args)
+        ['1', '3', '5']
+    """
+    # pylint: disable=protected-access
+    return ArgumentParser._run(
+        None,
+        *args,
+        _args=_args,
+        _prog=_prog,
+        _print_help=_print_help,
+        _help_flags=_help_flags,
+        _tui_flags=_tui_flags,
+        _no_docstring_description=_no_docstring_description,
+        **kwargs,
+    )

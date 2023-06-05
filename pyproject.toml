@@ -7,7 +7,7 @@ name = "yapx"
 authors = [
     {name = "Donald Mellenbruch", email = "hello@Fresh2.dev"},
 ]
-description = "None"
+description = "Yet another argparse extension for building CLI tools."
 readme = "README.md"
 license = {file = "LICENSE"}
 requires-python = ">=3.7"

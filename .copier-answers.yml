@@ -11,11 +11,10 @@ is_minimal: false
 is_python: true
 license_type: MIT
 package_name: yapx
-project_description: None
+project_description: Yet another argparse extension for building CLI tools.
 project_name: yapx
 python_version: '3.7'
 repo_mirror: https://www.Fresh2.dev/code/r/yapx
 repo_name: fresh2dev/yapx
 repo_owner: fresh2dev
 repo_url: https://www.github.com/fresh2dev/yapx
-

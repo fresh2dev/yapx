@@ -83,7 +83,7 @@ def test_run_command(capsys: CaptureFixture):
 
     # 2. ACT
     with mock.patch.object(yapx.argument_parser.sys, "argv", [""] + cli_args):
-        yapx.run_command(example_subcmd)
+        yapx.run_commands(example_subcmd)
 
     # 3. ASSERT
     captured: CaptureResult = capsys.readouterr()

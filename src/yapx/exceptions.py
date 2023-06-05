@@ -18,9 +18,7 @@ def raise_unsupported_type_error(
         fld_type.__name__ if hasattr(fld_type, "__name__") else str(fld_type)
     )
 
-    msg: str = (
-        f"Unsupported type: {fld_type_name}\nInstall 'pydantic' to support more types."
-    )
+    msg: str = f"Unsupported type: {fld_type_name}\n\"pip install 'yapx[pydantic]'\" to support more types."
 
     if from_exception:
         raise UnsupportedTypeError(msg) from from_exception
