@@ -26,7 +26,7 @@ data:
     [
       {
         "name": "py-test",
-        "image": "registry.lokalhost.net/fresh2dev/mykefiles:b12d156",
+        "image": "registry.lokalhost.net/fresh2dev/mykefiles:5de40c3",
         "environment": {
           "PIP_CONF": {"from_secret": "PIP_CONF"},
           "MYKE_MODULE": "mykefiles.python"
@@ -46,7 +46,7 @@ data:
     [
       {
         "name": "py-build-package",
-        "image": "registry.lokalhost.net/fresh2dev/mykefiles:b12d156",
+        "image": "registry.lokalhost.net/fresh2dev/mykefiles:5de40c3",
         "environment": {
           "PYPI_CREDS": {"from_secret": "PYPI_CREDS"},
           "PIP_CONF": {"from_secret": "PIP_CONF"},
@@ -62,7 +62,7 @@ data:
       },
       {
         "name": "py-publish-sandbox",
-        "image": "registry.lokalhost.net/fresh2dev/mykefiles:b12d156",
+        "image": "registry.lokalhost.net/fresh2dev/mykefiles:5de40c3",
         "environment": {
           "PYPI_CREDS": {"from_secret": "PYPI_CREDS"},
           "PIP_CONF": {"from_secret": "PIP_CONF"},
@@ -78,7 +78,7 @@ data:
       },
       {
         "name": "py-publish-dev",
-        "image": "registry.lokalhost.net/fresh2dev/mykefiles:b12d156",
+        "image": "registry.lokalhost.net/fresh2dev/mykefiles:5de40c3",
         "environment": {
           "PYPI_CREDS": {"from_secret": "PYPI_CREDS"},
           "PIP_CONF": {"from_secret": "PIP_CONF"},
@@ -96,7 +96,7 @@ data:
       },
       {
         "name": "py-publish-test",
-        "image": "registry.lokalhost.net/fresh2dev/mykefiles:b12d156",
+        "image": "registry.lokalhost.net/fresh2dev/mykefiles:5de40c3",
         "environment": {
           "PYPI_CREDS": {"from_secret": "PYPI_CREDS"},
           "PIP_CONF": {"from_secret": "PIP_CONF"},
@@ -109,12 +109,12 @@ data:
           "myke py-publish --repository testpypi"
         ],
         "when": {
-          "ref": ["refs/heads/main", "refs/tags/*"]
+          "ref": ["refs/tags/*"]
         }
       },
       {
         "name": "py-publish-prod",
-        "image": "registry.lokalhost.net/fresh2dev/mykefiles:b12d156",
+        "image": "registry.lokalhost.net/fresh2dev/mykefiles:5de40c3",
         "environment": {
           "PYPI_CREDS": {"from_secret": "PYPI_CREDS"},
           "PIP_CONF": {"from_secret": "PIP_CONF"},

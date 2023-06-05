@@ -5,9 +5,9 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "yapx"
 authors = [
-    {name = "Donald Mellenbruch", email = "hello@Fresh2.dev"},
+    {name = "Donald Mellenbruch", email = "hello@f2dv.com"},
 ]
-description = "Yet another argparse extension for building CLI tools."
+description = "Build awesome Python CLIs with ease."
 readme = "README.md"
 license = {file = "LICENSE"}
 requires-python = ">=3.7"
@@ -68,9 +68,9 @@ extras = [
 ]
 
 [project.urls]
-Homepage = "https://www.Fresh2.dev/code/r/yapx/i"
+Homepage = "https://www.f2dv.com/code/r/yapx/i"
 Repository = "https://www.github.com/fresh2dev/yapx"
-Funding = "https://www.Fresh2.dev/funding"
+Funding = "https://www.f2dv.com/funding"
 
 [tool.setuptools.package-data]
 "*" = ["**"]
@@ -86,9 +86,6 @@ version = {attr = "yapx.__version__.__version__"}
 [tool.pytest.ini_options]
 minversion = 7.0
 testpaths = ["tests"]
-
-[tool.coverage.run]
-source = ["src"]
 
 [tool.pylint.MASTER]
 ignore-paths = "^(?!src|tests).*$"

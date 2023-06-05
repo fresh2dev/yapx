@@ -21,12 +21,8 @@ typer and yapx serve a very similar purpose of using type annotations to build C
 A trusted tool for building CLIs.
 
 
-## [invoke](https://github.com/pyinvoke/invoke)
-
-Another trusted Python library for the command-line, with an emphasis on task execution, à la `make`.
-
 ## [myke](https://github.com/fresh2dev/myke)
 
 `myke` is a superset of the yapx project with an emphasis on task execution, à la `make`. yapx is the library and myke is an instantiation of it.
 
-Read more about myke @ https://www.Fresh2.dev/code/r/myke/i
+Read more about myke @ https://www.f2dv.com/code/r/myke/i

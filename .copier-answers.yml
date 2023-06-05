@@ -1,20 +1,21 @@
 # Changes here will be overwritten by Copier
-_commit: 0e87b56
+_commit: a093063
 _src_path: https://codeberg.org/Fresh2dev/copier-f2dv-project.git
-author_email: hello@Fresh2.dev
+author_email: hello@f2dv.com
 author_name: Donald Mellenbruch
 ci_domain_name: lokalhost.net
-docs_url: https://www.Fresh2.dev/code/r/yapx/i
-funding_url: https://www.Fresh2.dev/funding
-home_page: https://www.Fresh2.dev
+docs_url: https://www.f2dv.com/code/r/yapx/i
+funding_url: https://www.f2dv.com/funding
+home_page: https://www.f2dv.com
 is_minimal: false
 is_python: true
 license_type: MIT
 package_name: yapx
-project_description: Yet another argparse extension for building CLI tools.
+project_description: Build awesome Python CLIs with ease.
 project_name: yapx
 python_version: '3.7'
-repo_mirror: https://www.Fresh2.dev/code/r/yapx
+repo_mirror: https://www.f2dv.com/code/r/yapx
 repo_name: fresh2dev/yapx
 repo_owner: fresh2dev
 repo_url: https://www.github.com/fresh2dev/yapx
+
