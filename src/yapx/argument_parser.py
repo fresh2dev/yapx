@@ -1196,14 +1196,19 @@ class ArgumentParser(argparse.ArgumentParser):
                     _show_tui = any(x in _args for x in _tui_flags)
 
         if _print_help:
+            if _tui_flags:
+                parser.add_argument(
+                    *[x for x in _tui_flags if x],
+                    action="store_true",
+                    help="Show the terminal user interface (TUI).",
+                )
             parser.print_help(full=True)
             parser.exit()
         elif _show_tui:
             if not is_tui_available():
                 parser.error("Missing 'trogon' library. Try `pip install yapx[tui]`")
-            else:
-                parser._show_tui()
-                parser.exit()
+            parser._show_tui()
+            parser.exit()
 
         known_args: argparse.Namespace
         known_args, _ = parser.parse_known_args(_args)
