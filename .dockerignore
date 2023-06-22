@@ -3,6 +3,7 @@
 **/secrets
 !**/*.keep
 **/*.tmp/build
+**/.ipynb_checkpoints
 **/.coverage
 **/.hypothesis
 **/.tox

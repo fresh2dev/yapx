@@ -19,8 +19,6 @@ extra:
 ## https://www.mkdocs.org/user-guide/writing-your-docs/#configure-pages-and-navigation
 nav:
   - Home: index.md
-  - Changelog: changelog.md
-  - License: license.md
   - Articles:
       - 'page/commands.md'
       - 'page/types.md'
@@ -29,7 +27,13 @@ nav:
       - 'page/tui.md'
       - 'page/related.md'
   - Reference: reference/
+  - Changelog: changelog.md
+  - License: license.md
   - Discussion: comments.md
+  - '<- f2dv.com':
+    - '/blog': 'https://www.f2dv.com'
+    - '/code': 'https://www.f2dv.com/code/r/'
+    - '/fund': 'https://www.f2dv.com/fund'
 
 watch:
   - ../src
@@ -39,6 +43,7 @@ theme:
   language: en
   custom_dir: overrides
   palette:
+    # https://squidfunk.github.io/mkdocs-material/setup/changing-the-colors/#primary-color
     - scheme: slate
       primary: teal
       toggle:
@@ -88,6 +93,13 @@ plugins:
   - search
   - include_dir_to_nav
   - autorefs
+  - mkdocs-jupyter:
+      ignore_h1_titles: True
+      include_source: True
+      execute: false
+      remove_tag_config:
+        remove_input_tags:
+          - hidden
   - mkdocstrings:
       default_handler: python
       handlers:
@@ -96,7 +108,7 @@ plugins:
           options:
             show_bases: false
             show_source: false
-            members_order: 'source'  # 'alphabetical'
+            members_order: 'alphabetical'  # 'source'
             docstring_style: google
             show_submodules: false
             show_signature: false

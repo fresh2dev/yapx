@@ -5,9 +5,11 @@ data:
     ["lokalhost.net", "fresh2.dev"]
   domainTriggers: >-
     {
-      "lokalhost.net": {},
+      "lokalhost.net": {
+        "event": {"exclude": ["promote"]}
+      },
       "fresh2.dev": {
-        "ref": ["refs/heads/main", "refs/tags/*"]
+        "event": ["promote", "tag"]
       }
     }
   domainClusterMap: >-
