@@ -167,7 +167,9 @@ def build_trogon_schema(
 
     for a in args:
         nargs: int = (
-            -1
+            a.nargs
+            if isinstance(a.nargs, int)
+            else -1
             if a.nargs == "*"
             else int(a.nargs)
             if a.nargs is not None and a.nargs.isdigit()

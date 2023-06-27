@@ -50,7 +50,7 @@ class ArgparseArg:
     required: bool = True
     group: Optional[str] = None
     exclusive: Optional[bool] = False
-    nargs: Optional[str] = None
+    nargs: Optional[Union[int, str]] = None
     const: Optional[Any] = None
     default: Optional[Any] = None
     choices: Optional[Sequence[Any]] = None
@@ -87,6 +87,7 @@ def arg(
     # pylint: disable=redefined-builtin
     help: Optional[str] = None,
     metavar: Optional[str] = None,
+    nargs: Optional[Union[int, str]] = None,
     action: Union[None, str, Type[Action]] = None,
 ) -> Field:
     """Provides an interface to modify argument options.
@@ -161,6 +162,7 @@ def arg(
             exclusive=exclusive,
             help=help,
             metavar=metavar,
+            nargs=nargs,
             _env_var=env,
         ),
     }

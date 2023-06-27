@@ -7,13 +7,14 @@ from _pytest.capture import CaptureFixture, CaptureResult
 
 import yapx
 from yapx.argparse_action import YapxAction
+from yapx.types import Annotated
 
 
 def test_split_csv():
     # 1. ARRANGE
     @dataclass
     class ArgsModel:
-        values: List[Optional[str]]
+        values: Annotated[List[Optional[str]], yapx.arg(nargs="*")]
 
     expected: List[Optional[str]] = [
         "1",
@@ -54,7 +55,7 @@ def test_split_csv_to_set():
     # 1. ARRANGE
     @dataclass
     class ArgsModel:
-        values: Set[Optional[str]]
+        values: Annotated[Set[Optional[str]], yapx.arg(nargs="*")]
 
     expected: Set[Optional[str]] = {
         "",
@@ -91,7 +92,7 @@ def test_split_csv_to_tuple():
     # 1. ARRANGE
     @dataclass
     class ArgsModel:
-        values: Tuple[Optional[str], ...]
+        values: Annotated[Tuple[Optional[str], ...], yapx.arg(nargs="*")]
 
     expected: Tuple[Optional[str]] = (
         "",
@@ -133,7 +134,7 @@ def test_split_csv_to_dict():
     # 1. ARRANGE
     @dataclass
     class ArgsModel:
-        values: Dict[str, Optional[str]]
+        values: Annotated[Dict[str, Optional[str]], yapx.arg(nargs="*")]
 
     expected: Dict[str, Optional[str]] = {
         "1": None,

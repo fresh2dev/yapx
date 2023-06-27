@@ -9,8 +9,8 @@ def test_add_arguments_deferred():
     # pylint: disable=unused-argument
     # noinspection Annotator
     def func(
-        value: None | list[str] = yapx.arg(lambda: ["hello world"]),
-        value_kv: None | dict[str, str] = yapx.arg(None),
+        value: None | list[str] = yapx.arg(lambda: ["hello world"], nargs="*"),
+        value_kv: None | dict[str, str] = yapx.arg(None, nargs="*"),
     ):
         ...
 

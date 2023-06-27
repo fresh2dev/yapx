@@ -23,7 +23,16 @@ from typing import (
 )
 
 from .__version__ import __version__
-from .actions import split_csv, split_csv_to_dict, split_csv_to_set, split_csv_to_tuple
+from .actions import (
+    YapxAction,
+    YapxBooleanAction,
+    counting_action,
+    featflag_action,
+    split_csv,
+    split_csv_to_dict,
+    split_csv_to_set,
+    split_csv_to_tuple,
+)
 from .arg import (
     ARGPARSE_ARG_METADATA_KEY,
     ArgparseArg,
@@ -32,7 +41,6 @@ from .arg import (
     convert_to_flag_string,
     make_dataclass_from_func,
 )
-from .argparse_action import YapxAction
 from .exceptions import NoArgsModelError, raise_unsupported_type_error
 from .types import Dataclass, NoneType
 from .utils import (
@@ -417,10 +425,6 @@ class ArgumentParser(argparse.ArgumentParser):
                         if not argparse_argument.action:
                             argparse_argument.action = split_csv_to_dict
 
-                        argparse_argument.nargs = (
-                            "+" if argparse_argument.required else "*"
-                        )
-
                     elif (
                         try_issubclass(fld_type_origin, collections.abc.Iterable)
                         or fld_type_origin is set
@@ -436,10 +440,6 @@ class ArgumentParser(argparse.ArgumentParser):
                                 argparse_argument.action = split_csv_to_tuple
                             else:
                                 argparse_argument.action = split_csv
-
-                        argparse_argument.nargs = (
-                            "+" if argparse_argument.required else "*"
-                        )
 
                     elif not is_pydantic_available():
                         raise_unsupported_type_error(fld_type)
@@ -464,7 +464,6 @@ class ArgumentParser(argparse.ArgumentParser):
             argparse_argument.type = fld_type
 
             kwargs: Dict[str, Any] = argparse_argument.asdict()
-            kwargs["type"] = partial(cast_type, target_type=fld_type)
             del kwargs["pos"]
 
             option_strings: Optional[List[str]] = kwargs.pop("option_strings")
@@ -479,8 +478,22 @@ class ArgumentParser(argparse.ArgumentParser):
             if not args:
                 # positional arg
                 del kwargs["required"]
-                if not required and not kwargs.get("nargs"):
+                if not required and kwargs.get("nargs") is None:
                     kwargs["nargs"] = "?"
+                kwargs["type"] = partial(cast_type, target_type=fld_type)
+            elif argparse_argument.type is bool:
+                for k in "type", "nargs", "const", "choices", "metavar":
+                    kwargs.pop(k, None)
+                if not kwargs["action"]:
+                    kwargs["action"] = YapxBooleanAction
+            elif argparse_argument.nargs != 0:
+                kwargs["type"] = partial(cast_type, target_type=fld_type)
+            elif fld_type is int:
+                # 'int' args with nargs==0 are "counting" parameters (-vvv).
+                kwargs["action"] = counting_action
+            elif fld_type is str:
+                # 'str' args with nargs==0 are "feature flag" parameters.
+                kwargs["action"] = featflag_action
 
             # if given `default` cast it to the expected type.
             if (
@@ -490,7 +503,7 @@ class ArgumentParser(argparse.ArgumentParser):
             ):
                 if kwargs.get("action") and try_issubclass(
                     kwargs["action"],
-                    YapxAction,
+                    (YapxAction, YapxBooleanAction),
                 ):
                     # https://stackoverflow.com/a/24448351
                     dummy_namespace: object = type("", (), {})()
@@ -500,7 +513,7 @@ class ArgumentParser(argparse.ArgumentParser):
                         values=kwargs["default"],
                     )
                     kwargs["default"] = getattr(dummy_namespace, kwargs["dest"])
-                else:
+                elif "type" in kwargs:
                     kwargs["default"] = kwargs["type"](kwargs["default"])
 
                 # validate parsed default against 'choices'
@@ -528,24 +541,16 @@ class ArgumentParser(argparse.ArgumentParser):
                             )
                             parser.error(err)
 
-            if argparse_argument.type is bool and args:
-                for k in "type", "nargs", "const", "choices", "metavar":
-                    kwargs.pop(k, None)
-                required = False
-                kwargs["required"] = False
-                if not kwargs["action"]:
-                    kwargs["action"] = "store_true"
-
             help_msg_parts: List[str] = [f"Type: {help_type}"]
 
             # pylint: disable=protected-access
             if required:
                 help_msg_parts.append("Required")
             else:
-                help_default = kwargs.get("default")
-                if isinstance(help_default, str):
-                    help_default = f"'{help_default}'"
-                help_msg_parts.append(f"Default: {help_default}")
+                if isinstance(kwargs.get("default"), str):
+                    help_msg_parts.append('Default: "%(default)s"')
+                else:
+                    help_msg_parts.append("Default: %(default)s")
 
             if kwargs.pop("exclusive", False):
                 help_msg_parts.append("M.X.")
@@ -1203,12 +1208,12 @@ class ArgumentParser(argparse.ArgumentParser):
                     help="Show the terminal user interface (TUI).",
                 )
             parser.print_help(full=True)
-            parser.exit()
+            return None
         elif _show_tui:
             if not is_tui_available():
                 parser.error("Missing 'trogon' library. Try `pip install yapx[tui]`")
             parser._show_tui()
-            parser.exit()
+            return None
 
         known_args: argparse.Namespace
         known_args, _ = parser.parse_known_args(_args)
