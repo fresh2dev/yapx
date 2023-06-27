@@ -38,7 +38,7 @@ except ModuleNotFoundError:
 
 
 try:
-    from pydantic import parse_obj_as
+    from pydantic import ValidationError, parse_obj_as
     from pydantic.dataclasses import create_pydantic_model_from_dataclass
 except ModuleNotFoundError:
 
@@ -46,6 +46,9 @@ except ModuleNotFoundError:
         ...
 
     def create_pydantic_model_from_dataclass():
+        ...
+
+    class ValidationError(Exception):
         ...
 
 
@@ -72,6 +75,14 @@ except ModuleNotFoundError:
     class CommandSchema:
         ...
 
+
+try:
+    from rich_argparse import (
+        RawDescriptionRichHelpFormatter as RawDescriptionHelpFormatter,
+    )
+    from rich_argparse import RichHelpFormatter as HelpFormatter
+except ModuleNotFoundError:
+    pass
 
 if sys.version_info >= (3, 10):
     from typing import TypeGuard

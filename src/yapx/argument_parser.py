@@ -2,6 +2,7 @@ import argparse
 import collections.abc
 import sys
 from collections import defaultdict
+from contextlib import suppress
 from dataclasses import MISSING, Field, fields
 from enum import Enum
 from functools import partial
@@ -45,7 +46,10 @@ from .exceptions import NoArgsModelError, raise_unsupported_type_error
 from .types import Dataclass, NoneType
 from .utils import (
     CommandSchema,
+    HelpFormatter,
+    RawDescriptionHelpFormatter,
     Trogon,
+    ValidationError,
     add_argument_to,
     build_trogon_schema,
     cast_type,
@@ -88,6 +92,7 @@ class ArgumentParser(argparse.ArgumentParser):
         prog: Optional[str] = None,
         description: Optional[str] = None,
         add_help: bool = True,
+        formatter_class: Type[Any] = HelpFormatter,
         **kwargs: Any,
     ):
         super().__init__(
@@ -95,6 +100,7 @@ class ArgumentParser(argparse.ArgumentParser):
             prog=prog,
             description=description,
             add_help=add_help,
+            formatter_class=formatter_class,
             **kwargs,
         )
 
@@ -688,7 +694,13 @@ class ArgumentParser(argparse.ArgumentParser):
         subparsers = self._get_subparsers()
 
         if not subparsers:
-            subparsers = self.add_subparsers(dest=self.COMMAND_ATTRIBUTE_NAME)
+            subparsers = self.add_subparsers(
+                dest=self.COMMAND_ATTRIBUTE_NAME,
+                parser_class=lambda **k: type(self)(
+                    **k,
+                    formatter_class=self.formatter_class,
+                ),
+            )
 
         return subparsers
 
@@ -750,8 +762,14 @@ class ArgumentParser(argparse.ArgumentParser):
         args: Optional[Sequence[str]] = None,
         namespace: Optional[argparse.Namespace] = None,
     ) -> argparse.Namespace:
-        parsed: argparse.Namespace = super().parse_args(args=args, namespace=namespace)
-        return self._post_parse_args(parsed)
+        try:
+            parsed: argparse.Namespace = super().parse_args(
+                args=args,
+                namespace=namespace,
+            )
+            return self._post_parse_args(parsed)
+        except ValueError as e:
+            self.error(str(e))
 
     def parse_known_args(  # type: ignore[override]
         self,
@@ -760,8 +778,11 @@ class ArgumentParser(argparse.ArgumentParser):
     ) -> Tuple[argparse.Namespace, List[str]]:
         parsed: argparse.Namespace
         unknown: List[str]
-        parsed, unknown = super().parse_known_args(args=args, namespace=namespace)
-        return self._post_parse_args(parsed), unknown
+        try:
+            parsed, unknown = super().parse_known_args(args=args, namespace=namespace)
+            return self._post_parse_args(parsed), unknown
+        except ValueError as e:
+            self.error(str(e))
 
     def parse_known_args_to_model(
         self,
@@ -870,9 +891,16 @@ class ArgumentParser(argparse.ArgumentParser):
 
         if not skip_pydantic_validation and is_pydantic_available():
             # pylint: disable=not-callable
-            args_union = vars(
-                create_pydantic_model_from_dataclass(args_model)(**args_union),
-            )
+            try:
+                args_union = vars(
+                    create_pydantic_model_from_dataclass(args_model)(**args_union),
+                )
+            except ValidationError as e:
+                err: str = "\n" + "\n".join(
+                    f"Error parsing argument `{x['loc'][0]}`; {x['msg']}."
+                    for x in e.errors()
+                )
+                self.error(err)
 
         return args_model(**args_union)
 
@@ -931,7 +959,7 @@ class ArgumentParser(argparse.ArgumentParser):
 
         if "\n" in description:
             # allow newlines in parser description
-            parser.formatter_class = argparse.RawTextHelpFormatter
+            parser.formatter_class = RawDescriptionHelpFormatter
 
     @staticmethod
     def _extract_description_from_docstring(
@@ -1305,16 +1333,17 @@ def run(
         ['1', '3', '5']
     """
     # pylint: disable=protected-access
-    return ArgumentParser._run(
-        *args,
-        _args=_args,
-        _prog=_prog,
-        _print_help=_print_help,
-        _help_flags=_help_flags,
-        _tui_flags=_tui_flags,
-        _no_docstring_description=_no_docstring_description,
-        **kwargs,
-    )
+    with suppress(SystemExit):
+        return ArgumentParser._run(
+            *args,
+            _args=_args,
+            _prog=_prog,
+            _print_help=_print_help,
+            _help_flags=_help_flags,
+            _tui_flags=_tui_flags,
+            _no_docstring_description=_no_docstring_description,
+            **kwargs,
+        )
 
 
 def run_commands(
@@ -1355,7 +1384,7 @@ def run_commands(
         ['1', '3', '5']
     """
     # pylint: disable=protected-access
-    return ArgumentParser._run(
+    return run(
         None,
         *args,
         _args=_args,

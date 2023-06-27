@@ -1,6 +1,5 @@
 import os
 import re
-from argparse import ArgumentError
 from enum import Enum, auto
 from ipaddress import IPv4Address
 from pathlib import Path
@@ -555,7 +554,7 @@ def test_run_exclusive(use_pydantic: bool):
             yapx.argument_parser.sys,
             "argv",
             [""] + cli_args,
-        ), pytest.raises((ArgumentError, SystemExit)):
+        ):
             yapx.run(_func)
     finally:
         mock.patch.stopall()
@@ -568,13 +567,12 @@ def test_print_shell_completion(capsys: CaptureFixture):
     not_expected: List[str] = []
 
     # 2. ACT
-    with pytest.raises(SystemExit):
-        yapx.run(
-            example_setup,
-            example_empty_subcmd,
-            example_subcmd,
-            _args=cli_args,
-        )
+    yapx.run(
+        example_setup,
+        example_empty_subcmd,
+        example_subcmd,
+        _args=cli_args,
+    )
 
     # 3. ASSERT
     captured: CaptureResult = capsys.readouterr()
