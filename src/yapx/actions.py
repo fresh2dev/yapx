@@ -1,29 +1,15 @@
 import collections.abc
 import shlex
-from argparse import Action, Namespace
+from argparse import Action, Namespace, _AppendAction, _CountAction
 from argparse import _HelpAction as HelpAction
-from typing import Any, Dict, List, Optional, Sequence, Set, Tuple, TypeVar
+from copy import copy
+from typing import Any, Dict, List, Optional, Sequence, Type, TypeVar
 
-from .argparse_action import YapxAction, argparse_action
 from .types import ArgumentParser, ArgValueType
-from .utils import coalesce, try_isinstance, try_issubclass
-
-# @argparse_action
-# # pylint: disable=unused-argument
-# def to_str(
-#     value: ArgValueType,
-#     *,
-#     action: argparse.Action,
-#     parser: argparse.ArgumentParser,
-#     namespace: argparse.Namespace,
-#     option_string: Optional[str],
-# ) -> Optional[str]:
-#     return _cast(value, to=str)
-
-__all__ = ["HelpAction", "HelpAllAction", "TuiAction"]
+from .utils import coalesce, try_issubclass
 
 
-class YapxBooleanAction(Action):
+class BooleanOptionalAction(Action):
     # ref: https://github.com/python/cpython/blob/main/Lib/argparse.py#L889C1-L943C47
     NEGATION_PREFIX: str = "--no-"
 
@@ -129,44 +115,38 @@ class HelpAllAction(HelpAction):
         parser.exit()
 
 
-class TuiAction(HelpAction):
-    def __call__(
+class CountAction(_CountAction):
+    def __init__(
         self,
-        parser: ArgumentParser,
-        namespace: Namespace,
-        values: ArgValueType,
-        option_string: Optional[str] = None,
+        option_strings,
+        dest,
+        default=None,
+        required=False,
+        help=None,  # pylint: disable=redefined-builtin
+        **_kwargs,
     ):
-        parser._show_tui()
-        parser.exit()
+        super().__init__(
+            option_strings=option_strings,
+            dest=dest,
+            default=default,
+            required=required,
+            help=help,
+        )
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        count = getattr(namespace, self.dest, None)
+        if count is None:
+            count = 0
+        else:
+            count += 1
+        setattr(namespace, self.dest, count)
 
 
-@argparse_action
-def counting_action(
-    values: ArgValueType,
-    *,
-    action: YapxAction,
-    parser: ArgumentParser,
-    namespace: Namespace,
-    **_kwargs: Any,
-) -> int:
-    value: Optional[int] = getattr(namespace, action.dest, None)
-    return 0 if value is None else value + 1
-
-
-@argparse_action
-def featflag_action(
-    values: ArgValueType,
-    *,
-    action: YapxAction,
-    parser: ArgumentParser,
-    namespace: Namespace,
-    option_string: Optional[str] = None,
-    **_kwargs: Any,
-) -> Optional[str]:
-    if option_string:
-        values = option_string
-    return values.lstrip("-")
+class FeatureFlagAction(Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        if option_string:
+            values = option_string
+        setattr(namespace, self.dest, values.lstrip("-"))
 
 
 T = TypeVar("T", bound=type)
@@ -176,8 +156,9 @@ def _append_new_dest_values(
     namespace: Namespace,
     dest: str,
     new_values: Sequence[T],
-    # ref: https://github.com/python/cpython/blob/main/Lib/argparse.py#L791
 ) -> Sequence[T]:
+    # ref: https://github.com/python/cpython/blob/main/Lib/argparse.py#L791
+
     items = getattr(namespace, dest, None)
 
     if new_values is not None:
@@ -237,112 +218,87 @@ def _split_csv_sequence(
     return all_values
 
 
-@argparse_action
-def split_csv(
-    values: ArgValueType,
-    *,
-    action: YapxAction,
-    parser: ArgumentParser,
-    namespace: Namespace,
-    **_kwargs: Any,
-) -> Optional[List[Optional[Any]]]:
-    split_values: Optional[List[str]] = _split_csv_sequence(
-        values,
-        target_type=parser._inner_type_conversions.get(  # pylint: disable=protected-access
-            action.dest,
-        ),
-    )
-    return _append_new_dest_values(namespace, dest=action.dest, new_values=split_values)
+# https://github.com/python/cpython/blob/main/Lib/argparse.py#L140C23-L140C23
+def _copy_items(items: Optional[List[T]]) -> List[T]:
+    if items is None:
+        return []
+    # The copy module is used only in the 'append' and 'append_const'
+    # actions, and it is needed only when the default value isn't a list.
+    # Delay its import for speeding up the common case.
+    if type(items) is list:
+        return items[:]
+
+    return copy(items)
 
 
-@argparse_action
-def split_csv_to_tuple(
-    values: ArgValueType,
-    *,
-    action: YapxAction,
-    parser: ArgumentParser,
-    namespace: Namespace,
-    **_kwargs: Any,
-) -> Optional[Tuple[Optional[Any], ...]]:
-    split_values: Optional[List[Optional[Any]]] = (
-        values
-        if isinstance(values, tuple)
-        else _split_csv_sequence(
+class SplitCsvListAction(_AppendAction):
+    def __call__(self, parser, namespace, values, option_string=None):
+        split_values: Optional[List[str]] = _split_csv_sequence(
             values,
             target_type=parser._inner_type_conversions.get(  # pylint: disable=protected-access
-                action.dest,
+                self.dest,
             ),
         )
-    )
-    new_value = _append_new_dest_values(
-        namespace,
-        dest=action.dest,
-        new_values=split_values,
-    )
+        items = _append_new_dest_values(
+            namespace,
+            dest=self.dest,
+            new_values=split_values,
+        )
 
-    return tuple(new_value) if new_value is not None else None
+        setattr(namespace, self.dest, items)
 
 
-@argparse_action
-def split_csv_to_set(
-    values: ArgValueType,
-    *,
-    action: YapxAction,
-    parser: ArgumentParser,
-    namespace: Namespace,
-    **_kwargs: Any,
-) -> Optional[Set[Optional[Any]]]:
-    split_values: Optional[List[Optional[Any]]] = (
-        values
-        if isinstance(values, set)
-        else _split_csv_sequence(
+class SplitCsvTupleAction(_AppendAction):
+    def __call__(self, parser, namespace, values, option_string=None):
+        split_values: Optional[List[str]] = _split_csv_sequence(
             values,
             target_type=parser._inner_type_conversions.get(  # pylint: disable=protected-access
-                action.dest,
+                self.dest,
             ),
         )
-    )
-    new_value = _append_new_dest_values(
-        namespace,
-        dest=action.dest,
-        new_values=split_values,
-    )
-
-    return set(new_value) if new_value is not None else None
-
-
-@argparse_action
-def split_csv_to_dict(
-    values: ArgValueType,
-    *,
-    action: YapxAction,
-    parser: ArgumentParser,
-    namespace: Namespace,
-    **_kwargs: Any,
-) -> Optional[Dict[str, Optional[Any]]]:
-    target_value_type = (
-        parser._inner_type_conversions.get(  # pylint: disable=protected-access
-            action.dest,
-            str,
+        items = _append_new_dest_values(
+            namespace,
+            dest=self.dest,
+            new_values=split_values,
         )
-    )
 
-    new_values: Optional[Dict[str, Any]] = None
+        setattr(namespace, self.dest, tuple(items) if items is not None else None)
 
-    if try_isinstance(values, dict):
-        new_values = values
-    else:
-        split_values: Optional[List[Optional[Any]]] = _split_csv_sequence(
+
+class SplitCsvSetAction(_AppendAction):
+    def __call__(self, parser, namespace, values, option_string=None):
+        split_values: Optional[List[str]] = _split_csv_sequence(
             values,
-            target_type=str,
+            target_type=parser._inner_type_conversions.get(  # pylint: disable=protected-access
+                self.dest,
+            ),
+        )
+        items = _append_new_dest_values(
+            namespace,
+            dest=self.dest,
+            new_values=split_values,
         )
 
+        setattr(namespace, self.dest, set(items) if items is not None else None)
+
+
+class SplitCsvDictAction(_AppendAction):
+    def __call__(self, parser, namespace, values, option_string=None):
+        target_type: Optional[
+            Type[Any]
+        ] = parser._inner_type_conversions.get(  # pylint: disable=protected-access
+            self.dest,
+        )
+        split_values: Optional[List[str]] = _split_csv_sequence(
+            values,
+            target_type=target_type,
+        )
+
+        split_values_dict: Optional[Dict[str, Any]] = None
         if split_values is not None:
-            new_values = {
+            split_values_dict = {
                 x_split[0].strip(): (
-                    v
-                    if v is None or target_value_type is None
-                    else target_value_type(v)
+                    v if v is None or target_type is None else target_type(v)
                 )
                 for x in split_values
                 if x
@@ -356,4 +312,10 @@ def split_csv_to_dict(
                 ]
             }
 
-    return _append_new_dest_values(namespace, action.dest, new_values=new_values)
+        items = _append_new_dest_values(
+            namespace,
+            dest=self.dest,
+            new_values=split_values_dict,
+        )
+
+        setattr(namespace, self.dest, items)

@@ -1,13 +1,12 @@
 import sys
 from contextlib import suppress
-from dataclasses import dataclass, is_dataclass
+from dataclasses import is_dataclass
 from enum import Enum
 from functools import wraps
-from typing import Any, List, NewType, Optional, Sequence, Type, TypeVar, Union
+from typing import Any, Optional, Type, TypeVar, Union
 
 # pylint: disable=unused-import
 from .arg import (
-    ArgparseArg,
     convert_to_command_string,
     convert_to_flag_string,
     make_dataclass_from_func,
@@ -17,7 +16,6 @@ from .types import Dataclass
 
 __all__ = [
     "add_argument_to",
-    "build_trogon_schema",
     "convert_to_command_string",
     "convert_to_flag_string",
     "make_dataclass_from_func",
@@ -53,26 +51,10 @@ except ModuleNotFoundError:
 
 
 try:
-    from trogon import Trogon
-    from trogon.schemas import ArgumentSchema, CommandName, CommandSchema, OptionSchema
+    from trogon.argparse import add_tui_argument
 except ModuleNotFoundError:
-    CommandName = NewType("CommandName", str)
 
-    class Trogon:
-        @classmethod
-        def from_schemas(cls, *_args, **_kwargs) -> "Trogon":
-            ...
-
-    @dataclass
-    class ArgumentSchema:
-        ...
-
-    @dataclass
-    class OptionSchema:
-        ...
-
-    @dataclass
-    class CommandSchema:
+    def add_tui_argument():
         ...
 
 
@@ -114,15 +96,15 @@ def coalesce(x: Any, d: Any, null_or_empty: bool = False) -> Any:
 
 
 def is_pydantic_available() -> bool:
-    return create_pydantic_model_from_dataclass.__module__ != __name__
+    return bool(create_pydantic_model_from_dataclass.__module__ != __name__)
 
 
 def is_shtab_available() -> bool:
-    return add_argument_to.__module__ != __name__
+    return bool(add_argument_to.__module__ != __name__)
 
 
 def is_tui_available() -> bool:
-    return ArgumentSchema.__module__ != __name__
+    return bool(add_tui_argument.__module__ != __name__)
 
 
 def cast_bool(value: Union[None, str, bool]) -> bool:
@@ -143,7 +125,7 @@ def cast_bool(value: Union[None, str, bool]) -> bool:
     raise ValueError(f"Invalid literal for bool(): {value}")
 
 
-def cast_type(value: Any, target_type: Optional[T]) -> Optional[T]:
+def cast_type(target_type: Optional[T], value: Any) -> Optional[T]:
     if value is None or target_type is None or try_isinstance(value, target_type):
         return value
 
@@ -160,64 +142,3 @@ def cast_type(value: Any, target_type: Optional[T]) -> Optional[T]:
             return parse_obj_as(target_type, value)
 
         raise_unsupported_type_error(type(value), from_exception=e)
-
-
-def build_trogon_schema(
-    name: str,
-    description: Optional[str] = None,
-    args: Optional[Sequence[ArgparseArg]] = None,
-) -> CommandSchema:
-    arg_schemas: List[ArgumentSchema] = []
-    opt_schemas: List[OptionSchema] = []
-
-    if not args:
-        args = []
-
-    for a in args:
-        nargs: int = (
-            a.nargs
-            if isinstance(a.nargs, int)
-            else -1
-            if a.nargs == "*"
-            else int(a.nargs)
-            if a.nargs is not None and a.nargs.isdigit()
-            else 1
-        )
-        choices: Optional[List[str]] = None
-        if a.choices:
-            choices = [str(x) for x in a.choices]
-
-        if a.pos:
-            arg_schemas.append(
-                ArgumentSchema(
-                    name=a.dest,
-                    type=a.type,
-                    required=a.required,
-                    help=a.help,
-                    default=a.default,
-                    choices=choices,
-                    multi_value=nargs != 1,
-                    nargs=nargs,
-                ),
-            )
-        else:
-            opt_schemas.append(
-                OptionSchema(
-                    name=a.option_strings,
-                    type=a.type,
-                    required=a.required,
-                    help=a.help,
-                    default=a.default,
-                    choices=choices,
-                    multi_value=nargs != 1,
-                    nargs=nargs,
-                    is_flag=a.type is bool,
-                ),
-            )
-
-    return CommandSchema(
-        name=name,
-        docstring=description,
-        arguments=arg_schemas,
-        options=opt_schemas,
-    )

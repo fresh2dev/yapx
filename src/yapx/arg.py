@@ -84,8 +84,7 @@ def arg(
     group: Optional[str] = None,
     exclusive: Optional[bool] = False,
     flags: Union[None, str, Sequence[str]] = None,
-    # pylint: disable=redefined-builtin
-    help: Optional[str] = None,
+    help: Optional[str] = None,  # pylint: disable=redefined-builtin
     metavar: Optional[str] = None,
     nargs: Optional[Union[int, str]] = None,
     action: Union[None, str, Type[Action]] = None,

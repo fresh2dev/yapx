@@ -23,17 +23,15 @@ from typing import (
 )
 
 from .actions import (
+    BooleanOptionalAction,
+    CountAction,
+    FeatureFlagAction,
     HelpAction,
     HelpAllAction,
-    TuiAction,
-    YapxAction,
-    YapxBooleanAction,
-    counting_action,
-    featflag_action,
-    split_csv,
-    split_csv_to_dict,
-    split_csv_to_set,
-    split_csv_to_tuple,
+    SplitCsvDictAction,
+    SplitCsvListAction,
+    SplitCsvSetAction,
+    SplitCsvTupleAction,
 )
 from .arg import (
     ARGPARSE_ARG_METADATA_KEY,
@@ -45,12 +43,10 @@ from .arg import (
 from .exceptions import NoArgsModelError, raise_unsupported_type_error
 from .types import Dataclass, NoneType
 from .utils import (
-    CommandSchema,
     RawTextHelpFormatter,
-    Trogon,
     ValidationError,
     add_argument_to,
-    build_trogon_schema,
+    add_tui_argument,
     cast_type,
     create_pydantic_model_from_dataclass,
     is_dataclass_type,
@@ -156,19 +152,11 @@ class ArgumentParser(argparse.ArgumentParser):
                     help="Print shell completion script.",
                 )
 
-        self._tui_schemas: Optional[Dict[str, CommandSchema]] = None
-
-        if is_tui_available():
-            self._tui_schemas = {}
-
-            if tui_flags is None:
-                tui_flags = ["--tui"]
-
-            if tui_flags:
-                self.add_argument(
-                    *[x for x in tui_flags if x],
-                    action=TuiAction,
-                    help="Show the terminal user interface (TUI).",
+            if is_tui_available():
+                add_tui_argument(
+                    parser=self,
+                    option_strings=tui_flags if tui_flags else ["--tui"],
+                    help="Show Terminal User Interface (TUI).",
                 )
 
     def error(self, message: str):
@@ -183,7 +171,7 @@ class ArgumentParser(argparse.ArgumentParser):
         """Print CLI help.
 
         Args:
-            full: if True, print help for all commands.
+            include_commands: if True, also print help for each command.
 
         Examples:
             >>> import yapx
@@ -197,7 +185,7 @@ class ArgumentParser(argparse.ArgumentParser):
             >>> parser = yapx.ArgumentParser()
             >>> parser.add_arguments(AddNums)
             ...
-            >>> parser.print_help(full=True)  #doctest: +SKIP
+            >>> parser.print_help(include_commands=True)  #doctest: +SKIP
         """
         sep_char: str = "_"
         separator: str = (sep_char * 80) + "\n"
@@ -271,15 +259,7 @@ class ArgumentParser(argparse.ArgumentParser):
             >>> parsed._command_func(x=parsed.x, y=parsed.y)
             3
         """
-        added_args: List[ArgparseArg] = self._add_arguments(self, args_model)
-
-        if self._tui_schemas is not None:
-            tui_schema: CommandSchema = build_trogon_schema(
-                name=self.prog,
-                description=self.description,
-                args=added_args,
-            )
-            self._tui_schemas[tui_schema.name] = tui_schema
+        self._add_arguments(self, args_model)
 
     def add_command(
         self,
@@ -373,17 +353,8 @@ class ArgumentParser(argparse.ArgumentParser):
         if description_txt:
             parser.description = description_txt
 
-        added_args: Optional[List[ArgparseArg]] = None
         if args_model:
             self._add_arguments(parser, args_model)
-
-        if self._tui_schemas is not None:
-            tui_schema: CommandSchema = build_trogon_schema(
-                name=name,
-                description=parser.description,
-                args=added_args,
-            )
-            self._tui_schemas[tui_schema.name] = tui_schema
 
         return parser
 
@@ -411,9 +382,7 @@ class ArgumentParser(argparse.ArgumentParser):
         parser: argparse.ArgumentParser,
         args_model: Union[Callable[..., Any], Type[Dataclass]],
     ) -> List[ArgparseArg]:
-        """
-        Derived from: https://github.com/mivade/argparse_dataclass
-        """
+        # Derived from: https://github.com/mivade/argparse_dataclass
 
         model: Type[Dataclass]
 
@@ -507,7 +476,7 @@ class ArgumentParser(argparse.ArgumentParser):
                             assert_primitive=True,
                         )
                         if not argparse_argument.action:
-                            argparse_argument.action = split_csv_to_dict
+                            argparse_argument.action = SplitCsvDictAction
 
                     elif (
                         try_issubclass(fld_type_origin, collections.abc.Iterable)
@@ -519,11 +488,11 @@ class ArgumentParser(argparse.ArgumentParser):
                         )
                         if not argparse_argument.action:
                             if fld_type_origin is set:
-                                argparse_argument.action = split_csv_to_set
+                                argparse_argument.action = SplitCsvSetAction
                             elif fld_type_origin is tuple:
-                                argparse_argument.action = split_csv_to_tuple
+                                argparse_argument.action = SplitCsvTupleAction
                             else:
-                                argparse_argument.action = split_csv
+                                argparse_argument.action = SplitCsvListAction
 
                     elif not is_pydantic_available():
                         raise_unsupported_type_error(fld_type)
@@ -536,7 +505,7 @@ class ArgumentParser(argparse.ArgumentParser):
                         # pylint: disable=protected-access
                         parser._inner_type_conversions[
                             argparse_argument.dest
-                        ] = partial(cast_type, target_type=fld_type)
+                        ] = partial(cast_type, fld_type)
 
                     # type-containers must only contain strings
                     # until parsed by argparse.
@@ -569,20 +538,20 @@ class ArgumentParser(argparse.ArgumentParser):
                 del kwargs["required"]
                 if not required and kwargs.get("nargs") is None:
                     kwargs["nargs"] = "?"
-                kwargs["type"] = partial(cast_type, target_type=fld_type)
+                kwargs["type"] = partial(cast_type, fld_type)
             elif argparse_argument.type is bool:
                 for k in "type", "nargs", "const", "choices", "metavar":
                     kwargs.pop(k, None)
                 if not kwargs["action"]:
-                    kwargs["action"] = YapxBooleanAction
+                    kwargs["action"] = BooleanOptionalAction
             elif argparse_argument.nargs != 0:
-                kwargs["type"] = partial(cast_type, target_type=fld_type)
+                kwargs["type"] = partial(cast_type, fld_type)
             elif fld_type is int:
                 # 'int' args with nargs==0 are "counting" parameters (-vvv).
-                kwargs["action"] = counting_action
+                kwargs["action"] = CountAction
             elif fld_type is str:
                 # 'str' args with nargs==0 are "feature flag" parameters.
-                kwargs["action"] = featflag_action
+                kwargs["action"] = FeatureFlagAction
 
             # if given `default` cast it to the expected type.
             if (
@@ -592,7 +561,7 @@ class ArgumentParser(argparse.ArgumentParser):
             ):
                 if kwargs.get("action") and try_issubclass(
                     kwargs["action"],
-                    (YapxAction, YapxBooleanAction),
+                    (argparse.Action, BooleanOptionalAction),
                 ):
                     # https://stackoverflow.com/a/24448351
                     dummy_namespace: object = type("", (), {})()
@@ -1034,24 +1003,6 @@ class ArgumentParser(argparse.ArgumentParser):
         if description:
             parser.description = description
 
-    def _show_tui(self) -> None:
-        assert self._tui_schemas
-
-        root_schema: CommandSchema = self._tui_schemas.pop(
-            self.prog,
-            build_trogon_schema(
-                name=self.prog,
-                description=self.description,
-            ),
-        )
-
-        Trogon.from_schemas(
-            root_schema,
-            *self._tui_schemas.values(),
-            app_name=self.prog,
-            app_version=self.prog_version,
-        ).run()
-
     @classmethod
     def _run_func(
         cls,
@@ -1204,25 +1155,17 @@ class ArgumentParser(argparse.ArgumentParser):
         cls,
         *parser_args: Any,
         args: Optional[List[str]] = None,
-        default_action: Union[
-            None,
-            Type[argparse.Action],
-            argparse.Action,
-            Callable[..., Any],
-        ] = None,
+        default_args: Optional[List[str]] = None,
         **parser_kwargs: Any,
     ) -> Any:
         """Use given functions to construct a CLI, parse the args, and invoke the appropriate command.
 
-        *args: 1st arg is root-command; subsequent args are sub-commands.
-        **kwargs: sub-commands with specific names.
-        _args: arguments to parse (default=sys.argv[1:]).
-        _prog: name of the program.
-        _print_help: will print help and exit.
-        _help_flags: list of flags that activate help (default=['-h', '--help']).
-            Provide an empty list `[]` to disable help.
-        _tui_flags: list of flags that activate the TUI (default=['--tui']).
-            Provide a list containing 'None' `[None]` to activate the TUI when no args are given.
+        Args:
+            *parser_args:
+            args:
+            default_args:
+            **parser_kwargs:
+
 
         Examples:
             >>> import yapx
@@ -1247,14 +1190,8 @@ class ArgumentParser(argparse.ArgumentParser):
         if args is None:
             args = sys.argv[1:]
 
-        if not args and default_action:
-            if try_issubclass(HelpAction, argparse.Action):
-                default_action = default_action(
-                    option_strings=None,
-                    dest=argparse.SUPPRESS,
-                )
-            default_action(parser, argparse.Namespace(), None)
-            parser.exit()
+        if not args and default_args:
+            args = default_args
 
         known_args: argparse.Namespace
         known_args, _ = parser.parse_known_args(args)
@@ -1317,15 +1254,10 @@ def run(*args: Any, **kwargs: Any) -> Any:
     """Use given functions to construct a CLI, parse the args, and invoke the appropriate command.
 
     Args:
-        *args: 1st arg is root-command; subsequent args are sub-commands.
-        **kwargs: sub-commands with specific names.
-        _args: arguments to parse (default=sys.argv[1:]).
-        _prog: name of the program.
-        _print_help: will print help and exit.
-        _help_flags: list of flags that activate help (default=['-h', '--help']).
-            Provide an empty list `[]` to disable help.
-        _tui_flags: list of flags that activate the TUI (default=['--tui']).
-            Provide a list containing 'None' `[None]` to activate the TUI when no args are given.
+        *parser_args:
+        args:
+        default_args:
+        **parser_kwargs:
 
     Examples:
         >>> import yapx
@@ -1353,14 +1285,10 @@ def run_commands(*args: Any, **kwargs: Any) -> Any:
     """Use given functions to construct a CLI, parse the args, and invoke the appropriate command.
 
     Args:
-        *args: functions to add as sub-commands.
-        **kwargs: sub-commands with specific names.
-        _args: arguments to parse (default=sys.argv[1:]).
-        _prog: name of the program.
-        _help_flags: list of flags that activate help (default=['-h', '--help']).
-            Provide an empty list `[]` to disable help.
-        _tui_flags: list of flags that activate the TUI (default=['--tui']).
-            Provide a list containing 'None' `[None]` to activate the TUI when no args are given.
+        *parser_args:
+        args:
+        default_args:
+        **parser_kwargs:
 
     Examples:
         >>> import yapx
