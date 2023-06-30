@@ -1,4 +1,5 @@
 import argparse
+from pkg_resources import get_distribution, RequirementParseError, DistributionNotFound
 import collections.abc
 import sys
 from collections import defaultdict
@@ -90,6 +91,7 @@ class ArgumentParser(argparse.ArgumentParser):
         prog_version: Optional[str] = None,
         description: Optional[str] = None,
         help_flags: Optional[List[Optional[str]]] = None,
+        version_flags: Optional[List[Optional[str]]] = None,
         tui_flags: Optional[List[Optional[str]]] = None,
         formatter_class: Type[Any] = RawTextHelpFormatter,
         _is_subparser: bool = False,
@@ -104,13 +106,17 @@ class ArgumentParser(argparse.ArgumentParser):
             **kwargs,
         )
 
-        self.prog_version = prog_version
+        if self.prog and not prog_version:
+            with suppress(RequirementParseError, DistributionNotFound):
+                prog_version = get_distribution(self.prog).version
 
         # self._positionals.title = "commands"
         self._optionals.title = "helpful arguments"
 
         if help_flags is None:
             help_flags = ["-h", "--help"]
+        elif isinstance(help_flags, str):
+            help_flags = [help_flags]
 
         if help_flags:
             self.add_argument(
@@ -138,8 +144,13 @@ class ArgumentParser(argparse.ArgumentParser):
                 )
 
             if prog_version:
+                if not version_flags:
+                    version_flags = ["--version"]
+                elif isinstance(version_flags, str):
+                    version_flags = [version_flags]
+
                 self.add_argument(
-                    "--version",
+                    *version_flags,
                     action="version",
                     version=f"%(prog)s {prog_version}",
                     help="Show the program version number.",
@@ -153,9 +164,14 @@ class ArgumentParser(argparse.ArgumentParser):
                 )
 
             if is_tui_available():
+                if not tui_flags:
+                    tui_flags = ["--tui"]
+                elif isinstance(tui_flags, str):
+                    tui_flags = [tui_flags]
+
                 add_tui_argument(
                     parser=self,
-                    option_strings=tui_flags if tui_flags else ["--tui"],
+                    option_strings=tui_flags,
                     help="Show Terminal User Interface (TUI).",
                 )
 
