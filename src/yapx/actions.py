@@ -1,6 +1,7 @@
 import collections.abc
 import shlex
 from argparse import Action, Namespace
+from argparse import _HelpAction as HelpAction
 from typing import Any, Dict, List, Optional, Sequence, Set, Tuple, TypeVar
 
 from .argparse_action import YapxAction, argparse_action
@@ -18,6 +19,8 @@ from .utils import coalesce, try_isinstance, try_issubclass
 #     option_string: Optional[str],
 # ) -> Optional[str]:
 #     return _cast(value, to=str)
+
+__all__ = ["HelpAction", "HelpAllAction", "TuiAction"]
 
 
 class YapxBooleanAction(Action):
@@ -112,6 +115,30 @@ class YapxBooleanAction(Action):
 
     def format_usage(self):
         return " | ".join(self.option_strings)
+
+
+class HelpAllAction(HelpAction):
+    def __call__(
+        self,
+        parser: ArgumentParser,
+        namespace: Namespace,
+        values: ArgValueType,
+        option_string: Optional[str] = None,
+    ):
+        parser.print_help(include_commands=True)
+        parser.exit()
+
+
+class TuiAction(HelpAction):
+    def __call__(
+        self,
+        parser: ArgumentParser,
+        namespace: Namespace,
+        values: ArgValueType,
+        option_string: Optional[str] = None,
+    ):
+        parser._show_tui()
+        parser.exit()
 
 
 @argparse_action

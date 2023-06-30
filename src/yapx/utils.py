@@ -77,12 +77,9 @@ except ModuleNotFoundError:
 
 
 try:
-    from rich_argparse import (
-        RawDescriptionRichHelpFormatter as RawDescriptionHelpFormatter,
-    )
-    from rich_argparse import RichHelpFormatter as HelpFormatter
+    from rich_argparse import RawTextRichHelpFormatter as RawTextHelpFormatter
 except ModuleNotFoundError:
-    pass
+    from argparse import RawTextHelpFormatter  # noqa: F401
 
 if sys.version_info >= (3, 10):
     from typing import TypeGuard

@@ -1,6 +1,6 @@
 import sys
 from enum import Enum
-from typing import Any, Dict, Optional, Sequence, Union
+from typing import IO, Any, Dict, Optional, Sequence, Union
 
 if sys.version_info >= (3, 8):
     from typing import Literal  # pylint: disable=unused-import # noqa: F401
@@ -40,13 +40,17 @@ class Dataclass(Protocol):
 
 
 class ArgumentParser(Protocol):
-    kv_separator = str
+    kv_separator: str
 
     _mutually_exclusive_args: Dict[str, Dict[str, Optional[str]]]
 
     _inner_type_conversions: Dict[str, type]
 
-    def print_help(self) -> None:
+    def print_help(
+        self,
+        file: Optional[IO[str]] = None,
+        include_commands: bool = False,
+    ) -> None:
         ...
 
     def exit(self, status: int = 0, message: Optional[str] = None) -> None:

@@ -7,9 +7,14 @@ from .argparse_action import argparse_action
 from .argument_parser import ArgumentParser, run, run_commands
 
 with suppress(ModuleNotFoundError):
+    import os
+
     from rich.traceback import install
 
-    install(show_locals=True, extra_lines=3)
+    if os.getenv("YAPX_DEBUG", None) == "1":
+        install(show_locals=True, extra_lines=5)
+    else:
+        install(show_locals=False, extra_lines=3)
 
 
 __all__ = [

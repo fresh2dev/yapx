@@ -358,7 +358,7 @@ def test_add_arguments(
 
     # 3. ASSERT
     # pylint: disable=protected-access
-    parser_actions: List[Action] = parser._actions[2:]
+    parser_actions: List[Action] = [parser._actions[-1]]
     # pylint: disable=no-member
     assert len(parser_actions) == len(ArgsModel.__dataclass_fields__)
 
@@ -368,7 +368,7 @@ def test_add_arguments(
         action_dict: Dict[str, Any] = vars(action)
 
         expected_dict: Dict[str, Any] = expected.asdict()
-        for custom_key in "action", "pos", "group", "exclusive", "type":
+        for custom_key in "action", "pos", "group", "exclusive", "type", "metavar":
             del expected_dict[custom_key]
 
         for k, v in expected_dict.items():

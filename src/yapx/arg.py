@@ -113,7 +113,7 @@ def arg(
         ... ):
         ...     print(f"Hello {value}")
         ...
-        >>> yapx.run(say_hello, _args=[])
+        >>> yapx.run(say_hello, args=[])
         Hello World
 
         >>> import yapx
@@ -124,7 +124,7 @@ def arg(
         ... ):
         ...     print(f"Hello {value}")
         ...
-        >>> yapx.run(say_hello, _args=[])
+        >>> yapx.run(say_hello, args=[])
         Hello World
     """
     if env:

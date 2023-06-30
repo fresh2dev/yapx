@@ -183,7 +183,7 @@ def test_run_args(capsys: CaptureFixture):
 
     # 2. ACT
     with mock.patch.object(yapx.argument_parser.sys, "argv", [""] + cli_args):
-        yapx.run(example_setup, example_subcmd, _args=cli_args)
+        yapx.run(example_setup, example_subcmd, args=cli_args)
 
     # 3. ASSERT
     captured: CaptureResult = capsys.readouterr()
@@ -212,35 +212,8 @@ def test_run_kwargs_alias(capsys: CaptureFixture):
     with mock.patch.object(yapx.argument_parser.sys, "argv", [""] + cli_args):
         yapx.run(
             example_setup,
-            **{"command-alias": example_subcmd},
+            named_subcommands={"command-alias": example_subcmd},
         )
-
-    # 3. ASSERT
-    captured: CaptureResult = capsys.readouterr()
-    assert captured.out
-    for e in expected:
-        assert e in captured.out
-    for ne in not_expected:
-        assert ne not in captured.out
-
-
-def test_run_kwargs_alias2(capsys: CaptureFixture):
-    # 1. ARRANGE
-    text: str = "donald"
-    cli_args: List[str] = [
-        "--text",
-        text,
-        "command-alias",
-        "--name",
-        text,
-        "--upper",
-    ]
-    expected: List[str] = [f"hello {text}", f"howdy {text}".upper()]
-    not_expected: List[str] = []
-
-    # 2. ACT
-    with mock.patch.object(yapx.argument_parser.sys, "argv", [""] + cli_args):
-        yapx.run(example_setup, command_alias=example_subcmd)
 
     # 3. ASSERT
     captured: CaptureResult = capsys.readouterr()
@@ -569,9 +542,11 @@ def test_print_shell_completion(capsys: CaptureFixture):
     # 2. ACT
     yapx.run(
         example_setup,
-        example_empty_subcmd,
-        example_subcmd,
-        _args=cli_args,
+        [
+            example_empty_subcmd,
+            example_subcmd,
+        ],
+        args=cli_args,
     )
 
     # 3. ASSERT
@@ -610,7 +585,7 @@ def test_extra_args():
     result = yapx.run(
         _setup,
         _subcmd,
-        _args=cli_args,
+        args=cli_args,
     )
 
     # 3. ASSERT
@@ -634,7 +609,7 @@ def test_annotated():
     # 2. ACT
     result = yapx.run(
         _setup,
-        _args=extra_args,
+        args=extra_args,
     )
 
     # 3. ASSERT
@@ -776,6 +751,7 @@ def test_run_moar(use_pydantic: bool):
         "--no-fly",
         "--dowat",
         "1",
+        "--dowat",
         "no",
         "--dev",
         "--prod",

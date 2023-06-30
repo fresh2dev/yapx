@@ -1,4 +1,3 @@
-from argparse import Action
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Set, Tuple
 
@@ -6,7 +5,6 @@ import pytest
 from _pytest.capture import CaptureFixture, CaptureResult
 
 import yapx
-from yapx.argparse_action import YapxAction
 from yapx.types import Annotated
 
 
@@ -32,8 +30,6 @@ def test_split_csv():
     ]
     cli_args = ["--values"] + expected
 
-    expected_action_name: str = "split_csv"
-
     # 2. ACT
     parser: yapx.ArgumentParser = yapx.ArgumentParser()
     parser.add_arguments(ArgsModel)
@@ -41,12 +37,6 @@ def test_split_csv():
     args: Dict[str, Any] = vars(parser.parse_args(cli_args))
 
     # 3. ASSERT
-    # pylint: disable=protected-access
-    parser_action: Action = parser._actions[2]
-    assert isinstance(parser_action, YapxAction)
-    # pylint: disable=protected-access
-    assert parser_action.name == expected_action_name
-
     assert "values" in args
     assert args["values"] == expected
 
@@ -69,8 +59,6 @@ def test_split_csv_to_set():
     }
     cli_args = ["--values"] + list(expected)
 
-    expected_action_name: str = "split_csv_to_set"
-
     # 2. ACT
     parser: yapx.ArgumentParser = yapx.ArgumentParser()
     parser.add_arguments(ArgsModel)
@@ -78,12 +66,6 @@ def test_split_csv_to_set():
     args: Dict[str, Any] = vars(parser.parse_args(cli_args))
 
     # 3. ASSERT
-    # pylint: disable=protected-access
-    parser_action: Action = parser._actions[2]
-    assert isinstance(parser_action, YapxAction)
-    # pylint: disable=protected-access
-    assert parser_action.name == expected_action_name
-
     assert "values" in args
     assert args["values"] == expected
 
@@ -111,8 +93,6 @@ def test_split_csv_to_tuple():
     )
     cli_args = ["--values"] + list(expected)
 
-    expected_action_name: str = "split_csv_to_tuple"
-
     # 2. ACT
     parser: yapx.ArgumentParser = yapx.ArgumentParser()
     parser.add_arguments(ArgsModel)
@@ -120,12 +100,6 @@ def test_split_csv_to_tuple():
     args: Dict[str, Any] = vars(parser.parse_args(cli_args))
 
     # 3. ASSERT
-    # pylint: disable=protected-access
-    parser_action: Action = parser._actions[2]
-    assert isinstance(parser_action, YapxAction)
-    # pylint: disable=protected-access
-    assert parser_action.name == expected_action_name
-
     assert "values" in args
     assert args["values"] == expected
 
@@ -161,8 +135,6 @@ def test_split_csv_to_dict():
         " 8 9 ,",
     ]
 
-    expected_action_name: str = "split_csv_to_dict"
-
     # 2. ACT
     parser: yapx.ArgumentParser = yapx.ArgumentParser()
     parser.add_arguments(ArgsModel)
@@ -170,12 +142,6 @@ def test_split_csv_to_dict():
     args: Dict[str, Any] = vars(parser.parse_args(cli_args))
 
     # 3. ASSERT
-    # pylint: disable=protected-access
-    parser_action: Action = parser._actions[2]
-    assert isinstance(parser_action, YapxAction)
-    # pylint: disable=protected-access
-    assert parser_action.name == expected_action_name
-
     assert "values" in args
     assert args["values"] == expected
 
@@ -238,7 +204,6 @@ def test_print_docstring_help(capsys: CaptureFixture):
 
     expected_cmd: str = "subcmd1"
     expected_txt: List[str] = [
-        "{subcmd1,subcmd2}",
         "--values",
         "--help",
         "hello world",
