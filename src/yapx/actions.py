@@ -235,7 +235,7 @@ class SplitCsvListAction(_AppendAction):
     def __call__(self, parser, namespace, values, option_string=None):
         split_values: Optional[List[str]] = _split_csv_sequence(
             values,
-            target_type=parser._inner_type_conversions.get(  # pylint: disable=protected-access
+            target_type=parser._dest_type.get(  # pylint: disable=protected-access
                 self.dest,
             ),
         )
@@ -252,7 +252,7 @@ class SplitCsvTupleAction(_AppendAction):
     def __call__(self, parser, namespace, values, option_string=None):
         split_values: Optional[List[str]] = _split_csv_sequence(
             values,
-            target_type=parser._inner_type_conversions.get(  # pylint: disable=protected-access
+            target_type=parser._dest_type.get(  # pylint: disable=protected-access
                 self.dest,
             ),
         )
@@ -269,7 +269,7 @@ class SplitCsvSetAction(_AppendAction):
     def __call__(self, parser, namespace, values, option_string=None):
         split_values: Optional[List[str]] = _split_csv_sequence(
             values,
-            target_type=parser._inner_type_conversions.get(  # pylint: disable=protected-access
+            target_type=parser._dest_type.get(  # pylint: disable=protected-access
                 self.dest,
             ),
         )
@@ -286,7 +286,7 @@ class SplitCsvDictAction(_AppendAction):
     def __call__(self, parser, namespace, values, option_string=None):
         target_type: Optional[
             Type[Any]
-        ] = parser._inner_type_conversions.get(  # pylint: disable=protected-access
+        ] = parser._dest_type.get(  # pylint: disable=protected-access
             self.dest,
         )
         split_values: Optional[List[str]] = _split_csv_sequence(

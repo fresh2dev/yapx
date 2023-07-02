@@ -44,7 +44,7 @@ class ArgumentParser(Protocol):
 
     _mutually_exclusive_args: Dict[str, Dict[str, Optional[str]]]
 
-    _inner_type_conversions: Dict[str, type]
+    _dest_type: Dict[str, type]
 
     def print_help(
         self,

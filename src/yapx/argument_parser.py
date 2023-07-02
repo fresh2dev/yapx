@@ -90,9 +90,10 @@ class ArgumentParser(argparse.ArgumentParser):
         prog: Optional[str] = None,
         prog_version: Optional[str] = None,
         description: Optional[str] = None,
-        help_flags: Optional[List[Optional[str]]] = None,
-        version_flags: Optional[List[Optional[str]]] = None,
-        tui_flags: Optional[List[Optional[str]]] = None,
+        help_flags: Optional[List[str]] = None,
+        version_flags: Optional[List[str]] = None,
+        tui_flags: Optional[List[str]] = None,
+        completion_flags: Optional[List[str]] = None,
         formatter_class: Type[Any] = RawTextHelpFormatter,
         _is_subparser: bool = False,
         **kwargs: Any,
@@ -106,23 +107,20 @@ class ArgumentParser(argparse.ArgumentParser):
             **kwargs,
         )
 
-        if self.prog and not prog_version:
-            with suppress(RequirementParseError, DistributionNotFound):
-                prog_version = get_distribution(self.prog).version
-
         # self._positionals.title = "commands"
         self._optionals.title = "helpful arguments"
 
         if help_flags is None:
             help_flags = ["-h", "--help"]
-        elif isinstance(help_flags, str):
-            help_flags = [help_flags]
 
         if help_flags:
+            if isinstance(help_flags, str):
+                help_flags = [help_flags]
             self.add_argument(
                 *[x for x in help_flags if x],
                 action=HelpAction,
                 help="Show this help message.",
+                # help=argparse.SUPPRESS,
             )
 
         self.kv_separator = "="
@@ -132,7 +130,7 @@ class ArgumentParser(argparse.ArgumentParser):
             Dict[str, List[Tuple[str, Optional[str]]]],
         ] = defaultdict(lambda: defaultdict(list))
 
-        self._inner_type_conversions: Dict[str, Union[type, Callable[[str], Any]]] = {}
+        self._dest_type: Dict[str, Union[type, Callable[[str], Any]]] = {}
 
         if not _is_subparser:
             if help_flags:
@@ -141,13 +139,21 @@ class ArgumentParser(argparse.ArgumentParser):
                     *help_all_flags,
                     action=HelpAllAction,
                     help="Show help for all commands.",
+                    # help=argparse.SUPPRESS,
                 )
 
-            if prog_version:
-                if not version_flags:
-                    version_flags = ["--version"]
-                elif isinstance(version_flags, str):
+            if version_flags is None:
+                version_flags = ["--version"]
+
+            if version_flags:
+                if isinstance(version_flags, str):
                     version_flags = [version_flags]
+
+                if self.prog and not prog_version:
+                    with suppress(RequirementParseError, DistributionNotFound):
+                        prog_version = get_distribution(self.prog).version
+                    if not prog_version:
+                        prog_version = "---"
 
                 self.add_argument(
                     *version_flags,
@@ -156,23 +162,29 @@ class ArgumentParser(argparse.ArgumentParser):
                     help="Show the program version number.",
                 )
 
-            if is_shtab_available():
+            if completion_flags is None:
+                completion_flags = ["--print-shell-completion"]
+
+            if is_shtab_available() and completion_flags:
+                if isinstance(completion_flags, str):
+                    completion_flags = [completion_flags]
                 add_argument_to(
                     self,
-                    ["--print-shell-completion"],
+                    option_string=completion_flags,
                     help="Print shell completion script.",
                 )
 
-            if is_tui_available():
-                if not tui_flags:
-                    tui_flags = ["--tui"]
-                elif isinstance(tui_flags, str):
+            if tui_flags is None:
+                tui_flags = ["--tui"]
+
+            if tui_flags and is_tui_available():
+                if isinstance(tui_flags, str):
                     tui_flags = [tui_flags]
 
                 add_tui_argument(
                     parser=self,
                     option_strings=tui_flags,
-                    help="Show Terminal User Interface (TUI).",
+                    help="Show Textual User Interface (TUI).",
                 )
 
     def error(self, message: str):
@@ -519,9 +531,9 @@ class ArgumentParser(argparse.ArgumentParser):
                     if isinstance(parser, cls):
                         # store desired types for casting later
                         # pylint: disable=protected-access
-                        parser._inner_type_conversions[
-                            argparse_argument.dest
-                        ] = partial(cast_type, fld_type)
+                        parser._dest_type[argparse_argument.dest] = partial(
+                            cast_type, fld_type
+                        )
 
                     # type-containers must only contain strings
                     # until parsed by argparse.
