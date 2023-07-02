@@ -54,21 +54,25 @@ tests = [
     "packaging==23.*",
     "mockish==0.1.*",
     "pydantic>=1.10.3,<2",
-    "shtab==1.5.8",
+    "shtab==1.6.2",
 ]
 pydantic = [
     "pydantic>=1.10.3,<2",
 ]
 shtab = [
-    "shtab==1.5.8",
+    "shtab==1.6.2",
+]
+rich = [
+    "rich-argparse==1.*",
 ]
 tui = [
-    "trogon-yapx==0.4.0.post1.dev1",
+    "trogon-argparse==0.5.0",
 ]
 extras = [
     "pydantic>=1.10.3,<2",
-    "shtab==1.5.8",
-    "trogon-yapx==0.4.0.post1.dev1",
+    "shtab==1.6.2",
+    "rich-argparse==1.*",
+    "trogon-argparse==0.5.0",
 ]
 
 [project.urls]
