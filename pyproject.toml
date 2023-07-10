@@ -30,7 +30,7 @@ dev = [
     "isort==5.*",
     "bump2version==1.*",
     "pdbpp",
-    # python -m ipykernel install --user --name ppqueue
+    # python -m ipykernel install --user --name yapx
     "ipykernel",
     "ipywidgets",
     "ipython",
@@ -55,6 +55,7 @@ tests = [
     "mockish==0.1.*",
     "pydantic>=1.10.3,<3",
     "shtab==1.6.2",
+    "rich-argparse==1.*",
 ]
 pydantic = [
     "pydantic>=1.10.3,<3",
@@ -65,15 +66,14 @@ shtab = [
 rich = [
     "rich-argparse==1.*",
 ]
-tui = [
-    "trogon-argparse==0.5.0",
-]
 extras = [
     "pydantic>=1.10.3,<3",
     "shtab==1.6.2",
     "rich-argparse==1.*",
-    "trogon-argparse==0.5.0",
 ]
+# tui = [
+#     "trogon-argparse==0.5.0",
+# ]
 
 [project.urls]
 Homepage = "https://www.f2dv.com/code/r/yapx/i"
