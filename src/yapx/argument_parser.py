@@ -1,5 +1,4 @@
 import argparse
-from pkg_resources import get_distribution, RequirementParseError, DistributionNotFound
 import collections.abc
 import sys
 from collections import defaultdict
@@ -22,6 +21,8 @@ from typing import (
     TypeVar,
     Union,
 )
+
+from pkg_resources import DistributionNotFound, RequirementParseError, get_distribution
 
 from .actions import (
     BooleanOptionalAction,
@@ -532,7 +533,8 @@ class ArgumentParser(argparse.ArgumentParser):
                         # store desired types for casting later
                         # pylint: disable=protected-access
                         parser._dest_type[argparse_argument.dest] = partial(
-                            cast_type, fld_type
+                            cast_type,
+                            fld_type,
                         )
 
                     # type-containers must only contain strings
@@ -568,10 +570,19 @@ class ArgumentParser(argparse.ArgumentParser):
                     kwargs["nargs"] = "?"
                 kwargs["type"] = partial(cast_type, fld_type)
             elif argparse_argument.type is bool:
+                if isinstance(parser, cls):
+                    # store desired types for casting later
+                    # pylint: disable=protected-access
+                    parser._dest_type[argparse_argument.dest] = partial(
+                        cast_type,
+                        fld_type,
+                    )
+
                 for k in "type", "nargs", "const", "choices", "metavar":
                     kwargs.pop(k, None)
                 if not kwargs["action"]:
                     kwargs["action"] = BooleanOptionalAction
+
             elif argparse_argument.nargs != 0:
                 kwargs["type"] = partial(cast_type, fld_type)
             elif fld_type is int:

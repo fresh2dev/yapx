@@ -32,8 +32,8 @@ class BooleanOptionalAction(Action):
                 x.startswith(self.NEGATION_PREFIX) for x in option_strings
             )
 
-        if self._base_case_is_negative and default is not None:
-            default = not default
+            if self._base_case_is_negative and default is not None:
+                default = not default
 
         _option_strings = []
         for option_string in option_strings:
@@ -87,11 +87,11 @@ class BooleanOptionalAction(Action):
                 not option_string.startswith(self.NEGATION_PREFIX)
                 and option_string not in self._negative_option_strings
             )
+            if self._base_case_is_negative and value is not None:
+                value = not value
         else:
-            value = values
-
-        if self._base_case_is_negative and value is not None:
-            value = not value
+            dest_type: Type[Any] = parser._dest_type.get(self.dest, bool)
+            value = dest_type(values)
 
         setattr(
             namespace,
