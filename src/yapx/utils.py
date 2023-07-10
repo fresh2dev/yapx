@@ -27,6 +27,9 @@ __all__ = [
     "cast_type",
 ]
 
+T = TypeVar("T", bound=type)
+
+
 try:
     from shtab import add_argument_to
 except ModuleNotFoundError:
@@ -36,8 +39,24 @@ except ModuleNotFoundError:
 
 
 try:
-    from pydantic import ValidationError, parse_obj_as
-    from pydantic.dataclasses import create_pydantic_model_from_dataclass
+    from pydantic import ValidationError
+    from pydantic import __version__ as pydantic_version
+
+    pydantic_major_version: int = int(pydantic_version.split(".", 1)[0])
+    pydantic_v2: int = 2
+
+    if pydantic_major_version >= pydantic_v2:
+        from pydantic import TypeAdapter
+        from pydantic.dataclasses import (
+            dataclass as create_pydantic_model_from_dataclass,
+        )
+
+        def parse_obj_as(type_: Type[T], obj: Any) -> T:
+            return TypeAdapter(type_).validate_python(obj)
+
+    else:
+        from pydantic import parse_obj_as
+        from pydantic.dataclasses import create_pydantic_model_from_dataclass
 except ModuleNotFoundError:
 
     def parse_obj_as():
@@ -67,8 +86,6 @@ if sys.version_info >= (3, 10):
     from typing import TypeGuard
 else:
     from typing_extensions import TypeGuard
-
-T = TypeVar("T", bound=type)
 
 
 def is_dataclass_type(candidate: Any) -> TypeGuard[Type[Dataclass]]:
