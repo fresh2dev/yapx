@@ -153,15 +153,14 @@ class ArgumentParser(argparse.ArgumentParser):
                 if self.prog and not prog_version:
                     with suppress(RequirementParseError, DistributionNotFound):
                         prog_version = get_distribution(self.prog).version
-                    if not prog_version:
-                        prog_version = "---"
 
-                self.add_argument(
-                    *version_flags,
-                    action="version",
-                    version=f"%(prog)s {prog_version}",
-                    help="Show the program version number.",
-                )
+                if prog_version:
+                    self.add_argument(
+                        *version_flags,
+                        action="version",
+                        version=f"%(prog)s {prog_version}",
+                        help="Show the program version number.",
+                    )
 
             if completion_flags is None:
                 completion_flags = ["--print-shell-completion"]
