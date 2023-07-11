@@ -43,6 +43,7 @@ from .arg import (
     make_dataclass_from_func,
 )
 from .exceptions import NoArgsModelError, raise_unsupported_type_error
+from .namespace import Namespace
 from .types import Dataclass, NoneType
 from .utils import (
     RawTextHelpFormatter,
@@ -232,7 +233,7 @@ class ArgumentParser(argparse.ArgumentParser):
             subparsers: Optional[argparse._SubParsersAction] = self._get_subparsers()
             if subparsers:
                 for _choice, subparser in subparsers.choices.items():
-                    subparser.print_help(file)
+                    subparser.print_help(file, include_commands=include_commands)
 
         self.usage = usage
 
@@ -259,8 +260,6 @@ class ArgumentParser(argparse.ArgumentParser):
             >>> parser.set_defaults(_command_func=lambda x, y: x+y)
             >>> parsed = parser.parse_args(['-x', '1', '-y', '2'])
             ...
-            >>> type(parsed)
-            <class 'argparse.Namespace'>
             >>> (parsed.x, parsed.y)
             (1, 2)
             >>> parsed._command_func_args_model(x=parsed.x, y=parsed.y)
@@ -278,8 +277,6 @@ class ArgumentParser(argparse.ArgumentParser):
             >>> parser.set_defaults(_command_func=add_nums)
             >>> parsed = parser.parse_args(['-x', '1', '-y', '2'])
             ...
-            >>> type(parsed)
-            <class 'argparse.Namespace'>
             >>> (parsed.x, parsed.y)
             (1, 2)
             >>> parsed._command_func_args_model(x=parsed.x, y=parsed.y)
@@ -797,7 +794,7 @@ class ArgumentParser(argparse.ArgumentParser):
     def _post_parse_args(  # type: ignore[override]
         self,
         namespace: argparse.Namespace,
-    ) -> argparse.Namespace:
+    ) -> Namespace:
         # delete vars created by shtab
         sh_complete_attr = "print_shell_completion"
         if hasattr(namespace, sh_complete_attr):
@@ -845,13 +842,13 @@ class ArgumentParser(argparse.ArgumentParser):
                 )
                 self.error(err)
 
-        return namespace
+        return Namespace(**vars(namespace))
 
     def parse_args(  # type: ignore[override]
         self,
         args: Optional[Sequence[str]] = None,
         namespace: Optional[argparse.Namespace] = None,
-    ) -> argparse.Namespace:
+    ) -> Namespace:
         try:
             parsed: argparse.Namespace = super().parse_args(
                 args=args,
@@ -865,7 +862,7 @@ class ArgumentParser(argparse.ArgumentParser):
         self,
         args: Optional[Sequence[str]] = None,
         namespace: Optional[argparse.Namespace] = None,
-    ) -> Tuple[argparse.Namespace, List[str]]:
+    ) -> Tuple[Namespace, List[str]]:
         parsed: argparse.Namespace
         unknown: List[str]
         try:
@@ -900,8 +897,6 @@ class ArgumentParser(argparse.ArgumentParser):
             >>> parser.add_arguments(AddNums)
             >>> parsed, unknown = parser.parse_known_args_to_model(['-x', '1', '-y', '2', '-z', '3'])
             ...
-            >>> type(parsed)
-            <class 'yapx.argument_parser.AddNums'>
             >>> (parsed.x, parsed.y)
             (1, 2)
             >>> unknown
@@ -948,8 +943,6 @@ class ArgumentParser(argparse.ArgumentParser):
             >>> parser.add_arguments(AddNums)
             >>> parsed = parser.parse_args_to_model(['-x', '1', '-y', '2'])
             ...
-            >>> type(parsed)
-            <class 'yapx.argument_parser.AddNums'>
             >>> (parsed.x, parsed.y)
             (1, 2)
 
@@ -1139,7 +1132,7 @@ class ArgumentParser(argparse.ArgumentParser):
         return func(*func_args, **vars(model_inst), **func_kwargs)
 
     @classmethod
-    def build_parser(
+    def _build_parser(
         cls,
         command: Optional[Callable[..., Any]] = None,
         subcommands: Optional[Sequence[Callable[..., Any]]] = None,
@@ -1220,7 +1213,7 @@ class ArgumentParser(argparse.ArgumentParser):
             ['1', '3', '5']
         """
 
-        parser: ArgumentParser = cls.build_parser(*parser_args, **parser_kwargs)
+        parser: ArgumentParser = cls._build_parser(*parser_args, **parser_kwargs)
 
         if args is None:
             args = sys.argv[1:]
@@ -1283,6 +1276,11 @@ class ArgumentParser(argparse.ArgumentParser):
                         relay_value = gen_result
 
         return relay_value
+
+
+def build_parser(*args: Any, **kwargs: Any) -> Any:
+    # pylint: disable=protected-access
+    return ArgumentParser._build_parser(*args, **kwargs)
 
 
 def run(*args: Any, **kwargs: Any) -> Any:
