@@ -137,8 +137,10 @@ class CountAction(_CountAction):
         count = getattr(namespace, self.dest, None)
         if count is None:
             count = 0
-        else:
+
+        if option_string:
             count += 1
+
         setattr(namespace, self.dest, count)
 
 
