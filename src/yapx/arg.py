@@ -191,12 +191,17 @@ def convert_to_command_string(x: str) -> str:
         else:
             x = x[next_under + 1 :]
 
-    x = x.strip("-").lower().replace("_", "-")
+    x = x.replace(" ", "-").replace("_", "-").strip("-")
 
     if not x:
         raise ValueError("Expected at least one character")
 
-    return x
+    if not x.islower() and not x.isupper() and "-" not in x:
+        x = "".join(
+            ["-" + c if c.isupper() and i > 0 else c for i, c in enumerate(x)],
+        )
+
+    return x.lower()
 
 
 def convert_to_flag_string(x: str) -> str:

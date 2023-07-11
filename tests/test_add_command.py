@@ -42,8 +42,8 @@ def test_add_command() -> None:
     parser: yapx.ArgumentParser = yapx.ArgumentParser()
     parser.add_arguments(RootModel)
     cmd_parser: argparse.ArgumentParser = parser.add_command(
+        CmdModel,
         name=expected_cmd_name,
-        args_model=CmdModel,
     )
 
     args: Dict[str, Any] = vars(parser.parse_args(cli_args))

@@ -157,8 +157,8 @@ def test_print_help_full(capsys: CaptureFixture):
     # 2. ACT
     parser: yapx.ArgumentParser = yapx.ArgumentParser()
     parser.add_arguments(ArgsModel)
-    parser.add_command("subcmd1", ArgsModel)
-    parser.add_command("subcmd2", ArgsModel)
+    parser.add_command(ArgsModel, name="subcmd1")
+    parser.add_command(ArgsModel, name="subcmd2")
     with pytest.raises(SystemExit) as pexit:
         parser.parse_args(cli_args)
 
@@ -182,8 +182,8 @@ def test_print_help_subparser(capsys: CaptureFixture):
     # 2. ACT
     parser: yapx.ArgumentParser = yapx.ArgumentParser()
     parser.add_arguments(ArgsModel)
-    parser.add_command(expected_cmd, ArgsModel)
-    parser.add_command("subcmd2", ArgsModel)
+    parser.add_command(ArgsModel, name=expected_cmd)
+    parser.add_command(ArgsModel, name="subcmd2")
     with pytest.raises(SystemExit) as pexit:
         parser.parse_args(cli_args)
 
@@ -215,8 +215,8 @@ def test_print_docstring_help(capsys: CaptureFixture):
     # 2. ACT
     parser: yapx.ArgumentParser = yapx.ArgumentParser()
     parser.add_arguments(ArgsModel)
-    parser.add_command(expected_cmd, ArgsModel)
-    parser.add_command("subcmd2", ArgsModel)
+    parser.add_command(ArgsModel, name=expected_cmd)
+    parser.add_command(ArgsModel, name="subcmd2")
     with pytest.raises(SystemExit) as pexit:
         parser.parse_args(cli_args)
 

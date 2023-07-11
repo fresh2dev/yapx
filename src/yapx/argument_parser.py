@@ -292,15 +292,15 @@ class ArgumentParser(argparse.ArgumentParser):
 
     def add_command(
         self,
-        name: str,
-        args_model: Optional[Union[Callable[..., Any], Type[Dataclass]]] = None,
+        args_model: Union[Callable[..., Any], Type[Dataclass]],
+        name: Optional[str] = None,
         **kwargs: Any,
     ) -> argparse.ArgumentParser:
         """Create a new subcommand and add arguments from the given function or dataframe to it.
 
         Args:
-            name: name of the command
             args_model: a function or dataclass from which to derive arguments.
+            name: name of the command
 
         Returns:
             the new argparse subparser
@@ -315,15 +315,13 @@ class ArgumentParser(argparse.ArgumentParser):
             ...     y: int
             ...
             >>> parser = yapx.ArgumentParser()
-            >>> subparser_1 = parser.add_command('add', AddNums)
+            >>> subparser_1 = parser.add_command(AddNums, name='add')
             >>> subparser_1.set_defaults(_command_func=lambda x, y: x+y)
-            >>> subparser_2 = parser.add_command('subtract', AddNums)
+            >>> subparser_2 = parser.add_command(AddNums, name='subtract')
             >>> subparser_2.set_defaults(_command_func=lambda x, y: x-y)
             ...
             >>> parsed = parser.parse_args(['add', '-x', '1', '-y', '2'])
             ...
-            >>> type(parsed)
-            <class 'argparse.Namespace'>
             >>> (parsed.x, parsed.y)
             (1, 2)
             >>> parsed._command_func_args_model(x=parsed.x, y=parsed.y)
@@ -340,15 +338,13 @@ class ArgumentParser(argparse.ArgumentParser):
             ...     return x - y
             ...
             >>> parser = yapx.ArgumentParser()
-            >>> subparser_1 = parser.add_command('add', add_nums)
+            >>> subparser_1 = parser.add_command(add_nums, name='add')
             >>> subparser_1.set_defaults(_command_func=add_nums)
-            >>> subparser_2 = parser.add_command('subtract', subtract_nums)
+            >>> subparser_2 = parser.add_command(subtract_nums, name='subtract')
             >>> subparser_2.set_defaults(_command_func=subtract_nums)
             ...
             >>> parsed = parser.parse_args(['subtract', '-x', '1', '-y', '2'])
             ...
-            >>> type(parsed)
-            <class 'argparse.Namespace'>
             >>> (parsed.x, parsed.y)
             (1, 2)
             >>> parsed._command_func_args_model(x=parsed.x, y=parsed.y)
@@ -357,6 +353,9 @@ class ArgumentParser(argparse.ArgumentParser):
             -1
         """
         subparsers: argparse.Action = self._get_or_add_subparsers()
+
+        if not name:
+            name = convert_to_command_string(args_model.__name__)
 
         # pylint: disable=protected-access
         assert isinstance(subparsers, argparse._SubParsersAction)
@@ -395,8 +394,8 @@ class ArgumentParser(argparse.ArgumentParser):
     ) -> None:
         name = convert_to_command_string(name if name else func.__name__)
         parser: argparse.ArgumentParser = self.add_command(
+            func,
             name=name,
-            args_model=func,
             **kwargs,
         )
         parser.set_defaults(**{self.CMD_FUNC_ATTR_NAME: func})
@@ -641,9 +640,7 @@ class ArgumentParser(argparse.ArgumentParser):
             help_msg_parts: List[str] = [f"Type: {help_type}"]
 
             # pylint: disable=protected-access
-            if required:
-                help_msg_parts.append("Required")
-            else:
+            if not required:
                 if isinstance(kwargs.get("default"), str):
                     help_msg_parts.append('Default: "%(default)s"')
                 else:
