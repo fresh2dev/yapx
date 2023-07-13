@@ -3,7 +3,7 @@ from contextlib import suppress
 from dataclasses import is_dataclass
 from enum import Enum
 from functools import wraps
-from typing import Any, Optional, Type, TypeVar, Union
+from typing import Any, List, Optional, Type, TypeVar, Union
 
 # pylint: disable=unused-import
 from .arg import (
@@ -15,7 +15,6 @@ from .exceptions import raise_unsupported_type_error
 from .types import Dataclass
 
 __all__ = [
-    "add_argument_to",
     "convert_to_command_string",
     "convert_to_flag_string",
     "make_dataclass_from_func",
@@ -31,11 +30,13 @@ T = TypeVar("T", bound=type)
 
 
 try:
-    from shtab import add_argument_to
+    from shtab import SUPPORTED_SHELLS, completion_action
 except ModuleNotFoundError:
 
-    def add_argument_to():
+    def completion_action():
         ...
+
+    SUPPORTED_SHELLS: List[str] = []
 
 
 try:
@@ -117,7 +118,7 @@ def is_pydantic_available() -> bool:
 
 
 def is_shtab_available() -> bool:
-    return bool(add_argument_to.__module__ != __name__)
+    return bool(completion_action.__module__ != __name__)
 
 
 def is_tui_available() -> bool:

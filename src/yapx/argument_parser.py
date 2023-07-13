@@ -46,11 +46,12 @@ from .exceptions import NoArgsModelError, raise_unsupported_type_error
 from .namespace import Namespace
 from .types import Dataclass, NoneType
 from .utils import (
+    SUPPORTED_SHELLS,
     RawTextHelpFormatter,
     ValidationError,
-    add_argument_to,
     add_tui_argument,
     cast_type,
+    completion_action,
     create_pydantic_model_from_dataclass,
     is_dataclass_type,
     is_pydantic_available,
@@ -110,7 +111,7 @@ class ArgumentParser(argparse.ArgumentParser):
         )
 
         # self._positionals.title = "commands"
-        self._optionals.title = "helpful arguments"
+        self._optionals.title = "helpful parameters"
 
         if help_flags is None:
             help_flags = ["-h", "--help"]
@@ -169,9 +170,12 @@ class ArgumentParser(argparse.ArgumentParser):
             if is_shtab_available() and completion_flags:
                 if isinstance(completion_flags, str):
                     completion_flags = [completion_flags]
-                add_argument_to(
-                    self,
-                    option_string=completion_flags,
+
+                self.add_argument(
+                    *completion_flags,
+                    action=completion_action(),
+                    default=argparse.SUPPRESS,
+                    choices=SUPPORTED_SHELLS,
                     help="Print shell completion script.",
                 )
 
@@ -551,7 +555,7 @@ class ArgumentParser(argparse.ArgumentParser):
                 else [x for x in option_strings if x.startswith("-")]
             )
 
-            if not kwargs["metavar"]:
+            if not kwargs["metavar"] and not kwargs.get("choices"):
                 kwargs["metavar"] = (
                     f"<{kwargs['dest'].upper()}>" if not args else "<value>"
                 )
@@ -658,7 +662,7 @@ class ArgumentParser(argparse.ArgumentParser):
             group: Optional[str] = kwargs.pop("group", None)
 
             if not group:
-                group = "required arguments" if required else "optional arguments"
+                group = "required parameters" if required else "optional parameters"
 
             arg_group: argparse._ArgumentGroup = parser_arg_groups.get(group, None)
 
@@ -669,7 +673,7 @@ class ArgumentParser(argparse.ArgumentParser):
             if argparse_argument.exclusive:
                 if required:
                     err: str = (
-                        "A mutually-exclusive argument cannot be required:"
+                        "A mutually-exclusive parameter cannot be required:"
                         f" {argparse_argument.dest}"
                     )
                     parser.error(err)
@@ -795,11 +799,6 @@ class ArgumentParser(argparse.ArgumentParser):
         self,
         namespace: argparse.Namespace,
     ) -> Namespace:
-        # delete vars created by shtab
-        sh_complete_attr = "print_shell_completion"
-        if hasattr(namespace, sh_complete_attr):
-            delattr(namespace, sh_complete_attr)
-
         func_mx_arg_groups: Dict[
             str,
             List[Tuple[str, Optional[str]]],
