@@ -151,7 +151,10 @@ def cast_type(target_type: Optional[T], value: Any) -> Optional[T]:
         return cast_bool(value)
 
     if try_issubclass(target_type, Enum):
-        return target_type[value]
+        try:
+            return target_type[value]
+        except KeyError as e:
+            raise ValueError(f"Given value '{value}' not one of: {target_type}") from e
 
     try:
         return target_type(value)
