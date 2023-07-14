@@ -44,7 +44,7 @@ from .arg import (
 )
 from .exceptions import NoArgsModelError, raise_unsupported_type_error
 from .namespace import Namespace
-from .types import Dataclass, NoneType
+from .types import Dataclass, Literal, NoneType
 from .utils import (
     SUPPORTED_SHELLS,
     RawTextHelpFormatter,
@@ -60,14 +60,6 @@ from .utils import (
     try_isinstance,
     try_issubclass,
 )
-
-__all__ = ["ArgumentParser", "run", "run_commands"]
-
-
-if sys.version_info >= (3, 8):
-    from typing import Literal
-else:
-    from typing_extensions import Literal
 
 if sys.version_info >= (3, 9):
     from typing import _AnnotatedAlias
@@ -123,7 +115,6 @@ class ArgumentParser(argparse.ArgumentParser):
                 *[x for x in help_flags if x],
                 action=HelpAction,
                 help="Show this help message.",
-                # help=argparse.SUPPRESS,
             )
 
         self.kv_separator = "="
@@ -142,7 +133,6 @@ class ArgumentParser(argparse.ArgumentParser):
                     *help_all_flags,
                     action=HelpAllAction,
                     help="Show help for all commands.",
-                    # help=argparse.SUPPRESS,
                 )
 
             if version_flags is None:
@@ -167,7 +157,7 @@ class ArgumentParser(argparse.ArgumentParser):
             if completion_flags is None:
                 completion_flags = ["--print-shell-completion"]
 
-            if is_shtab_available() and completion_flags:
+            if is_shtab_available and completion_flags:
                 if isinstance(completion_flags, str):
                     completion_flags = [completion_flags]
 
@@ -182,7 +172,7 @@ class ArgumentParser(argparse.ArgumentParser):
             if tui_flags is None:
                 tui_flags = ["--tui"]
 
-            if tui_flags and is_tui_available():
+            if tui_flags and is_tui_available:
                 if isinstance(tui_flags, str):
                     tui_flags = [tui_flags]
 
@@ -522,7 +512,7 @@ class ArgumentParser(argparse.ArgumentParser):
                             else:
                                 argparse_argument.action = SplitCsvListAction
 
-                    elif not is_pydantic_available():
+                    elif not is_pydantic_available:
                         raise_unsupported_type_error(fld_type)
 
                     if try_issubclass(fld_type, Enum):
@@ -746,7 +736,7 @@ class ArgumentParser(argparse.ArgumentParser):
                 if key_type is not str:
                     raise TypeError("Dictionary keys must be type `str`")
                 type_container_subtype = value_type
-        elif not is_pydantic_available():
+        elif not is_pydantic_available:
             raise_unsupported_type_error(type_container)
 
         if not results:
@@ -763,7 +753,7 @@ class ArgumentParser(argparse.ArgumentParser):
         if (
             assert_primitive
             and type_container_subtype_origin
-            and not is_pydantic_available()
+            and not is_pydantic_available
         ):
             raise_unsupported_type_error(type_container_subtype_origin)
 
@@ -971,7 +961,7 @@ class ArgumentParser(argparse.ArgumentParser):
             args_model=args_model,
         )
 
-        if not skip_pydantic_validation and is_pydantic_available():
+        if is_pydantic_available and not skip_pydantic_validation:
             # pylint: disable=not-callable
             try:
                 args_union = vars(
@@ -1275,65 +1265,3 @@ class ArgumentParser(argparse.ArgumentParser):
                         relay_value = gen_result
 
         return relay_value
-
-
-def build_parser(*args: Any, **kwargs: Any) -> Any:
-    # pylint: disable=protected-access
-    return ArgumentParser._build_parser(*args, **kwargs)
-
-
-def run(*args: Any, **kwargs: Any) -> Any:
-    """Use given functions to construct a CLI, parse the args, and invoke the appropriate command.
-
-    Args:
-        *parser_args:
-        args:
-        default_args:
-        **parser_kwargs:
-
-    Examples:
-        >>> import yapx
-        ...
-        >>> def print_nums(*args):
-        ...     print('Args: ', *args)
-        ...
-        >>> def find_evens(*args):
-        ...     return [x for x in args if int(x) % 2 == 0]
-        ...
-        >>> def find_odds(*args):
-        ...     return [x for x in args if int(x) % 2 != 0]
-        ...
-        >>> cli_args = ['find-odds', '1', '2', '3', '4', '5']
-        >>> yapx.run(print_nums, [find_evens, find_odds], args=cli_args)
-        Args:  1 2 3 4 5
-        ['1', '3', '5']
-    """
-    # pylint: disable=protected-access
-    with suppress(SystemExit):
-        return ArgumentParser._run(*args, **kwargs)
-
-
-def run_commands(*args: Any, **kwargs: Any) -> Any:
-    """Use given functions to construct a CLI, parse the args, and invoke the appropriate command.
-
-    Args:
-        *parser_args:
-        args:
-        default_args:
-        **parser_kwargs:
-
-    Examples:
-        >>> import yapx
-        ...
-        >>> def find_evens(*args):
-        ...     return [x for x in args if int(x) % 2 == 0]
-        ...
-        >>> def find_odds(*args):
-        ...     return [x for x in args if int(x) % 2 != 0]
-        ...
-        >>> cli_args = ['find-odds', '1', '2', '3', '4', '5']
-        >>> yapx.run_commands([find_evens, find_odds], args=cli_args)
-        ['1', '3', '5']
-    """
-    # pylint: disable=protected-access
-    return run(None, *args, **kwargs)

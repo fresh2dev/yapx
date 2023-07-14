@@ -22,15 +22,24 @@ __all__ = [
     "is_dataclass_type",
     "is_pydantic_available",
     "is_shtab_available",
+    "is_rich_available",
+    "is_tui_available",
     "cast_bool",
     "cast_type",
 ]
 
 T = TypeVar("T", bound=type)
 
+is_pydantic_available: bool = False
+is_shtab_available: bool = False
+is_rich_available: bool = False
+is_tui_available: bool = False
+
 
 try:
     from shtab import SUPPORTED_SHELLS, completion_action
+
+    is_shtab_available = True
 except ModuleNotFoundError:
 
     def completion_action():
@@ -58,6 +67,8 @@ try:
     else:
         from pydantic import parse_obj_as
         from pydantic.dataclasses import create_pydantic_model_from_dataclass
+
+    is_pydantic_available = True
 except ModuleNotFoundError:
 
     def parse_obj_as():
@@ -72,6 +83,8 @@ except ModuleNotFoundError:
 
 try:
     from trogon.argparse import add_tui_argument
+
+    is_tui_available = True
 except ModuleNotFoundError:
 
     def add_tui_argument():
@@ -80,6 +93,8 @@ except ModuleNotFoundError:
 
 try:
     from rich_argparse import RawTextRichHelpFormatter as RawTextHelpFormatter
+
+    is_rich_available = True
 except ModuleNotFoundError:
     from argparse import RawTextHelpFormatter  # noqa: F401
 
@@ -113,16 +128,9 @@ def coalesce(x: Any, d: Any, null_or_empty: bool = False) -> Any:
     return d
 
 
-def is_pydantic_available() -> bool:
-    return bool(create_pydantic_model_from_dataclass.__module__ != __name__)
-
-
-def is_shtab_available() -> bool:
-    return bool(completion_action.__module__ != __name__)
-
-
-def is_tui_available() -> bool:
-    return bool(add_tui_argument.__module__ != __name__)
+def _get_package_name(module_name: str) -> str:
+    pkg = module_name.split(".", 1)[0]
+    return module_name
 
 
 def cast_bool(value: Union[None, str, bool]) -> bool:
@@ -159,7 +167,7 @@ def cast_type(target_type: Optional[T], value: Any) -> Optional[T]:
     try:
         return target_type(value)
     except TypeError as e:
-        if is_pydantic_available():
+        if is_pydantic_available:
             return parse_obj_as(target_type, value)
 
         raise_unsupported_type_error(type(value), from_exception=e)

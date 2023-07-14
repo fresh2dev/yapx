@@ -4,7 +4,6 @@ from enum import Enum, auto
 from ipaddress import IPv4Address
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Pattern, Sequence, Set, Tuple
-from unittest import mock
 
 import pytest
 from _pytest.capture import CaptureFixture, CaptureResult
@@ -38,14 +37,18 @@ def example_subcmd(name: str, upper: Optional[bool]) -> str:
     print(msg)
 
 
-def test_run_noargs(capsys: CaptureFixture):
+@pytest.mark.parametrize("disable_pydantic", [False, True])
+def test_run_noargs(disable_pydantic: bool, capsys: CaptureFixture):
     # 1. ARRANGE
     expected: str = "hello world"
     cli_args: List[str] = []
 
     # 2. ACT
-    with mock.patch.object(yapx.argument_parser.sys, "argv", [""] + cli_args):
-        yapx.run(example_setup)
+    yapx.run_patched(
+        example_setup,
+        test_args=cli_args,
+        disable_pydantic=disable_pydantic,
+    )
 
     # 3. ASSERT
     captured: CaptureResult = capsys.readouterr()
@@ -53,7 +56,8 @@ def test_run_noargs(capsys: CaptureFixture):
     assert captured.out.strip() == expected
 
 
-def test_run_default(capsys: CaptureFixture):
+@pytest.mark.parametrize("disable_pydantic", [False, True])
+def test_run_default(disable_pydantic: bool, capsys: CaptureFixture):
     # 1. ARRANGE
     text: str = "donald"
     cli_args: List[str] = ["--text", text]
@@ -61,8 +65,12 @@ def test_run_default(capsys: CaptureFixture):
     not_expected: List[str] = ["howdy"]
 
     # 2. ACT
-    with mock.patch.object(yapx.argument_parser.sys, "argv", [""] + cli_args):
-        yapx.run(example_setup, example_subcmd)
+    yapx.run_patched(
+        example_setup,
+        example_subcmd,
+        test_args=cli_args,
+        disable_pydantic=disable_pydantic,
+    )
 
     # 3. ASSERT
     captured: CaptureResult = capsys.readouterr()
@@ -73,7 +81,8 @@ def test_run_default(capsys: CaptureFixture):
         assert ne not in captured.out
 
 
-def test_run_command(capsys: CaptureFixture):
+@pytest.mark.parametrize("disable_pydantic", [False, True])
+def test_run_command(disable_pydantic: bool, capsys: CaptureFixture):
     # 1. ARRANGE
     text: str = "donald"
     cli_args: List[str] = ["example-subcmd", "--name", text, "--upper"]
@@ -81,8 +90,11 @@ def test_run_command(capsys: CaptureFixture):
     not_expected: List[str] = ["hello"]
 
     # 2. ACT
-    with mock.patch.object(yapx.argument_parser.sys, "argv", [""] + cli_args):
-        yapx.run_commands(example_subcmd)
+    yapx.run_commands_patched(
+        example_subcmd,
+        test_args=cli_args,
+        disable_pydantic=disable_pydantic,
+    )
 
     # 3. ASSERT
     captured: CaptureResult = capsys.readouterr()
@@ -93,7 +105,8 @@ def test_run_command(capsys: CaptureFixture):
         assert ne not in captured.out
 
 
-def test_run_subcmd(capsys: CaptureFixture):
+@pytest.mark.parametrize("disable_pydantic", [False, True])
+def test_run_subcmd(disable_pydantic: bool, capsys: CaptureFixture):
     # 1. ARRANGE
     text: str = "donald"
     cli_args: List[str] = ["example-subcmd", "--name", text, "--upper"]
@@ -101,8 +114,12 @@ def test_run_subcmd(capsys: CaptureFixture):
     not_expected: List[str] = ["hello"]
 
     # 2. ACT
-    with mock.patch.object(yapx.argument_parser.sys, "argv", [""] + cli_args):
-        yapx.run(None, example_subcmd)
+    yapx.run_patched(
+        None,
+        example_subcmd,
+        test_args=cli_args,
+        disable_pydantic=disable_pydantic,
+    )
 
     # 3. ASSERT
     captured: CaptureResult = capsys.readouterr()
@@ -113,7 +130,8 @@ def test_run_subcmd(capsys: CaptureFixture):
         assert ne not in captured.out
 
 
-def test_run_both(capsys: CaptureFixture):
+@pytest.mark.parametrize("disable_pydantic", [False, True])
+def test_run_both(disable_pydantic: bool, capsys: CaptureFixture):
     # 1. ARRANGE
     text: str = "donald"
     cli_args: List[str] = [
@@ -128,8 +146,12 @@ def test_run_both(capsys: CaptureFixture):
     not_expected: List[str] = []
 
     # 2. ACT
-    with mock.patch.object(yapx.argument_parser.sys, "argv", [""] + cli_args):
-        yapx.run(example_setup, example_subcmd)
+    yapx.run_patched(
+        example_setup,
+        example_subcmd,
+        test_args=cli_args,
+        disable_pydantic=disable_pydantic,
+    )
 
     # 3. ASSERT
     captured: CaptureResult = capsys.readouterr()
@@ -140,7 +162,8 @@ def test_run_both(capsys: CaptureFixture):
         assert ne not in captured.out
 
 
-def test_run_generator(capsys: CaptureFixture):
+@pytest.mark.parametrize("disable_pydantic", [False, True])
+def test_run_generator(disable_pydantic: bool, capsys: CaptureFixture):
     # 1. ARRANGE
     text: str = "donald"
     cli_args: List[str] = [
@@ -155,8 +178,12 @@ def test_run_generator(capsys: CaptureFixture):
     not_expected: List[str] = []
 
     # 2. ACT
-    with mock.patch.object(yapx.argument_parser.sys, "argv", [""] + cli_args):
-        yapx.run(example_setup_generator, example_subcmd)
+    yapx.run_patched(
+        example_setup_generator,
+        example_subcmd,
+        test_args=cli_args,
+        disable_pydantic=disable_pydantic,
+    )
 
     # 3. ASSERT
     captured: CaptureResult = capsys.readouterr()
@@ -167,7 +194,8 @@ def test_run_generator(capsys: CaptureFixture):
         assert ne not in captured.out
 
 
-def test_run_args(capsys: CaptureFixture):
+@pytest.mark.parametrize("disable_pydantic", [False, True])
+def test_run_args(disable_pydantic: bool, capsys: CaptureFixture):
     # 1. ARRANGE
     text: str = "donald"
     cli_args: List[str] = [
@@ -182,8 +210,12 @@ def test_run_args(capsys: CaptureFixture):
     not_expected: List[str] = []
 
     # 2. ACT
-    with mock.patch.object(yapx.argument_parser.sys, "argv", [""] + cli_args):
-        yapx.run(example_setup, example_subcmd, args=cli_args)
+    yapx.run_patched(
+        example_setup,
+        example_subcmd,
+        test_args=cli_args,
+        disable_pydantic=disable_pydantic,
+    )
 
     # 3. ASSERT
     captured: CaptureResult = capsys.readouterr()
@@ -194,7 +226,8 @@ def test_run_args(capsys: CaptureFixture):
         assert ne not in captured.out
 
 
-def test_run_kwargs_alias(capsys: CaptureFixture):
+@pytest.mark.parametrize("disable_pydantic", [False, True])
+def test_run_kwargs_alias(disable_pydantic: bool, capsys: CaptureFixture):
     # 1. ARRANGE
     text: str = "donald"
     cli_args: List[str] = [
@@ -209,11 +242,12 @@ def test_run_kwargs_alias(capsys: CaptureFixture):
     not_expected: List[str] = []
 
     # 2. ACT
-    with mock.patch.object(yapx.argument_parser.sys, "argv", [""] + cli_args):
-        yapx.run(
-            example_setup,
-            named_subcommands={"command-alias": example_subcmd},
-        )
+    yapx.run_patched(
+        example_setup,
+        named_subcommands={"command-alias": example_subcmd},
+        test_args=cli_args,
+        disable_pydantic=disable_pydantic,
+    )
 
     # 3. ASSERT
     captured: CaptureResult = capsys.readouterr()
@@ -224,8 +258,8 @@ def test_run_kwargs_alias(capsys: CaptureFixture):
         assert ne not in captured.out
 
 
-@pytest.mark.parametrize("use_pydantic", [False, True])
-def test_run_ipv4address(use_pydantic: bool):
+@pytest.mark.parametrize("disable_pydantic", [False, True])
+def test_run_ipv4address(disable_pydantic: bool):
     env_var_name: str = "FUNKY_ARG"
 
     env_values: List[str] = ["127.0.0.1", "192.168.0.1", "9.9.9.9"]
@@ -244,23 +278,18 @@ def test_run_ipv4address(use_pydantic: bool):
     cli_args: List[str] = []
 
     # 2. ACT
-    with mock.patch.object(
-        yapx.argument_parser,
-        "is_pydantic_available",
-        mock.Mock(return_value=use_pydantic),
-    ), mock.patch.object(
-        yapx.argument_parser.sys,
-        "argv",
-        [""] + cli_args,
-    ):
-        result: List[Any] = yapx.run(_func)
+    result: List[Any] = yapx.run_patched(
+        _func,
+        test_args=cli_args,
+        disable_pydantic=disable_pydantic,
+    )
 
-        # 3. ASSERT
-        assert result == expected
+    # 3. ASSERT
+    assert result == expected
 
 
-@pytest.mark.parametrize("use_pydantic", [False, True])
-def test_run_enum(use_pydantic: bool):
+@pytest.mark.parametrize("disable_pydantic", [False, True])
+def test_run_enum(disable_pydantic: bool):
     # 1. ARRANGE
     class MyEnum(Enum):
         one = auto()
@@ -293,16 +322,11 @@ def test_run_enum(use_pydantic: bool):
     )
 
     # 2. ACT
-    with mock.patch.object(
-        yapx.argument_parser,
-        "is_pydantic_available",
-        mock.Mock(return_value=use_pydantic),
-    ), mock.patch.object(
-        yapx.argument_parser.sys,
-        "argv",
-        [""] + cli_args,
-    ):
-        result: List[Any] = yapx.run(_func)
+    result: List[Any] = yapx.run_patched(
+        _func,
+        test_args=cli_args,
+        disable_pydantic=disable_pydantic,
+    )
 
     # 3. ASSERT
     assert result
@@ -311,8 +335,8 @@ def test_run_enum(use_pydantic: bool):
         assert result[i] == expected[i]
 
 
-@pytest.mark.parametrize("use_pydantic", [False, True])
-def test_run_path(use_pydantic: bool):
+@pytest.mark.parametrize("disable_pydantic", [False, True])
+def test_run_path(disable_pydantic: bool):
     def _func(
         value: Optional[Path],
         value_seq: Annotated[Optional[Sequence[Path]], yapx.arg(nargs="*")],
@@ -341,16 +365,11 @@ def test_run_path(use_pydantic: bool):
     )
 
     # 2. ACT
-    with mock.patch.object(
-        yapx.argument_parser,
-        "is_pydantic_available",
-        mock.Mock(return_value=use_pydantic),
-    ), mock.patch.object(
-        yapx.argument_parser.sys,
-        "argv",
-        [""] + cli_args,
-    ):
-        result: List[Any] = yapx.run(_func)
+    result: List[Any] = yapx.run_patched(
+        _func,
+        test_args=cli_args,
+        disable_pydantic=disable_pydantic,
+    )
 
     # 3. ASSERT
     assert result
@@ -359,8 +378,8 @@ def test_run_path(use_pydantic: bool):
         assert result[i] == expected[i]
 
 
-@pytest.mark.parametrize("use_pydantic", [False, True])
-def test_run_patterns(use_pydantic: bool):
+@pytest.mark.parametrize("disable_pydantic", [False, True])
+def test_run_patterns(disable_pydantic: bool):
     env_var_name: str = "FUNKY_ARG"
 
     env_values: List[str] = ["abc", "def", ".*"]
@@ -368,8 +387,8 @@ def test_run_patterns(use_pydantic: bool):
 
     expected: List[Pattern] = [re.compile(x) for x in env_values]
 
-    def _func(ip_addrs: List[Pattern] = yapx.arg(env=env_var_name)) -> List[int]:
-        return ip_addrs
+    def _func(patterns: List[Pattern] = yapx.arg(env=env_var_name)) -> List[int]:
+        return patterns
 
     del os.environ[env_var_name]
 
@@ -377,27 +396,25 @@ def test_run_patterns(use_pydantic: bool):
     cli_args: List[str] = []
 
     # 2. ACT
-    with mock.patch.object(
-        yapx.argument_parser,
-        "is_pydantic_available",
-        mock.Mock(return_value=use_pydantic),
-    ), mock.patch.object(
-        yapx.argument_parser.sys,
-        "argv",
-        [""] + cli_args,
-    ):
-        if not use_pydantic:
-            with pytest.raises(yapx.exceptions.UnsupportedTypeError):
-                yapx.run(_func)
-        else:
-            result: List[Any] = yapx.run(_func)
-
-            # 3. ASSERT
-            assert result == expected
+    if disable_pydantic:
+        with pytest.raises(yapx.exceptions.UnsupportedTypeError):
+            result: List[Any] = yapx.run_patched(
+                _func,
+                test_args=cli_args,
+                disable_pydantic=disable_pydantic,
+            )
+    else:
+        result: List[Pattern] = yapx.run_patched(
+            _func,
+            test_args=cli_args,
+            disable_pydantic=disable_pydantic,
+        )
+        # 3. ASSERT
+        assert result == expected
 
 
-@pytest.mark.parametrize("use_pydantic", [False, True])
-def test_run_pattern(use_pydantic: bool):
+@pytest.mark.parametrize("disable_pydantic", [False, True])
+def test_run_pattern(disable_pydantic: bool):
     env_var_name: str = "FUNKY_ARG"
 
     env_value: str = r".+"
@@ -414,27 +431,25 @@ def test_run_pattern(use_pydantic: bool):
     cli_args: List[str] = []
 
     # 2. ACT
-    with mock.patch.object(
-        yapx.argument_parser,
-        "is_pydantic_available",
-        mock.Mock(return_value=use_pydantic),
-    ), mock.patch.object(
-        yapx.argument_parser.sys,
-        "argv",
-        [""] + cli_args,
-    ):
-        if not use_pydantic:
-            with pytest.raises(yapx.exceptions.UnsupportedTypeError):
-                yapx.run(_func)
-        else:
-            result: List[Any] = yapx.run(_func)
-
-            # 3. ASSERT
-            assert result == expected
+    if disable_pydantic:
+        with pytest.raises(yapx.exceptions.UnsupportedTypeError):
+            result: List[Any] = yapx.run_patched(
+                _func,
+                test_args=cli_args,
+                disable_pydantic=disable_pydantic,
+            )
+    else:
+        result: Pattern = yapx.run_patched(
+            _func,
+            test_args=cli_args,
+            disable_pydantic=disable_pydantic,
+        )
+        # 3. ASSERT
+        assert result == expected
 
 
-@pytest.mark.parametrize("use_pydantic", [False, True])
-def test_run_bools(use_pydantic: bool):
+@pytest.mark.parametrize("disable_pydantic", [False, True])
+def test_run_bools(disable_pydantic: bool):
     env_var_name: str = "FUNKY_ARG"
 
     env_values: List[str] = ["0", "1", "true", "t", "false", "f", "yes", "y", "no", "n"]
@@ -453,18 +468,11 @@ def test_run_bools(use_pydantic: bool):
     cli_args: List[str] = []
 
     # 2. ACT
-    try:
-        if not use_pydantic:
-            mock.patch.object(
-                yapx.argument_parser.create_pydantic_model_from_dataclass,
-                attribute="__module__",
-                new_callable=mock.PropertyMock(return_value="yapx.argument_parser"),
-            ).start()
-
-        with mock.patch.object(yapx.argument_parser.sys, "argv", [""] + cli_args):
-            result: List[Any] = yapx.run(_func)
-    finally:
-        mock.patch.stopall()
+    result: List[Any] = yapx.run_patched(
+        _func,
+        test_args=cli_args,
+        disable_pydantic=disable_pydantic,
+    )
 
     # 3. ASSERT
     assert result
@@ -473,8 +481,8 @@ def test_run_bools(use_pydantic: bool):
     assert result == expected
 
 
-@pytest.mark.parametrize("use_pydantic", [False, True])
-def test_run_pos_list(use_pydantic: bool):
+@pytest.mark.parametrize("disable_pydantic", [False, True])
+def test_run_pos_list(disable_pydantic: bool):
     def _func(
         this: Optional[List[str]] = yapx.arg(None, pos=True, exclusive=True),
         that: Optional[List[str]] = yapx.arg(None, exclusive=True),
@@ -485,25 +493,18 @@ def test_run_pos_list(use_pydantic: bool):
     cli_args: List[str] = ["--that", "world"]
 
     # 2. ACT
-    try:
-        if not use_pydantic:
-            mock.patch.object(
-                yapx.argument_parser.create_pydantic_model_from_dataclass,
-                attribute="__module__",
-                new_callable=mock.PropertyMock(return_value="yapx.argument_parser"),
-            ).start()
-
-        with mock.patch.object(yapx.argument_parser.sys, "argv", [""] + cli_args):
-            result: List[Any] = yapx.run(_func)
-    finally:
-        mock.patch.stopall()
+    result: List[Any] = yapx.run_patched(
+        _func,
+        test_args=cli_args,
+        disable_pydantic=disable_pydantic,
+    )
 
     # 3. ASSERT
     assert result
 
 
-@pytest.mark.parametrize("use_pydantic", [False, True])
-def test_run_exclusive(use_pydantic: bool):
+@pytest.mark.parametrize("disable_pydantic", [False, True])
+def test_run_exclusive(disable_pydantic: bool):
     def _func(
         this: Optional[List[str]] = yapx.arg(None, pos=True, exclusive=True),
         that: Optional[List[str]] = yapx.arg(None, exclusive=True),
@@ -515,22 +516,11 @@ def test_run_exclusive(use_pydantic: bool):
     cli_args: List[str] = ["hello", "--that", "world"]
 
     # 2. ACT
-    try:
-        if not use_pydantic:
-            mock.patch.object(
-                yapx.argument_parser.create_pydantic_model_from_dataclass,
-                attribute="__module__",
-                new_callable=mock.PropertyMock(return_value="yapx.argument_parser"),
-            ).start()
-
-        with mock.patch.object(
-            yapx.argument_parser.sys,
-            "argv",
-            [""] + cli_args,
-        ):
-            yapx.run(_func)
-    finally:
-        mock.patch.stopall()
+    yapx.run_patched(
+        _func,
+        test_args=cli_args,
+        disable_pydantic=disable_pydantic,
+    )
 
 
 def test_print_shell_completion(capsys: CaptureFixture):
@@ -619,8 +609,8 @@ def test_annotated():
         assert x == expected_value
 
 
-@pytest.mark.parametrize("use_pydantic", [False, True])
-def test_run_multivalue(use_pydantic: bool):
+@pytest.mark.parametrize("disable_pydantic", [False, True])
+def test_run_multivalue(disable_pydantic: bool):
     def _func(
         v19: Optional[Annotated[List[float], yapx.arg(nargs="*")]] = None,
         v20: Optional[Annotated[List[float], yapx.arg(lambda: [3.2])]] = None,
@@ -702,22 +692,15 @@ def test_run_multivalue(use_pydantic: bool):
     ]
 
     # 2. ACT
-    try:
-        if not use_pydantic:
-            mock.patch.object(
-                yapx.argument_parser.create_pydantic_model_from_dataclass,
-                attribute="__module__",
-                new_callable=mock.PropertyMock(return_value="yapx.argument_parser"),
-            ).start()
-
-        with mock.patch.object(yapx.argument_parser.sys, "argv", [""] + cli_args):
-            yapx.run(_func)
-    finally:
-        mock.patch.stopall()
+    yapx.run_patched(
+        _func,
+        test_args=cli_args,
+        disable_pydantic=disable_pydantic,
+    )
 
 
-@pytest.mark.parametrize("use_pydantic", [False, True])
-def test_run_moar(use_pydantic: bool):
+@pytest.mark.parametrize("disable_pydantic", [False, True])
+def test_run_moar(disable_pydantic: bool):
     def _func(
         verbose: Annotated[int, yapx.arg(default=0, nargs=0, flags="-v")],
         live: bool,
@@ -760,22 +743,15 @@ def test_run_moar(use_pydantic: bool):
     ]
 
     # 2. ACT
-    try:
-        if not use_pydantic:
-            mock.patch.object(
-                yapx.argument_parser.create_pydantic_model_from_dataclass,
-                attribute="__module__",
-                new_callable=mock.PropertyMock(return_value="yapx.argument_parser"),
-            ).start()
-
-        with mock.patch.object(yapx.argument_parser.sys, "argv", [""] + cli_args):
-            yapx.run(_func)
-    finally:
-        mock.patch.stopall()
+    yapx.run_patched(
+        _func,
+        test_args=cli_args,
+        disable_pydantic=disable_pydantic,
+    )
 
 
-@pytest.mark.parametrize("use_pydantic", [False, True])
-def test_run_everything(use_pydantic: bool):
+@pytest.mark.parametrize("disable_pydantic", [False, True])
+def test_run_everything(disable_pydantic: bool):
     def _setup():
         return "hello_relay"
 
@@ -938,15 +914,23 @@ def test_run_everything(use_pydantic: bool):
     ]
 
     # 2. ACT
-    try:
-        if not use_pydantic:
-            mock.patch.object(
-                yapx.argument_parser.create_pydantic_model_from_dataclass,
-                attribute="__module__",
-                new_callable=mock.PropertyMock(return_value="yapx.argument_parser"),
-            ).start()
+    #  try:
+    #      if disable_pydantic:
+    #          mock.patch.object(
+    #              yapx.argument_parser.create_pydantic_model_from_dataclass,
+    #              attribute="__module__",
+    #              new_callable=mock.PropertyMock(return_value="yapx.argument_parser"),
+    #          ).start()
+    #
+    #      with mock.patch.object(yapx.argument_parser.sys, "argv", [""] + cli_args):
+    #          yapx.run(_setup, _func)
+    #  finally:
+    #      mock.patch.stopall()
 
-        with mock.patch.object(yapx.argument_parser.sys, "argv", [""] + cli_args):
-            yapx.run(_setup, _func)
-    finally:
-        mock.patch.stopall()
+    # 2. ACT
+    yapx.run_patched(
+        _setup,
+        _func,
+        test_args=cli_args,
+        disable_pydantic=disable_pydantic,
+    )
