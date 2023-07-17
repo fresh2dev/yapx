@@ -82,12 +82,15 @@ except ModuleNotFoundError:
 
 
 try:
-    from trogon.argparse import add_tui_argument
+    from trogon.argparse import add_tui_argument, add_tui_command
 
     is_tui_available = True
 except ModuleNotFoundError:
 
     def add_tui_argument():
+        ...
+
+    def add_tui_command():
         ...
 
 
@@ -126,11 +129,6 @@ def coalesce(x: Any, d: Any, null_or_empty: bool = False) -> Any:
     if (null_or_empty and x) or (not null_or_empty and x is not None):
         return x
     return d
-
-
-def _get_package_name(module_name: str) -> str:
-    pkg = module_name.split(".", 1)[0]
-    return module_name
 
 
 def cast_bool(value: Union[None, str, bool]) -> bool:

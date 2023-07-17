@@ -50,6 +50,7 @@ from .utils import (
     RawTextHelpFormatter,
     ValidationError,
     add_tui_argument,
+    add_tui_command,
     cast_type,
     completion_action,
     create_pydantic_model_from_dataclass,
@@ -176,11 +177,18 @@ class ArgumentParser(argparse.ArgumentParser):
                 if isinstance(tui_flags, str):
                     tui_flags = [tui_flags]
 
-                add_tui_argument(
-                    parser=self,
-                    option_strings=tui_flags,
-                    help="Show Textual User Interface (TUI).",
-                )
+                if len(tui_flags) == 1 and not tui_flags[0].startswith("-"):
+                    add_tui_command(
+                        parser=self,
+                        option_strings=tui_flags[0],
+                        help="Show Textual User Interface (TUI).",
+                    )
+                else:
+                    add_tui_argument(
+                        parser=self,
+                        option_strings=tui_flags,
+                        help="Show Textual User Interface (TUI).",
+                    )
 
     def error(self, message: str):
         self.print_usage(sys.stderr)
