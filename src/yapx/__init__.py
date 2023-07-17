@@ -1,5 +1,5 @@
 from contextlib import suppress
-from typing import Any, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Sequence
 
 from . import exceptions, types
 from .__version__ import __version__
@@ -37,19 +37,48 @@ __all__ = [
 ]
 
 
-def build_parser(*args: Any, **kwargs: Any) -> Any:
-    # pylint: disable=protected-access
-    return ArgumentParser._build_parser(*args, **kwargs)
-
-
-def run(*args: Any, **kwargs: Any) -> Any:
-    """Use given functions to construct a CLI, parse the args, and invoke the appropriate command.
+def build_parser(
+    command: Optional[Callable[..., Any]] = None,
+    subcommands: Optional[Sequence[Callable[..., Any]]] = None,
+    named_subcommands: Optional[Dict[str, Callable[..., Any]]] = None,
+    **kwargs: Any,
+) -> Any:
+    """Use given functions to construct an ArgumentParser.
 
     Args:
-        *parser_args:
-        args:
-        default_args:
-        **parser_kwargs:
+        command: the root command function
+        subcommands: a list of subcommand functions
+        named_subcommands: a dict of named subcommand functions
+        **kwargs: passed to the ArgumentParser constructor
+    """
+    # pylint: disable=protected-access
+    return ArgumentParser._build_parser(
+        command=command,
+        subcommands=subcommands,
+        named_subcommands=named_subcommands,
+        **kwargs,
+    )
+
+
+def run(
+    command: Optional[Callable[..., Any]] = None,
+    subcommands: Optional[Sequence[Callable[..., Any]]] = None,
+    named_subcommands: Optional[Dict[str, Callable[..., Any]]] = None,
+    args: Optional[List[str]] = None,
+    default_args: Optional[List[str]] = None,
+    **kwargs: Any,
+) -> Any:
+    """Use given functions to construct an ArgumentParser,
+    parse the args, and invoke the appropriate command.
+
+
+    Args:
+        command: the root command function
+        subcommands: a list of subcommand functions
+        named_subcommands: a dict of named subcommand functions
+        args: arguments to parse (default=`sys.argv[1:]`)
+        default_args: arguments to parse when no arguments are given.
+        **kwargs: passed to the ArgumentParser constructor
 
     Examples:
         >>> import yapx
@@ -70,17 +99,25 @@ def run(*args: Any, **kwargs: Any) -> Any:
     """
     # pylint: disable=protected-access
     with suppress(SystemExit):
-        return ArgumentParser._run(*args, **kwargs)
+        return ArgumentParser._run(
+            command=command,
+            subcommands=subcommands,
+            named_subcommands=named_subcommands,
+            args=args,
+            default_args=default_args,
+            **kwargs,
+        )
 
 
-def run_commands(*args: Any, **kwargs: Any) -> Any:
-    """Use given functions to construct a CLI, parse the args, and invoke the appropriate command.
+def run_commands(
+    *parser_args: Any,
+    **parser_kwargs: Any,
+) -> Any:
+    """Use given functions to construct an ArgumentParser,
+    parse the args, and invoke the appropriate command.
 
-    Args:
-        *parser_args:
-        args:
-        default_args:
-        **parser_kwargs:
+    `yapx.run_commands(...)` is equivalent to `yapx.run(None, ...)`, to be used when
+    there is no root command.
 
     Examples:
         >>> import yapx
@@ -96,7 +133,7 @@ def run_commands(*args: Any, **kwargs: Any) -> Any:
         ['1', '3', '5']
     """
     # pylint: disable=protected-access
-    return run(None, *args, **kwargs)
+    return run(None, *parser_args, **parser_kwargs)
 
 
 def run_patched(
@@ -105,6 +142,13 @@ def run_patched(
     disable_pydantic: bool = False,
     **kwargs: Any,
 ) -> Any:
+    """Same as `yapx.run`, with the ability to patch args and disable pydantic.
+
+    Args:
+        test_args: patch sys.argv with these args
+        disable_pydantic: disable the use of pydantic for additional validation
+
+    """
     from unittest import mock
 
     from .argument_parser import sys as _sys

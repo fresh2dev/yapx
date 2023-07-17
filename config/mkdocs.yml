@@ -1,5 +1,5 @@
-site_name: "yapx"
-site_description: "yapx Docs"
+site_name: "Yapx"
+site_description: "Yapx Docs"
 site_url: !ENV [MKDOCS_SITE_URL, "https://www.f2dv.com/code/r/yapx/i"]
 repo_url: "https://www.github.com/fresh2dev/yapx"
 repo_name: "fresh2dev/yapx"
@@ -20,9 +20,8 @@ extra:
 nav:
   - Home: index.md
   - Articles:
-      - 'page/commands.md'
-      - 'page/types.md'
-      - 'page/arguments.md'
+      - 'page/overview.ipynb'
+      - 'page/sequences.ipynb'
       - 'page/completion.md'
       - 'page/tui.md'
       - 'page/related.md'
@@ -94,7 +93,7 @@ plugins:
   - include_dir_to_nav
   - autorefs
   - mkdocs-jupyter:
-      ignore_h1_titles: True
+      ignore_h1_titles: False
       include_source: True
       execute: false
       remove_tag_config:

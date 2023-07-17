@@ -1,6 +1,6 @@
 # Shell Completion
 
-When the [shtab](https://github.com/iterative/shtab) library is present, yapx CLIs gain the ability to expect shell-completion scripts using the flag `--print-shell-completion`.
+When the [shtab](https://github.com/iterative/shtab) library is present, yapx CLIs gain the ability to export shell-completion scripts using the flag `--print-shell-completion`.
 
 Install `shtab` using: `pip install yapx[shtab]`
 
@@ -29,9 +29,8 @@ awesome-app --print-shell-completion zsh | \
 I use the `zsh` shell and have this function in my profile:
 
 ```sh
-install-yapx-zsh-completion() {
+install-yapx-completion() {
   $1 --print-shell-completion zsh | \
-    grep -v '\--print-shell-completion' | \
     sudo tee /usr/local/share/zsh/site-functions/_$1
 }
 ```
@@ -39,5 +38,5 @@ install-yapx-zsh-completion() {
 This allows me to install shell-completions for yapx CLI apps by calling:
 
 ```sh
-install-yapx-zsh-completion <app-name>
+install-yapx-completion <app-name>
 ```

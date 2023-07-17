@@ -13,15 +13,17 @@ So much of the inspiration for this project -- and a good bit of the initial cod
 typer and yapx serve a very similar purpose of using type annotations to build CLI applications in Python. Here are some differences:
 
 - yapx is built on `argparse`; typer is built on `click`.
-- typer is more mature -- better documented! -- and is built by the author of FastAPI, so you know it's good.
+- typer is more mature (and better documented)
 - ...
+- TBD!
 
 ## [click](https://github.com/pallets/click)
 
 A trusted tool for building CLIs.
 
+## Built with Yapx
 
-## [myke](https://github.com/fresh2dev/myke)
+### [myke](https://github.com/fresh2dev/myke)
 
 `myke` is a superset of the yapx project with an emphasis on task execution, à la `make`. yapx is the library and myke is an instantiation of it.
 

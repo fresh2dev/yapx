@@ -52,7 +52,6 @@ tests = [
     "pylint==2.*",
     "pylint-pytest==1.*",
     "packaging==23.*",
-    "mockish==0.1.*",
     "pydantic>=1.10.3,<3",
     "shtab==1.6.2",
     "rich-argparse==1.*",
