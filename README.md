@@ -21,9 +21,9 @@
 [![Docker Pulls](https://img.shields.io/docker/pulls/fresh2dev/yapx?color=blue&style=for-the-badge)](https://hub.docker.com/r/fresh2dev/yapx)
 [![Docs Website](https://img.shields.io/website?down_message=unavailable&label=docs&style=for-the-badge&up_color=blue&up_message=available&url=https://www.f2dv.com/code/r/yapx/i)](https://www.f2dv.com/code/r/yapx/i)
 [![Coverage Website](https://img.shields.io/website?down_message=unavailable&label=coverage&style=for-the-badge&up_color=blue&up_message=available&url=https://www.f2dv.com/code/r/yapx/i/tests/coverage)](https://www.f2dv.com/code/r/yapx/i/tests/coverage)
-[![Funding](https://img.shields.io/badge/funding-%24%24%24-blue?style=for-the-badge)](https://www.f2dv.com/funding)
+[![Funding](https://img.shields.io/badge/funding-%24%24%24-blue?style=for-the-badge)](https://www.f2dv.com/fund)
 
----
+## Overview
 
 Yapx is "yeah, another argparse extension" for building Python CLIs with the utmost simplicity.
 
@@ -56,7 +56,7 @@ Extras are available to unlock additional functionality:
 - `yapx[extras]`: enables each of the above
 - `trogon-yapx`: enables experimental TUI support
 
-## Examples
+## Use
 
 See notebooks of examples here:
 
@@ -64,10 +64,12 @@ https://www.f2dv.com/code/r/yapx/i/page/overview
 
 Read more about yapx @ https://www.f2dv.com/code/r/yapx/i
 
-See all of my projects @ https://www.f2dv.com/code/r
+## Support
 
----
+If this project delivers value to you, please [provide feedback](https://www.github.com/fresh2dev/yapx/issues), code contributions, and/or [funding](https://www.f2dv.com/fund).
+
+See all of my projects @ https://www.f2dv.com/code/r
 
 *Brought to you by...*
 
-<a href="https://www.fresh2.dev"><img src="https://img.fresh2.dev/fresh2dev.svg" style="filter: invert(50%);"></img></a>
+<a href="https://www.f2dv.com"><img src="https://img.fresh2.dev/fresh2dev.svg" style="filter: invert(50%);"></img></a>
