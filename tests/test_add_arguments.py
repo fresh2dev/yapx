@@ -25,7 +25,7 @@ else:
             MISSING,
             ArgparseArg(
                 option_strings=["--a-str"],
-                help="> Type: str, Required",
+                help="> Type: str",
                 required=True,
             ),
         ),
@@ -35,7 +35,7 @@ else:
             MISSING,
             ArgparseArg(
                 option_strings=["--a-str"],
-                help="> Type: str, Default: 'hello'",
+                help='> Type: str, Default: "%(default)s"',
                 required=False,
                 default="hello",
             ),
@@ -46,7 +46,7 @@ else:
             None,
             ArgparseArg(
                 option_strings=["--a-str"],
-                help="> Type: str, Default: 'hello'",
+                help='> Type: str, Default: "%(default)s"',
                 required=False,
                 default="hello",
             ),
@@ -58,7 +58,7 @@ else:
             MISSING,
             ArgparseArg(
                 option_strings=["--a-str"],
-                help="> Type: str, Required",
+                help="> Type: str",
                 required=True,
             ),
         ),
@@ -68,7 +68,7 @@ else:
             "hello",
             ArgparseArg(
                 option_strings=["--a-str"],
-                help="> Type: str, Default: 'hello'",
+                help='> Type: str, Default: "%(default)s"',
                 required=False,
                 default="hello",
             ),
@@ -79,7 +79,7 @@ else:
             None,
             ArgparseArg(
                 option_strings=["--a-str"],
-                help="> Type: str, Default: None",
+                help="> Type: str, Default: %(default)s",
                 required=False,
                 default=None,
             ),
@@ -91,7 +91,7 @@ else:
             MISSING,
             ArgparseArg(
                 option_strings=["--a-int"],
-                help="> Type: int, Required",
+                help="> Type: int",
                 required=True,
             ),
         ),
@@ -101,7 +101,7 @@ else:
             123,
             ArgparseArg(
                 option_strings=["--a-int"],
-                help="> Type: int, Default: 123",
+                help="> Type: int, Default: %(default)s",
                 required=False,
                 default=123,
             ),
@@ -112,7 +112,7 @@ else:
             None,
             ArgparseArg(
                 option_strings=["--a-int"],
-                help="> Type: int, Default: None",
+                help="> Type: int, Default: %(default)s",
                 required=False,
                 default=None,
             ),
@@ -124,7 +124,7 @@ else:
             MISSING,
             ArgparseArg(
                 option_strings=["--a-float"],
-                help="> Type: float, Required",
+                help="> Type: float",
                 required=True,
             ),
         ),
@@ -134,7 +134,7 @@ else:
             3.14,
             ArgparseArg(
                 option_strings=["--a-float"],
-                help="> Type: float, Default: 3.14",
+                help="> Type: float, Default: %(default)s",
                 required=False,
                 default=3.14,
             ),
@@ -145,11 +145,10 @@ else:
             bool,
             MISSING,
             ArgparseArg(
-                option_strings=["--a-bool"],
-                help="> Type: bool, Default: None",
+                option_strings=["--a-bool", "--no-a-bool"],
+                help="> Type: bool",
                 nargs=0,
-                const=True,
-                required=False,
+                required=True,
                 default=None,
             ),
         ),
@@ -159,10 +158,9 @@ else:
             bool,
             True,
             ArgparseArg(
-                option_strings=["--a-bool"],
-                help="> Type: bool, Default: True",
+                option_strings=["--a-bool", "--no-a-bool"],
+                help="> Type: bool, Default: %(default)s",
                 nargs=0,
-                const=True,
                 required=False,
                 default=True,
             ),
@@ -174,8 +172,8 @@ else:
             MISSING,
             ArgparseArg(
                 option_strings=["--a-list"],
-                help="> Type: List[str], Required",
-                nargs="+",
+                help="> Type: List[str]",
+                nargs=None,
                 required=True,
             ),
         ),
@@ -185,8 +183,8 @@ else:
             list,
             ArgparseArg(
                 option_strings=["--a-list"],
-                help="> Type: List[str], Default: []",
-                nargs="*",
+                help="> Type: List[str], Default: %(default)s",
+                nargs=None,
                 required=False,
                 default=[],
             ),
@@ -198,8 +196,8 @@ else:
             MISSING,
             ArgparseArg(
                 option_strings=["--a-tuple"],
-                help="> Type: Tuple[str], Required",
-                nargs="+",
+                help="> Type: Tuple[str]",
+                nargs=None,
                 required=True,
             ),
         ),
@@ -209,8 +207,8 @@ else:
             tuple,
             ArgparseArg(
                 option_strings=["--a-tuple"],
-                help="> Type: Tuple[str], Default: ()",
-                nargs="*",
+                help="> Type: Tuple[str], Default: %(default)s",
+                nargs=None,
                 required=False,
                 default=(),
             ),
@@ -222,8 +220,8 @@ else:
             MISSING,
             ArgparseArg(
                 option_strings=["--a-sequence"],
-                help="> Type: Sequence[str], Required",
-                nargs="+",
+                help="> Type: Sequence[str]",
+                nargs=None,
                 required=True,
             ),
         ),
@@ -233,8 +231,8 @@ else:
             list,
             ArgparseArg(
                 option_strings=["--a-sequence"],
-                help="> Type: Sequence[str], Default: []",
-                nargs="*",
+                help="> Type: Sequence[str], Default: %(default)s",
+                nargs=None,
                 required=False,
                 default=[],
             ),
@@ -246,8 +244,8 @@ else:
             MISSING,
             ArgparseArg(
                 option_strings=["--a-set"],
-                help="> Type: Set[str], Required",
-                nargs="+",
+                help="> Type: Set[str]",
+                nargs=None,
                 required=True,
             ),
         ),
@@ -257,8 +255,8 @@ else:
             set,
             ArgparseArg(
                 option_strings=["--a-set"],
-                help="> Type: Set[str], Default: set()",
-                nargs="*",
+                help="> Type: Set[str], Default: %(default)s",
+                nargs=None,
                 required=False,
                 default=set(),
             ),
@@ -270,8 +268,8 @@ else:
             MISSING,
             ArgparseArg(
                 option_strings=["--a-dict"],
-                help="> Type: Dict[str, str], Required",
-                nargs="+",
+                help="> Type: Dict[str, str]",
+                nargs=None,
                 required=True,
             ),
         ),
@@ -281,8 +279,8 @@ else:
             dict,
             ArgparseArg(
                 option_strings=["--a-dict"],
-                help="> Type: Dict[str, str], Default: {}",
-                nargs="*",
+                help="> Type: Dict[str, str], Default: %(default)s",
+                nargs=None,
                 required=False,
                 default={},
             ),
@@ -294,8 +292,8 @@ else:
             MISSING,
             ArgparseArg(
                 option_strings=["--a-mapping"],
-                help="> Type: Mapping[str, str], Required",
-                nargs="+",
+                help="> Type: Mapping[str, str]",
+                nargs=None,
                 required=True,
             ),
         ),
@@ -305,8 +303,8 @@ else:
             dict,
             ArgparseArg(
                 option_strings=["--a-mapping"],
-                help="> Type: Mapping[str, str], Default: {}",
-                nargs="*",
+                help="> Type: Mapping[str, str], Default: %(default)s",
+                nargs=None,
                 required=False,
                 default={},
             ),
@@ -317,7 +315,7 @@ else:
             "two",
             ArgparseArg(
                 option_strings=["--a-literal"],
-                help="> Type: Literal['one', 'two', 'three'], Default: 'two'",
+                help="> Type: Literal['one', 'two', 'three'], Default: \"%(default)s\"",
                 choices=["one", "two", "three"],
                 required=False,
                 default="two",
@@ -329,7 +327,7 @@ else:
             2,
             ArgparseArg(
                 option_strings=["--a-literal-int"],
-                help="> Type: Literal[1, 2, 3], Default: 2",
+                help="> Type: Literal[1, 2, 3], Default: %(default)s",
                 choices=[1, 2, 3],
                 required=False,
                 default=2,
@@ -360,7 +358,7 @@ def test_add_arguments(
 
     # 3. ASSERT
     # pylint: disable=protected-access
-    parser_actions: List[Action] = parser._actions[2:]
+    parser_actions: List[Action] = [parser._actions[-1]]
     # pylint: disable=no-member
     assert len(parser_actions) == len(ArgsModel.__dataclass_fields__)
 
@@ -370,7 +368,7 @@ def test_add_arguments(
         action_dict: Dict[str, Any] = vars(action)
 
         expected_dict: Dict[str, Any] = expected.asdict()
-        for custom_key in "action", "pos", "group", "exclusive", "type":
+        for custom_key in "action", "pos", "group", "exclusive", "type", "metavar":
             del expected_dict[custom_key]
 
         for k, v in expected_dict.items():

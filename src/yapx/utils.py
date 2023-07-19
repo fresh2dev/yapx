@@ -1,13 +1,12 @@
 import sys
 from contextlib import suppress
-from dataclasses import dataclass, is_dataclass
+from dataclasses import is_dataclass
 from enum import Enum
 from functools import wraps
-from typing import Any, List, NewType, Optional, Sequence, Type, TypeVar, Union
+from typing import Any, List, Optional, Type, TypeVar, Union
 
 # pylint: disable=unused-import
 from .arg import (
-    ArgparseArg,
     convert_to_command_string,
     convert_to_flag_string,
     make_dataclass_from_func,
@@ -16,8 +15,6 @@ from .exceptions import raise_unsupported_type_error
 from .types import Dataclass
 
 __all__ = [
-    "add_argument_to",
-    "build_trogon_schema",
     "convert_to_command_string",
     "convert_to_flag_string",
     "make_dataclass_from_func",
@@ -25,21 +22,53 @@ __all__ = [
     "is_dataclass_type",
     "is_pydantic_available",
     "is_shtab_available",
+    "is_rich_available",
+    "is_tui_available",
     "cast_bool",
     "cast_type",
 ]
 
+T = TypeVar("T", bound=type)
+
+is_pydantic_available: bool = False
+is_shtab_available: bool = False
+is_rich_available: bool = False
+is_tui_available: bool = False
+
+
 try:
-    from shtab import add_argument_to
+    from shtab import SUPPORTED_SHELLS, completion_action
+
+    is_shtab_available = True
 except ModuleNotFoundError:
 
-    def add_argument_to():
+    def completion_action():
         ...
+
+    SUPPORTED_SHELLS: List[str] = []
 
 
 try:
-    from pydantic import parse_obj_as
-    from pydantic.dataclasses import create_pydantic_model_from_dataclass
+    from pydantic import ValidationError
+    from pydantic import __version__ as pydantic_version
+
+    pydantic_major_version: int = int(pydantic_version.split(".", 1)[0])
+    pydantic_v2: int = 2
+
+    if pydantic_major_version >= pydantic_v2:
+        from pydantic import TypeAdapter
+        from pydantic.dataclasses import (
+            dataclass as create_pydantic_model_from_dataclass,
+        )
+
+        def parse_obj_as(type_: Type[T], obj: Any) -> T:
+            return TypeAdapter(type_).validate_python(obj)
+
+    else:
+        from pydantic import parse_obj_as
+        from pydantic.dataclasses import create_pydantic_model_from_dataclass
+
+    is_pydantic_available = True
 except ModuleNotFoundError:
 
     def parse_obj_as():
@@ -48,37 +77,34 @@ except ModuleNotFoundError:
     def create_pydantic_model_from_dataclass():
         ...
 
+    class ValidationError(Exception):
+        ...
+
 
 try:
-    from trogon import Trogon
-    from trogon.schemas import ArgumentSchema, CommandName, CommandSchema, OptionSchema
+    from trogon.argparse import add_tui_argument, add_tui_command
+
+    is_tui_available = True
 except ModuleNotFoundError:
-    CommandName = NewType("CommandName", str)
 
-    class Trogon:
-        @classmethod
-        def from_schemas(cls, *_args, **_kwargs) -> "Trogon":
-            ...
-
-    @dataclass
-    class ArgumentSchema:
+    def add_tui_argument():
         ...
 
-    @dataclass
-    class OptionSchema:
+    def add_tui_command():
         ...
 
-    @dataclass
-    class CommandSchema:
-        ...
 
+try:
+    from rich_argparse import RawTextRichHelpFormatter as RawTextHelpFormatter
+
+    is_rich_available = True
+except ModuleNotFoundError:
+    from argparse import RawTextHelpFormatter  # noqa: F401
 
 if sys.version_info >= (3, 10):
     from typing import TypeGuard
 else:
     from typing_extensions import TypeGuard
-
-T = TypeVar("T", bound=type)
 
 
 def is_dataclass_type(candidate: Any) -> TypeGuard[Type[Dataclass]]:
@@ -105,18 +131,6 @@ def coalesce(x: Any, d: Any, null_or_empty: bool = False) -> Any:
     return d
 
 
-def is_pydantic_available() -> bool:
-    return create_pydantic_model_from_dataclass.__module__ != __name__
-
-
-def is_shtab_available() -> bool:
-    return add_argument_to.__module__ != __name__
-
-
-def is_tui_available() -> bool:
-    return ArgumentSchema.__module__ != __name__
-
-
 def cast_bool(value: Union[None, str, bool]) -> bool:
     if isinstance(value, bool):
         return value
@@ -135,7 +149,7 @@ def cast_bool(value: Union[None, str, bool]) -> bool:
     raise ValueError(f"Invalid literal for bool(): {value}")
 
 
-def cast_type(value: Any, target_type: Optional[T]) -> Optional[T]:
+def cast_type(target_type: Optional[T], value: Any) -> Optional[T]:
     if value is None or target_type is None or try_isinstance(value, target_type):
         return value
 
@@ -143,71 +157,15 @@ def cast_type(value: Any, target_type: Optional[T]) -> Optional[T]:
         return cast_bool(value)
 
     if try_issubclass(target_type, Enum):
-        return target_type[value]
+        try:
+            return target_type[value]
+        except KeyError as e:
+            raise ValueError(f"Given value '{value}' not one of: {target_type}") from e
 
     try:
         return target_type(value)
     except TypeError as e:
-        if is_pydantic_available():
+        if is_pydantic_available:
             return parse_obj_as(target_type, value)
 
         raise_unsupported_type_error(type(value), from_exception=e)
-
-
-def build_trogon_schema(
-    name: str,
-    description: Optional[str] = None,
-    args: Optional[Sequence[ArgparseArg]] = None,
-) -> CommandSchema:
-    arg_schemas: List[ArgumentSchema] = []
-    opt_schemas: List[OptionSchema] = []
-
-    if not args:
-        args = []
-
-    for a in args:
-        nargs: int = (
-            -1
-            if a.nargs == "*"
-            else int(a.nargs)
-            if a.nargs is not None and a.nargs.isdigit()
-            else 1
-        )
-        choices: Optional[List[str]] = None
-        if a.choices:
-            choices = [str(x) for x in a.choices]
-
-        if a.pos:
-            arg_schemas.append(
-                ArgumentSchema(
-                    name=a.dest,
-                    type=a.type,
-                    required=a.required,
-                    help=a.help,
-                    default=a.default,
-                    choices=choices,
-                    multi_value=nargs != 1,
-                    nargs=nargs,
-                ),
-            )
-        else:
-            opt_schemas.append(
-                OptionSchema(
-                    name=a.option_strings,
-                    type=a.type,
-                    required=a.required,
-                    help=a.help,
-                    default=a.default,
-                    choices=choices,
-                    multi_value=nargs != 1,
-                    nargs=nargs,
-                    is_flag=a.type is bool,
-                ),
-            )
-
-    return CommandSchema(
-        name=name,
-        docstring=description,
-        arguments=arg_schemas,
-        options=opt_schemas,
-    )

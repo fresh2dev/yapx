@@ -21,8 +21,8 @@ def test_add_command() -> None:
 
     expected: Dict[str, Any] = {
         "debug": True,
-        yapx.ArgumentParser.COMMAND_ATTRIBUTE_NAME: expected_cmd_name,
-        yapx.ArgumentParser.ARGS_ATTRIBUTE_NAME: CmdModel,
+        yapx.ArgumentParser.CMD_ATTR_NAME: expected_cmd_name,
+        yapx.ArgumentParser.CMD_FUNC_ARGS_ATTR_NAME: CmdModel,
         "str_value": "abc",
         "int_value": 5,
         "bool_value": True,
@@ -42,8 +42,8 @@ def test_add_command() -> None:
     parser: yapx.ArgumentParser = yapx.ArgumentParser()
     parser.add_arguments(RootModel)
     cmd_parser: argparse.ArgumentParser = parser.add_command(
+        CmdModel,
         name=expected_cmd_name,
-        args_model=CmdModel,
     )
 
     args: Dict[str, Any] = vars(parser.parse_args(cli_args))

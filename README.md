@@ -21,87 +21,55 @@
 [![Docker Pulls](https://img.shields.io/docker/pulls/fresh2dev/yapx?color=blue&style=for-the-badge)](https://hub.docker.com/r/fresh2dev/yapx)
 [![Docs Website](https://img.shields.io/website?down_message=unavailable&label=docs&style=for-the-badge&up_color=blue&up_message=available&url=https://www.f2dv.com/code/r/yapx/i)](https://www.f2dv.com/code/r/yapx/i)
 [![Coverage Website](https://img.shields.io/website?down_message=unavailable&label=coverage&style=for-the-badge&up_color=blue&up_message=available&url=https://www.f2dv.com/code/r/yapx/i/tests/coverage)](https://www.f2dv.com/code/r/yapx/i/tests/coverage)
-[![Funding](https://img.shields.io/badge/funding-%24%24%24-blue?style=for-the-badge)](https://www.f2dv.com/funding)
+[![Funding](https://img.shields.io/badge/funding-%24%24%24-blue?style=for-the-badge)](https://www.f2dv.com/fund)
 
----
+## Overview
 
-`yapx` is *yeah, another argparse extension* that helps you build awesome Python CLI applications with ease.
+Yapx is "yeah, another argparse extension" for building Python CLIs with the utmost simplicity.
 
-When building a Python CLI, you typically define your functions (with their arguments, types, and defaults), *then* separately define command-line arguments (along with types, defaults, etc.). The goal of yapx is to combine these steps into one. It does this by making use of type annotations (aka "type-hints") to parse your functions and build a CLI using Python's native `argparse` library.
+It works by reading type hints of Python functions and dataclasses, and uses them to construct an argparse `ArgumentParser`.
 
-yapx features:
+Yapx features:
 
-- add arguments derived from existing functions or dataclases.
-- use of environment variables as argument values.
-- perform argument type-casting and validation.
-- generation of shell-completion scripts with [shtab](https://github.com/iterative/shtab).
-- CLI to TUI support with [Trogon](https://github.com/Textualize/trogon).
-
-> Note: `yapx` is in *beta* status. Please report ideas and issues [here](https://github.com/fresh2dev/yapx/issues).
+- Support for subcommands
+- Support for lists in various forms: (positional) `1 2 3`, (multiple) `-x 1 -x 2 -x 3`, (multi-value) `-x 1 2 3`, (comma-separated), `-x 1, 2, 3`, (string) `-x '[1, 2, 3]'`
+- Support for dictionaries / key-value mappings such as `--values one=1 two=2 three=3`
+- Support for optional booleans: `--flag` / `--no-flag`
+- Support for feature flags: `--dev` / `--test` / `--prod`
+- Support for counting parameters: `-vvv`
+- Automatic "helpful" arguments: `--help`, `--help-all`, `--version`, etc.
+- Support for setting values from environment variables
 
 ## Install
 
-By default, `yapx` has no 3rd-party dependencies, but they can be added to unlock additional functionality.
+Yapx has no 3rd-party dependencies out-of-the-box:
 
 ```sh
-pip install 'yapx[extras]'
+pip install yapx
 ```
 
-What's in 'yapx[extras]'?
+Extras are available to unlock additional functionality:
 
-- `yapx[shtab]` --> support for export shell-completion scripts.
-- `yapx[pydantic]` --> support for more types.
-- `yapx[tui]` --> display the CLI as a TUI (terminal user interface).
-
+- `yapx[pydantic]`: enables support for additional types
+- `yapx[shtab]`: enables shell-completion
+- `yapx[rich]`: enables prettier help and error messages
+- `yapx[extras]`: enables each of the above
+- `trogon-yapx`: enables experimental TUI support
 
 ## Use
 
-Creating a CLI is as simple creating a Python file like so...
+See notebooks of examples here:
 
-```python title="say-hello.py"
-import yapx
-
-def say_hello(name):
-    print(f"Hello {name}.")
-
-if __name__ == "__main__":
-    yapx.run(say_hello)
-```
-
-...and invoking it from the command-line.
-
-```sh
-$ python say-hello.py --name World
-Hello world.
-```
-
-While `yapx.run` provides the most featureful experience, yapx also supports familiar argparse semantics:
-
-```python
->>> import yapx
-...
-### Define some function.
->>> def add_nums(x: int, y: int):
-...     return x + y
-...
-### Create a parser
->>> parser = yapx.ArgumentParser()
-### Add function arguments to parser.
->>> parser.add_arguments(add_nums)
-### Parse arguments.
->>> parsed = parser.parse_args(['-x', '1', '-y', '2'])
-...
-### Call function with parsed args.
->>> add_nums(parsed.x, parsed.y)
-3
-```
-
-## Read More
+https://www.f2dv.com/code/r/yapx/i/page/overview
 
 Read more about yapx @ https://www.f2dv.com/code/r/yapx/i
+
+## Support
+
+If this project delivers value to you, please [provide feedback](https://www.github.com/fresh2dev/yapx/issues), code contributions, and/or [funding](https://www.f2dv.com/fund).
 
 See all of my projects @ https://www.f2dv.com/code/r
 
 *Brought to you by...*
 
-<a href="https://www.fresh2.dev"><img src="https://img.fresh2.dev/fresh2dev.svg" style="filter: invert(50%);"></img></a>
+<a href="https://www.f2dv.com"><img src="https://img.fresh2.dev/fresh2dev.svg" style="filter: invert(50%);"></img></a>

@@ -1,8 +1,16 @@
 # CLI to TUI
 
-When the [trogon](https://github.com/Textualize/trogon) library is present, yapx will allow your app to be presented as a terminal user interface (TUI) simply by using the command-line flag `--tui`.
+Yapx offers experimental support for displaying a Textual User Interface (TUI) of your CLI.
 
-Install it using: `pip install yapx[tui]`
+It does this using my fork of the Trogon library. To use this experimental feature:
+
+```
+pip install --pre trogon-yapx
+```
+
+Yapx will detect the module and add a `--tui` flag to your CLI.
+
+## Example
 
 To create a functional app with a CLI *and* TUI, write this script to a file:
 
@@ -32,12 +40,7 @@ def say_goodbye(name, uppercase=False):
     _say_greeting(greeting="Goodbye", name=name, uppercase=uppercase)
 
 
-yapx.run(
-    setup,
-    say_hello,
-    say_goodbye,
-    _tui_flags=["--tui"],
-)
+yapx.run(setup, [say_hello, say_goodbye])
 ```
 
 Then, make the script executable:
@@ -46,27 +49,37 @@ Then, make the script executable:
 chmod +x ./example-tui.py
 ```
 
-Finally, invoke the script:
+Now invoke the script:
 
 ```sh
 ./example-tui.py --tui
 ```
 
-If you want the TUI to open by default when no arguments are provided, set `_tui_flags=[None]`, e.g.:
+If you want the TUI to open when no arguments are provided:
 
 ```python
 yapx.run(
     setup,
-    say_hello,
-    say_goodbye,
-    _tui_flags=[None],
+    [say_hello, say_goodbye],
+    default_args=["--tui"],
 )
 ```
 
-Now you can open the TUI by simply invoking the script:
+Now you can view the TUI without giving any args:
 
 ```sh
 ./example-tui.py
+```
+
+By default, the TUI is invoked with the parameter `--tui`. To use a command instead of a parameter:
+
+```python
+yapx.run(
+    setup,
+    [say_hello, say_goodbye],
+    tui_flags="tui",
+    default_args=["tui"],
+)
 ```
 
 An example TUI could look like:

@@ -50,7 +50,7 @@ class ArgparseArg:
     required: bool = True
     group: Optional[str] = None
     exclusive: Optional[bool] = False
-    nargs: Optional[str] = None
+    nargs: Optional[Union[int, str]] = None
     const: Optional[Any] = None
     default: Optional[Any] = None
     choices: Optional[Sequence[Any]] = None
@@ -84,9 +84,9 @@ def arg(
     group: Optional[str] = None,
     exclusive: Optional[bool] = False,
     flags: Union[None, str, Sequence[str]] = None,
-    # pylint: disable=redefined-builtin
-    help: Optional[str] = None,
+    help: Optional[str] = None,  # pylint: disable=redefined-builtin
     metavar: Optional[str] = None,
+    nargs: Optional[Union[int, str]] = None,
     action: Union[None, str, Type[Action]] = None,
 ) -> Field:
     """Provides an interface to modify argument options.
@@ -112,7 +112,7 @@ def arg(
         ... ):
         ...     print(f"Hello {value}")
         ...
-        >>> yapx.run(say_hello, _args=[])
+        >>> yapx.run(say_hello, args=[])
         Hello World
 
         >>> import yapx
@@ -123,7 +123,7 @@ def arg(
         ... ):
         ...     print(f"Hello {value}")
         ...
-        >>> yapx.run(say_hello, _args=[])
+        >>> yapx.run(say_hello, args=[])
         Hello World
     """
     if env:
@@ -161,6 +161,7 @@ def arg(
             exclusive=exclusive,
             help=help,
             metavar=metavar,
+            nargs=nargs,
             _env_var=env,
         ),
     }
@@ -190,12 +191,17 @@ def convert_to_command_string(x: str) -> str:
         else:
             x = x[next_under + 1 :]
 
-    x = x.strip("-").lower().replace("_", "-")
+    x = x.replace(" ", "-").replace("_", "-").strip("-")
 
     if not x:
         raise ValueError("Expected at least one character")
 
-    return x
+    if not x.islower() and not x.isupper() and "-" not in x:
+        x = "".join(
+            ["-" + c if c.isupper() and i > 0 else c for i, c in enumerate(x)],
+        )
+
+    return x.lower()
 
 
 def convert_to_flag_string(x: str) -> str:

@@ -26,15 +26,19 @@ dev = [
     "pylint-pytest==1.*",
     "mypy[reports]==1.*",
     "ruff==0.*",
-    "black==23.*",
+    "black[jupyter]==23.*",
     "isort==5.*",
     "bump2version==1.*",
-    "ipython",
     "pdbpp",
+    # python -m ipykernel install --user --name yapx
+    "ipykernel",
+    "ipywidgets",
+    "ipython",
 ]
 docs = [
     "mkdocs==1.*",
     "mkdocs-material==9.*",
+    "mkdocs-jupyter==0.24.*",
     "mkdocstrings[python]==0.20.*",
     "mkdocs-autorefs==0.*",
     "mkdocs-include-dir-to-nav==1.*",
@@ -48,24 +52,27 @@ tests = [
     "pylint==2.*",
     "pylint-pytest==1.*",
     "packaging==23.*",
-    "mockish==0.1.*",
-    "pydantic>=1.10.3,<2",
-    "shtab==1.5.8",
+    "pydantic>=1.10.3,<3",
+    "shtab==1.6.2",
+    "rich-argparse==1.*",
 ]
 pydantic = [
-    "pydantic>=1.10.3,<2",
+    "pydantic>=1.10.3,<3",
 ]
 shtab = [
-    "shtab==1.5.8",
+    "shtab==1.6.2",
 ]
-tui = [
-    "trogon-yapx==0.4.0.post1.dev1",
+rich = [
+    "rich-argparse==1.*",
 ]
 extras = [
-    "pydantic>=1.10.3,<2",
-    "shtab==1.5.8",
-    "trogon-yapx==0.4.0.post1.dev1",
+    "pydantic>=1.10.3,<3",
+    "shtab==1.6.2",
+    "rich-argparse==1.*",
 ]
+# tui = [
+#     "trogon-argparse==0.5.0",
+# ]
 
 [project.urls]
 Homepage = "https://www.f2dv.com/code/r/yapx/i"
@@ -118,7 +125,7 @@ warn_untyped_fields = true
 
 [tool.black]
 line-length = 88
-include = 'src\/.*\.pyi?$|tests\/.*\.pyi?$'
+include = 'src\/.*\.pyi?$|tests\/.*\.pyi?|docs\/.*\.ipynb$'
 
 [tool.isort]
 profile = "black"
