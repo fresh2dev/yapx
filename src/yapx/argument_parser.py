@@ -22,7 +22,7 @@ from typing import (
     Union,
 )
 
-from pkg_resources import DistributionNotFound, RequirementParseError, get_distribution
+from pkg_resources import get_distribution
 
 from .actions import (
     BooleanOptionalAction,
@@ -144,7 +144,7 @@ class ArgumentParser(argparse.ArgumentParser):
                     version_flags = [version_flags]
 
                 if self.prog and not prog_version:
-                    with suppress(RequirementParseError, DistributionNotFound):
+                    with suppress(Exception):
                         prog_version = get_distribution(self.prog).version
 
                 if prog_version:
