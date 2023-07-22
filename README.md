@@ -9,7 +9,7 @@
 | Documentation | https://www.f2dv.com/code/r/yapx/i           |
 | Changelog     | https://www.f2dv.com/code/r/yapx/i/changelog |
 | License       | https://www.f2dv.com/code/r/yapx/i/license   |
-| Funding       | https://www.f2dv.com/funding                 |
+| Funding       | https://www.f2dv.com/fund                    |
 
 [![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/fresh2dev/yapx?color=blue&style=for-the-badge)](https://www.github.com/fresh2dev/yapx/releases)
 [![GitHub Release Date](https://img.shields.io/github/release-date/fresh2dev/yapx?color=blue&style=for-the-badge)](https://www.github.com/fresh2dev/yapx/releases)

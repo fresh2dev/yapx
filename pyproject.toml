@@ -78,7 +78,7 @@ extras = [
 [project.urls]
 Homepage = "https://www.f2dv.com/code/r/yapx/i"
 Repository = "https://www.github.com/fresh2dev/yapx"
-Funding = "https://www.f2dv.com/funding"
+Funding = "https://www.f2dv.com/fund"
 
 [tool.setuptools.package-data]
 "*" = ["**"]
