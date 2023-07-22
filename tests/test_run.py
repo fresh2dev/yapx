@@ -709,6 +709,7 @@ def test_run_moar(disable_pydantic: bool):
         feet: Annotated[str, yapx.arg(nargs=0, flags=["--dev", "--prod"])] = "nada",
         stop: bool = True,
         no_fear: bool = True,
+        no_doubt: bool = False,
         fly: Optional[bool] = None,
         dowat: Optional[List[bool]] = None,
     ):
@@ -720,6 +721,7 @@ def test_run_moar(disable_pydantic: bool):
         assert feet == "prod"
         assert stop is False
         assert no_fear is False
+        assert no_doubt is False
         assert fly is False
         assert dowat == [True, False]
 

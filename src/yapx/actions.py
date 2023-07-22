@@ -24,50 +24,48 @@ class BooleanOptionalAction(Action):
         help=None,  # pylint: disable=redefined-builtin
         metavar=None,
     ):
-        self._base_case_is_negative: bool = False
-        self._negative_option_strings: List[str] = []
-
-        if option_strings:
-            self._base_case_is_negative = any(
-                x.startswith(self.NEGATION_PREFIX) for x in option_strings
-            )
-
-            if self._base_case_is_negative and default is not None:
-                default = not default
+        self._negation_option_strings: List[str] = []
 
         _option_strings = []
         for option_string in option_strings:
-            if "/" in option_string:
+            if not option_string.startswith("--"):
+                _option_strings.append(option_string)
+            elif "/" in option_string:
                 opt_str, opt_str_neg = map(
                     str.strip,
                     option_string.split("/", maxsplit=1),
                 )
 
                 _option_strings.extend([opt_str, opt_str_neg])
-                self._negative_option_strings.append(opt_str_neg)
-            elif not option_string.startswith("--"):
-                _option_strings.append(option_string)
+
+                self._negation_option_strings.append(opt_str_neg)
             elif not option_string.startswith(self.NEGATION_PREFIX):
+                opt_str_neg = self.NEGATION_PREFIX + option_string[2:]
                 _option_strings.extend(
                     [
                         option_string,
-                        self.NEGATION_PREFIX + option_string[2:],
+                        opt_str_neg,
                     ],
                 )
-            elif default is False:
-                _option_strings.extend(
-                    [
-                        "--" + option_string[len(self.NEGATION_PREFIX) :],
-                        option_string,
-                    ],
-                )
-            else:  # elif default is None or default:
-                _option_strings.extend(
-                    [
-                        option_string,
-                        "--" + option_string[len(self.NEGATION_PREFIX) :],
-                    ],
-                )
+                self._negation_option_strings.append(opt_str_neg)
+            else:  # if option_string.startswith(self.NEGATION_PREFIX):
+                opt_str_neg = "--" + option_string[len(self.NEGATION_PREFIX) :]
+                if default is False:
+                    _option_strings.extend(
+                        [
+                            opt_str_neg,
+                            option_string,
+                        ],
+                    )
+                else:  # elif default is None or default:
+                    _option_strings.extend(
+                        [
+                            option_string,
+                            opt_str_neg,
+                        ],
+                    )
+
+                self._negation_option_strings.append(opt_str_neg)
 
         super().__init__(
             option_strings=_option_strings,
@@ -83,12 +81,7 @@ class BooleanOptionalAction(Action):
 
     def __call__(self, parser, namespace, values, option_string=None):
         if option_string:
-            value: bool = (
-                not option_string.startswith(self.NEGATION_PREFIX)
-                and option_string not in self._negative_option_strings
-            )
-            if self._base_case_is_negative and value is not None:
-                value = not value
+            value: bool = option_string not in self._negation_option_strings
         else:
             dest_type: Type[Any] = parser._dest_type.get(self.dest, bool)
             value = dest_type(values)
