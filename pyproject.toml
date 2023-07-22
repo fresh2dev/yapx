@@ -53,26 +53,27 @@ tests = [
     "pylint-pytest==1.*",
     "packaging==23.*",
     "pydantic>=1.10.3,<3",
-    "shtab==1.6.2",
+    "shtab==1.6.*",
     "rich-argparse==1.*",
 ]
 pydantic = [
     "pydantic>=1.10.3,<3",
 ]
 shtab = [
-    "shtab==1.6.2",
+    "shtab==1.6.*",
 ]
 rich = [
     "rich-argparse==1.*",
+]
+tui = [
+    "argparse-tui>=0.1.2,<1",
 ]
 extras = [
     "pydantic>=1.10.3,<3",
     "shtab==1.6.2",
     "rich-argparse==1.*",
+    "argparse-tui>=0.1.2,<1",
 ]
-# tui = [
-#     "trogon-argparse==0.5.0",
-# ]
 
 [project.urls]
 Homepage = "https://www.f2dv.com/code/r/yapx/i"

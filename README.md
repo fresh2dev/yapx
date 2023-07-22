@@ -53,8 +53,8 @@ Extras are available to unlock additional functionality:
 - `yapx[pydantic]`: enables support for additional types
 - `yapx[shtab]`: enables shell-completion
 - `yapx[rich]`: enables prettier help and error messages
+- `yapx[tui]`: enables experimental TUI support
 - `yapx[extras]`: enables each of the above
-- `trogon-yapx`: enables experimental TUI support
 
 ## Use
 
