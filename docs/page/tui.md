@@ -2,10 +2,10 @@
 
 Yapx offers experimental support for displaying a Textual User Interface (TUI) of your CLI.
 
-It does this using my fork of the Trogon library. To use this experimental feature:
+It does this using [argparse-tui](https://github.com/fresh2dev/argparse-tui), my fork of the Textualize [Trogon library](https://github.com/Textualize/trogon). To use this experimental feature:
 
 ```
-pip install --pre trogon-yapx
+pip install yapx[tui]
 ```
 
 Yapx will detect the module and add a `--tui` flag to your CLI.

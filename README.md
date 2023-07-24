@@ -9,7 +9,7 @@
 | Documentation | https://www.f2dv.com/code/r/yapx/i           |
 | Changelog     | https://www.f2dv.com/code/r/yapx/i/changelog |
 | License       | https://www.f2dv.com/code/r/yapx/i/license   |
-| Funding       | https://www.f2dv.com/funding                 |
+| Funding       | https://www.f2dv.com/fund                    |
 
 [![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/fresh2dev/yapx?color=blue&style=for-the-badge)](https://www.github.com/fresh2dev/yapx/releases)
 [![GitHub Release Date](https://img.shields.io/github/release-date/fresh2dev/yapx?color=blue&style=for-the-badge)](https://www.github.com/fresh2dev/yapx/releases)
@@ -53,8 +53,8 @@ Extras are available to unlock additional functionality:
 - `yapx[pydantic]`: enables support for additional types
 - `yapx[shtab]`: enables shell-completion
 - `yapx[rich]`: enables prettier help and error messages
+- `yapx[tui]`: enables experimental TUI support
 - `yapx[extras]`: enables each of the above
-- `trogon-yapx`: enables experimental TUI support
 
 ## Use
 

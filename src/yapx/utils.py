@@ -82,7 +82,7 @@ except ModuleNotFoundError:
 
 
 try:
-    from trogon.argparse import add_tui_argument, add_tui_command
+    from argparse_tui import add_tui_argument, add_tui_command
 
     is_tui_available = True
 except ModuleNotFoundError:
