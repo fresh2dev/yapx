@@ -103,6 +103,8 @@ class ArgumentParser(argparse.ArgumentParser):
             **kwargs,
         )
 
+        self._subparsers_action: Optional[argparse._SubParsersAction] = None
+
         # self._positionals.title = "commands"
         self._optionals.title = "helpful parameters"
 
@@ -178,6 +180,7 @@ class ArgumentParser(argparse.ArgumentParser):
                     tui_flags = [tui_flags]
 
                 if len(tui_flags) == 1 and not tui_flags[0].startswith("-"):
+                    self._get_or_add_subparsers()
                     add_tui_command(
                         parser=self,
                         option_strings=tui_flags[0],
@@ -231,11 +234,12 @@ class ArgumentParser(argparse.ArgumentParser):
 
         super().print_help(file)
 
-        if include_commands:
-            subparsers: Optional[argparse._SubParsersAction] = self._get_subparsers()
-            if subparsers:
-                for _choice, subparser in subparsers.choices.items():
-                    subparser.print_help(file, include_commands=include_commands)
+        if include_commands and self._subparsers:
+            if self._subparsers_action is None:
+                self._subparsers_action = self._find_subparsers_action()
+
+            for _choice, subparser in self._subparsers_action.choices.items():
+                subparser.print_help(file, include_commands=include_commands)
 
         self.usage = usage
 
@@ -767,7 +771,7 @@ class ArgumentParser(argparse.ArgumentParser):
 
         return type_container_subtype
 
-    def _get_subparsers(self) -> Optional[argparse._SubParsersAction]:
+    def _find_subparsers_action(self) -> Optional[argparse._SubParsersAction]:
         for a in self._actions:
             if isinstance(
                 a,
@@ -777,21 +781,22 @@ class ArgumentParser(argparse.ArgumentParser):
         return None
 
     def _get_or_add_subparsers(self) -> argparse._SubParsersAction:
-        subparsers = self._get_subparsers()
+        if self._subparsers_action is None:
+            if self._subparsers:
+                self._subparsers_action = self._find_subparsers_action()
+            else:
+                self._subparsers_action = self.add_subparsers(
+                    title="commands",
+                    metavar="<COMMAND>",
+                    dest=self.CMD_ATTR_NAME,
+                    parser_class=lambda **k: type(self)(
+                        **k,
+                        _is_subparser=True,
+                        formatter_class=self.formatter_class,
+                    ),
+                )
 
-        if not subparsers:
-            subparsers = self.add_subparsers(
-                title="commands",
-                metavar="<COMMAND>",
-                dest=self.CMD_ATTR_NAME,
-                parser_class=lambda **k: type(self)(
-                    **k,
-                    _is_subparser=True,
-                    formatter_class=self.formatter_class,
-                ),
-            )
-
-        return subparsers
+        return self._subparsers_action
 
     def _post_parse_args(  # type: ignore[override]
         self,
