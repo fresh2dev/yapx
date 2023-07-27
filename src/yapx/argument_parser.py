@@ -771,32 +771,43 @@ class ArgumentParser(argparse.ArgumentParser):
 
         return type_container_subtype
 
+    def add_subparsers(self, **kwargs) -> argparse._SubParsersAction:
+        kwargs["title"] = kwargs.get("title", "commands")
+        kwargs["metavar"] = kwargs.get("metavar", "<COMMAND>")
+        kwargs["dest"] = kwargs.get("dest", self.CMD_ATTR_NAME)
+        kwargs["parser_class"] = kwargs.get(
+            "parser_class",
+            lambda **k: type(self)(
+                **k,
+                _is_subparser=True,
+                formatter_class=self.formatter_class,
+            ),
+        )
+
+        self._subparsers_action = super().add_subparsers(**kwargs)
+
+        return self._subparsers_action
+
     def _find_subparsers_action(self) -> Optional[argparse._SubParsersAction]:
         for a in self._actions:
             if isinstance(
                 a,
                 argparse._SubParsersAction,  # pylint: disable=protected-access
             ):
-                return a
+                self._subparsers_action = a
+                return self._subparsers_action
         return None
 
     def _get_or_add_subparsers(self) -> argparse._SubParsersAction:
-        if self._subparsers_action is None:
-            if self._subparsers:
-                self._subparsers_action = self._find_subparsers_action()
-            else:
-                self._subparsers_action = self.add_subparsers(
-                    title="commands",
-                    metavar="<COMMAND>",
-                    dest=self.CMD_ATTR_NAME,
-                    parser_class=lambda **k: type(self)(
-                        **k,
-                        _is_subparser=True,
-                        formatter_class=self.formatter_class,
-                    ),
-                )
+        if self._subparsers_action is not None:
+            return self._subparsers_action
 
-        return self._subparsers_action
+        if self._subparsers:
+            self._find_subparsers_action()
+            assert self._subparsers_action
+            return self._subparsers_action
+
+        return self.add_subparsers()
 
     def _post_parse_args(  # type: ignore[override]
         self,
