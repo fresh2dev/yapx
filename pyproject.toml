@@ -7,7 +7,7 @@ name = "yapx"
 authors = [
     {name = "Donald Mellenbruch", email = "hello@f2dv.com"},
 ]
-description = "Build awesome Python CLIs with ease."
+description = "The next generation of Python's Argparse."
 readme = "README.md"
 license = {file = "LICENSE"}
 requires-python = ">=3.7"
@@ -76,7 +76,7 @@ extras = [
 ]
 
 [project.urls]
-Homepage = "https://www.f2dv.com/code/r/yapx/i"
+Homepage = "https://www.f2dv.com/r/yapx"
 Repository = "https://www.github.com/fresh2dev/yapx"
 Funding = "https://www.f2dv.com/fund"
 

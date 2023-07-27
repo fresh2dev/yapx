@@ -1,6 +1,6 @@
-site_name: "Yapx"
-site_description: "Yapx Docs"
-site_url: !ENV [MKDOCS_SITE_URL, "https://www.f2dv.com/code/r/yapx/i"]
+site_name: "yapx"
+site_description: "yapx Docs"
+site_url: !ENV [MKDOCS_SITE_URL, "https://www.f2dv.com/r/yapx"]
 repo_url: "https://www.github.com/fresh2dev/yapx"
 repo_name: "fresh2dev/yapx"
 edit_uri: "edit/main/docs"
@@ -30,8 +30,8 @@ nav:
   - License: license.md
   - Discussion: comments.md
   - '<- f2dv.com':
-    - '/blog': 'https://www.f2dv.com'
-    - '/code': 'https://www.f2dv.com/code/r/'
+    - '/home': 'https://www.f2dv.com'
+    - '/code': 'https://www.f2dv.com/projects'
     - '/fund': 'https://www.f2dv.com/fund'
 
 watch:
