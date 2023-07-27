@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.2.2] - 2023-07-28
+
+### :clap: Features
+
+- Override add_subparsers defaults [54b88a5]
+
+## [0.2.1] - 2023-07-24
+
+### :point_right: Changes
+
+- Use argparse-tui fork of trogon [ce7917c]
+- refactor: BooleanOptionalAction [4910820]
+- refactor: Small optimizations [e32e101]
+
 ## 0.2.0 - 2023-07-18
 
 - better error handling
