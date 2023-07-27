@@ -27,4 +27,4 @@ A trusted tool for building CLIs.
 
 `myke` is a superset of the yapx project with an emphasis on task execution, à la `make`. yapx is the library and myke is an instantiation of it.
 
-Read more about myke @ https://www.f2dv.com/code/r/myke/i
+Read more about myke @ https://www.f2dv.com/r/myke
