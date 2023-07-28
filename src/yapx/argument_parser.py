@@ -538,6 +538,12 @@ class ArgumentParser(argparse.ArgumentParser):
                             fld_type,
                         )
 
+                    if argparse_argument.pos and argparse_argument.nargs is None:
+                        if argparse_argument.required:
+                            argparse_argument.nargs = "+"
+                        else:
+                            argparse_argument.nargs = "*"
+
                     # type-containers must only contain strings
                     # until parsed by argparse.
                     fld_type = str
