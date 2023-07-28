@@ -490,7 +490,7 @@ def test_run_pos_list(disable_pydantic: bool):
         return this, that
 
     # 1. ARRANGE
-    cli_args: List[str] = ["--that", "world"]
+    cli_args: List[str] = ["one", "two", "three", "--that", "world"]
 
     # 2. ACT
     result: List[Any] = yapx.run_patched(
