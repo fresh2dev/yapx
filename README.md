@@ -59,15 +59,15 @@ Extras are available to unlock additional functionality:
 
 See notebooks of examples here:
 
-https://www.f2dv.com/code/r/yapx/i/page/overview
+https://www.f2dv.com/r/yapx/page/overview
 
-Read more about yapx @ https://www.f2dv.com/code/r/yapx/i
+Read more about yapx @ https://www.f2dv.com/r/yapx
 
 ## Support
 
 If this project delivers value to you, please [provide feedback](https://www.github.com/fresh2dev/yapx/issues), code contributions, and/or [funding](https://www.f2dv.com/fund).
 
-See all of my projects @ https://www.f2dv.com/code/r
+See all of my projects @ https://www.f2dv.com/projects
 
 *Brought to you by...*
 
