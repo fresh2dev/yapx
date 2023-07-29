@@ -91,17 +91,28 @@ class ArgumentParser(argparse.ArgumentParser):
         tui_flags: Optional[List[str]] = None,
         completion_flags: Optional[List[str]] = None,
         formatter_class: Type[Any] = RawTextHelpFormatter,
-        _is_subparser: bool = False,
+        _parent_parser: Optional["ArgumentParser"] = None,
         **kwargs: Any,
     ):
+        if _parent_parser:
+            description = None
+            formatter_class = _parent_parser.formatter_class
+            if help_flags is None:
+                help_flags = _parent_parser._help_flags
+            if tui_flags is None:
+                tui_flags = _parent_parser._tui_flags
+
         super().__init__(
             *args,
             prog=prog,
-            description=None if _is_subparser else description,
             add_help=False,
+            description=description,
             formatter_class=formatter_class,
             **kwargs,
         )
+
+        self._help_flags = help_flags
+        self._tui_flags = tui_flags
 
         self._subparsers_action: Optional[argparse._SubParsersAction] = None
 
@@ -115,7 +126,7 @@ class ArgumentParser(argparse.ArgumentParser):
             if isinstance(help_flags, str):
                 help_flags = [help_flags]
             self.add_argument(
-                *[x for x in help_flags if x],
+                *help_flags,
                 action=HelpAction,
                 help="Show this help message.",
             )
@@ -129,7 +140,35 @@ class ArgumentParser(argparse.ArgumentParser):
 
         self._dest_type: Dict[str, Union[type, Callable[[str], Any]]] = {}
 
-        if not _is_subparser:
+        if is_tui_available:
+            if tui_flags is None:
+                tui_flags = ["--tui"]
+            elif isinstance(tui_flags, str):
+                tui_flags = [tui_flags]
+
+            tui_help: str = "Show Textual User Interface (TUI)."
+
+            if len(tui_flags) == 1 and not tui_flags[0].startswith("-"):
+                if not _parent_parser:
+                    self._get_or_add_subparsers()
+                    add_tui_command(
+                        parser=self,
+                        command=tui_flags[0],
+                        help=tui_help,
+                    )
+            else:
+                tui_flags = [
+                    (x if x.startswith("-") else f"--{x}" if len(x) > 1 else f"-{x}")
+                    for x in tui_flags
+                ]
+                add_tui_argument(
+                    parser=self,
+                    parent_parser=_parent_parser,
+                    option_strings=tui_flags,
+                    help=tui_help,
+                )
+
+        if not _parent_parser:
             if help_flags:
                 help_all_flags = [f"{x}-all" for x in help_flags if x.startswith("--")]
                 self.add_argument(
@@ -171,27 +210,6 @@ class ArgumentParser(argparse.ArgumentParser):
                     choices=SUPPORTED_SHELLS,
                     help="Print shell completion script.",
                 )
-
-            if tui_flags is None:
-                tui_flags = ["--tui"]
-
-            if tui_flags and is_tui_available:
-                if isinstance(tui_flags, str):
-                    tui_flags = [tui_flags]
-
-                if len(tui_flags) == 1 and not tui_flags[0].startswith("-"):
-                    self._get_or_add_subparsers()
-                    add_tui_command(
-                        parser=self,
-                        option_strings=tui_flags[0],
-                        help="Show Textual User Interface (TUI).",
-                    )
-                else:
-                    add_tui_argument(
-                        parser=self,
-                        option_strings=tui_flags,
-                        help="Show Textual User Interface (TUI).",
-                    )
 
     def error(self, message: str):
         self.print_usage(sys.stderr)
@@ -778,16 +796,17 @@ class ArgumentParser(argparse.ArgumentParser):
         return type_container_subtype
 
     def add_subparsers(self, **kwargs) -> argparse._SubParsersAction:
-        kwargs["title"] = kwargs.get("title", "commands")
-        kwargs["metavar"] = kwargs.get("metavar", "<COMMAND>")
-        kwargs["dest"] = kwargs.get("dest", self.CMD_ATTR_NAME)
+        default_kwargs: Dict[str, Any] = {
+            "title": "commands",
+            "metavar": "<COMMAND>",
+            "dest": self.CMD_ATTR_NAME,
+        }
+        for k, v in default_kwargs.items():
+            kwargs[k] = kwargs.get(k, v)
+
         kwargs["parser_class"] = kwargs.get(
             "parser_class",
-            lambda **k: type(self)(
-                **k,
-                _is_subparser=True,
-                formatter_class=self.formatter_class,
-            ),
+            lambda **k: type(self)(**k, _parent_parser=self),
         )
 
         self._subparsers_action = super().add_subparsers(**kwargs)
