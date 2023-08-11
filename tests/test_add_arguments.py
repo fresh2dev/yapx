@@ -79,7 +79,7 @@ else:
             None,
             ArgparseArg(
                 option_strings=["--a-str"],
-                help="> Type: str, Default: %(default)s",
+                help="> Type: str",
                 required=False,
                 default=None,
             ),
@@ -112,7 +112,7 @@ else:
             None,
             ArgparseArg(
                 option_strings=["--a-int"],
-                help="> Type: int, Default: %(default)s",
+                help="> Type: int",
                 required=False,
                 default=None,
             ),

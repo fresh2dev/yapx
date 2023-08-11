@@ -85,28 +85,28 @@ def run(
         ...
         >>> def print_nums(*args):
         ...     print('Args: ', *args)
+        ...     return args
         ...
-        >>> def find_evens(*args):
-        ...     return [x for x in args if int(x) % 2 == 0]
+        >>> def find_evens(_relay_value):
+        ...     return [x for x in _relay_value if int(x) % 2 == 0]
         ...
-        >>> def find_odds(*args):
-        ...     return [x for x in args if int(x) % 2 != 0]
+        >>> def find_odds(_relay_value):
+        ...     return [x for x in _relay_value if int(x) % 2 != 0]
         ...
-        >>> cli_args = ['find-odds', '1', '2', '3', '4', '5']
+        >>> cli_args = ['1', '2', '3', '4', '5', 'find-odds']
         >>> yapx.run(print_nums, [find_evens, find_odds], args=cli_args)
         Args:  1 2 3 4 5
         ['1', '3', '5']
     """
     # pylint: disable=protected-access
-    with suppress(SystemExit):
-        return ArgumentParser._run(
-            command=command,
-            subcommands=subcommands,
-            named_subcommands=named_subcommands,
-            args=args,
-            default_args=default_args,
-            **kwargs,
-        )
+    return ArgumentParser._run(
+        command=command,
+        subcommands=subcommands,
+        named_subcommands=named_subcommands,
+        args=args,
+        default_args=default_args,
+        **kwargs,
+    )
 
 
 def run_commands(

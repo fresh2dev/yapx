@@ -530,14 +530,15 @@ def test_print_shell_completion(capsys: CaptureFixture):
     not_expected: List[str] = []
 
     # 2. ACT
-    yapx.run(
-        example_setup,
-        [
-            example_empty_subcmd,
-            example_subcmd,
-        ],
-        args=cli_args,
-    )
+    with pytest.raises(SystemExit):
+        yapx.run(
+            example_setup,
+            [
+                example_empty_subcmd,
+                example_subcmd,
+            ],
+            args=cli_args,
+        )
 
     # 3. ASSERT
     captured: CaptureResult = capsys.readouterr()
@@ -551,18 +552,23 @@ def test_print_shell_completion(capsys: CaptureFixture):
 
 def test_extra_args():
     # 1. ARRANGE
-    cli_args: List[str] = ["subcmd", "what", "in", "the", "--world=this", "--wat"]
-    expected: List[str] = [x for x in cli_args[1:] if not x.startswith("-")]
+    cli_args: List[str] = [
+        "--",
+        "what",
+        "--in",
+        "-the",
+        "--world=this",
+        "--wat",
+        "subcmd",
+    ]
+    expected: List[str] = cli_args[1:-1]
 
     def _setup(
         *args,
-        **kwargs,
     ) -> List[str]:
-        assert kwargs["--world"] == "this"
-        assert kwargs["--wat"] is None
         return list(args)
 
-    def _subcmd(_relay_value: Any, _called_from_cli=False) -> str:
+    def _subcmd(_relay_value: List[str], _called_from_cli=False) -> List[str]:
         assert _relay_value == expected
         assert _called_from_cli is True
         return _relay_value
@@ -750,7 +756,8 @@ def test_run_moar(disable_pydantic: bool):
 
 @pytest.mark.parametrize("disable_pydantic", [False, True])
 def test_run_everything(disable_pydantic: bool):
-    def _setup():
+    def _setup(_test_private: Annotated[bool, yapx.arg(True)]):
+        assert _test_private is True
         return "hello_relay"
 
     def _func(
@@ -805,13 +812,10 @@ def test_run_everything(disable_pydantic: bool):
         v38: Dict[str, float] = yapx.arg(lambda: {"hello": 3.22}),
         #
         _relay_value: Any = None,
-        **kwargs: Optional[str],
     ) -> None:
         assert args
         assert "purposefully_extra" in args
-        assert kwargs
-        assert "--purposefully" in kwargs
-        assert kwargs["--purposefully"] == "extra"
+
         assert _relay_value == "hello_relay"
 
         assert v1 == "hello_v1"
@@ -906,8 +910,6 @@ def test_run_everything(disable_pydantic: bool):
         "hello=3.19,",
         "--v35",
         "world=3.192",
-        "--purposefully",
-        "extra",
         "--",
         "purposefully_extra",
         "purposefully_hello=world",

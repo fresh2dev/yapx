@@ -3,7 +3,7 @@ import sys
 from argparse import Action
 from contextlib import suppress
 from dataclasses import MISSING, Field, dataclass, field, make_dataclass
-from inspect import Parameter, _empty, signature
+from inspect import Parameter, signature
 from pathlib import Path
 from typing import (
     Any,
@@ -28,17 +28,28 @@ else:
     from typing_extensions import Literal  # pylint: disable=unused-import # noqa: F401
 
 if sys.version_info >= (3, 9):
-    from typing import Annotated  # pylint: disable=unused-import # noqa: F401
+    # pylint: disable=unused-import
+    from typing import Annotated  # noqa: F401
+    from typing import _AnnotatedAlias  # noqa: F401
 else:
-    from typing_extensions import (  # pylint: disable=unused-import # noqa: F401
-        Annotated,
-    )
-
-
-__all__ = ["arg"]
+    # pylint: disable=unused-import
+    from typing_extensions import Annotated  # noqa: F401
+    from typing_extensions import _AnnotatedAlias  # noqa: F401
 
 
 ARGPARSE_ARG_METADATA_KEY: str = "_argparse_argument"
+
+
+def get_type_origin(t: Type[Any]) -> Optional[Type[Any]]:
+    return getattr(t, "__origin__", None)
+
+
+def get_type_args(t: Type[Any]) -> Tuple[Type[Any], ...]:
+    return getattr(t, "__args__", ())
+
+
+def get_type_metadata(t: Type[Any]) -> Tuple[Type[Any], ...]:
+    return getattr(t, "__metadata__", ())
 
 
 @dataclass
@@ -233,7 +244,6 @@ def _eval_type(type_str: str) -> Type[Any]:
 def make_dataclass_from_func(
     func: Callable[..., Any],
     base_classes: Optional[Tuple[Type[Dataclass], ...]] = None,
-    include_private_params: bool = False,
 ) -> Type[Dataclass]:
     if base_classes is None:
         base_classes = ()
@@ -252,11 +262,13 @@ def make_dataclass_from_func(
         # via `from __future__ import annotations`
         type_hints = {}
 
-    param: Parameter
-    for param in func_signature.parameters.values():
-        if str(param).startswith("*") or (
-            not include_private_params and param.name.startswith("_")
-        ):
+    params: List[Parameter] = list(func_signature.parameters.values())
+
+    if params and params[0].kind is params[0].VAR_POSITIONAL:
+        params = [*params[1:], params[0]]
+
+    for param in params:
+        if param.kind is param.VAR_KEYWORD:
             continue
 
         annotation: Type[Any] = (
@@ -268,26 +280,45 @@ def make_dataclass_from_func(
         default: Any = param.default
         default_value: Any
 
+        if (
+            param.name.startswith("_")
+            and not isinstance(default, Field)
+            and (
+                not isinstance(annotation, _AnnotatedAlias)
+                or not any(isinstance(x, Field) for x in get_type_metadata(annotation))
+            )
+        ):
+            continue
+
         field_metadata: Field
 
-        if isinstance(default, Field):
+        fallback_type: Type[Any] = str
+
+        if param.kind is param.VAR_POSITIONAL:
+            assert not isinstance(annotation, _AnnotatedAlias)
+            assert param.default is param.empty
+            field_metadata = arg(
+                default=None,
+                pos=True,
+                nargs="*",
+                metavar="<...>",
+                help="Any extra command-line values.",
+            )
+            default_value = MISSING
+            if annotation is param.empty:
+                annotation = fallback_type
+            annotation = Optional[Sequence[annotation]]
+        elif isinstance(default, Field):
             if default.default_factory is not MISSING:
                 default_value = default.default_factory()
             else:
                 default_value = default.default
             field_metadata = default
         else:
-            if default is _empty:  # pylint: disable=protected-access
-                default_value = MISSING
-            else:
-                default_value = default
-
+            default_value = MISSING if default is param.empty else default
             field_metadata = arg(default=default_value)
 
-        fallback_type: Type[Any] = str
-
-        # pylint: disable=protected-access
-        if annotation is _empty:
+        if annotation is param.empty:
             if default_value is MISSING:
                 annotation = fallback_type
             elif default_value is None:
@@ -297,12 +328,11 @@ def make_dataclass_from_func(
                 if type_of_default in (str, int, float, bool):
                     annotation = type_of_default
                 else:
-                    raise TypeError(
-                        (
-                            f"Provide explicit type annotation for '{param.name}' "
-                            f"(type  of default is '{type_of_default})'"
-                        ),
+                    err: str = (
+                        f"Provide explicit type annotation for '{param.name}' "
+                        f"(type of default is '{type_of_default})'"
                     )
+                    raise TypeError(err)
 
         fields.append((param.name, annotation, field_metadata))
 

@@ -41,6 +41,9 @@ from .arg import (
     ArgparseArg,
     _eval_type,
     convert_to_command_string,
+    get_type_args,
+    get_type_metadata,
+    get_type_origin,
     make_dataclass_from_func,
 )
 from .exceptions import NoArgsModelError, raise_unsupported_type_error
@@ -474,23 +477,23 @@ class ArgumentParser(argparse.ArgumentParser):
 
             if (
                 sys.version_info >= (3, 10) and try_isinstance(fld_type, UnionType)
-            ) or cls._get_type_origin(fld_type) is Union:
+            ) or get_type_origin(fld_type) is Union:
                 fld_type = cls._extract_type_from_container(
                     fld_type,
                     is_union_type=True,
                 )
 
             if try_isinstance(fld_type, _AnnotatedAlias):
-                for x in cls._get_type_metadata(fld_type):
+                for x in get_type_metadata(fld_type):
                     if isinstance(x, Field) and ARGPARSE_ARG_METADATA_KEY in x.metadata:
                         argparse_argument = x.metadata[ARGPARSE_ARG_METADATA_KEY]
                         break
 
-                fld_type = cls._get_type_origin(fld_type)
+                fld_type = get_type_origin(fld_type)
 
                 if (
                     sys.version_info >= (3, 10) and try_isinstance(fld_type, UnionType)
-                ) or cls._get_type_origin(fld_type) is Union:
+                ) or get_type_origin(fld_type) is Union:
                     fld_type = cls._extract_type_from_container(
                         fld_type,
                         is_union_type=True,
@@ -512,10 +515,10 @@ class ArgumentParser(argparse.ArgumentParser):
                     argparse_argument.default = fld.default_factory()
                     argparse_argument.required = False
 
-            fld_type_origin: Optional[Type[Any]] = cls._get_type_origin(fld_type)
+            fld_type_origin: Optional[Type[Any]] = get_type_origin(fld_type)
             if fld_type_origin:
                 if fld_type_origin and fld_type_origin is Literal:
-                    argparse_argument.choices = list(cls._get_type_args(fld_type))
+                    argparse_argument.choices = list(get_type_args(fld_type))
                     if argparse_argument.choices:
                         fld_type = type(argparse_argument.choices[0])
                 else:
@@ -665,8 +668,8 @@ class ArgumentParser(argparse.ArgumentParser):
             help_msg_parts: List[str] = [f"Type: {help_type}"]
 
             # pylint: disable=protected-access
-            if not required:
-                if isinstance(kwargs.get("default"), str):
+            if not required and kwargs.get("default") is not None:
+                if isinstance(kwargs["default"], str):
                     help_msg_parts.append('Default: "%(default)s"')
                 else:
                     help_msg_parts.append("Default: %(default)s")
@@ -718,18 +721,6 @@ class ArgumentParser(argparse.ArgumentParser):
 
         return added_args
 
-    @staticmethod
-    def _get_type_origin(t: Type[Any]) -> Optional[Type[Any]]:
-        return getattr(t, "__origin__", None)
-
-    @staticmethod
-    def _get_type_args(t: Type[Any]) -> Tuple[Type[Any], ...]:
-        return getattr(t, "__args__", ())
-
-    @staticmethod
-    def _get_type_metadata(t: Type[Any]) -> Tuple[Type[Any], ...]:
-        return getattr(t, "__metadata__", ())
-
     @classmethod
     def _extract_type_from_container(
         cls,
@@ -738,7 +729,7 @@ class ArgumentParser(argparse.ArgumentParser):
         is_union_type: bool = False,
     ) -> Type[Any]:
         type_container_origin: Any = (
-            Union if is_union_type else cls._get_type_origin(type_container)
+            Union if is_union_type else get_type_origin(type_container)
         )
 
         if type_container_origin is None:
@@ -746,7 +737,7 @@ class ArgumentParser(argparse.ArgumentParser):
                 f"Given type is not a container: {type_container.__name__}",
             )
 
-        type_container_args = cls._get_type_args(type_container)
+        type_container_args = get_type_args(type_container)
 
         results: List[Type[Any]] = [
             a for a in type_container_args if a is not ... and a is not NoneType
@@ -777,13 +768,13 @@ class ArgumentParser(argparse.ArgumentParser):
         if not results:
             raise TypeError("Too many types in container")
 
-        type_container_subtype_origin = cls._get_type_origin(type_container_subtype)
+        type_container_subtype_origin = get_type_origin(type_container_subtype)
 
         if type_container_subtype_origin is Union:
             type_container_subtype = cls._extract_type_from_container(
                 type_container_subtype,
             )
-            type_container_subtype_origin = cls._get_type_origin(type_container_subtype)
+            type_container_subtype_origin = get_type_origin(type_container_subtype)
 
         if (
             assert_primitive
@@ -1063,7 +1054,7 @@ class ArgumentParser(argparse.ArgumentParser):
         parser: argparse.ArgumentParser,
         args_model: Union[Callable[..., Any], Type[Dataclass]],
     ) -> None:
-        description: str = cls._get_description_from_docstring(args_model)
+        description: Optional[str] = cls._get_description_from_docstring(args_model)
 
         if description:
             parser.description = description
@@ -1074,39 +1065,21 @@ class ArgumentParser(argparse.ArgumentParser):
         parser: "ArgumentParser",
         func: Callable[..., Any],
         namespace: Namespace,
-        unknown_args: List[str],
+        #  unknown_args: List[str],
         args_model: Optional[Type[Any]] = None,
-        linked_func: Optional[Callable[..., Any]] = None,
         relay_value: Optional[Any] = None,
     ) -> Any:
-        func_args: List[str] = []
-        func_kwargs: Dict[str, Optional[Any]] = {}
+        func_var_kwargs: Dict[str, Optional[Any]] = {}
 
-        accepts_args: bool = False
-        accepts_kwargs: bool = False
-
-        extra_args_ok: bool = False
+        var_arg_name: Optional[str] = None
 
         for p in signature(func).parameters.values():
-            if str(p).startswith("*"):
-                extra_args_ok = True
-                if str(p).startswith("**"):
-                    accepts_kwargs = True
-                else:
-                    accepts_args = True
+            if p.kind is p.VAR_POSITIONAL:
+                var_arg_name = p.name
             elif p.name == "_relay_value":
-                func_kwargs["_relay_value"] = relay_value
+                func_var_kwargs["_relay_value"] = relay_value
             elif p.name == "_called_from_cli":
-                func_kwargs["_called_from_cli"] = True
-
-        if not extra_args_ok and linked_func:
-            extra_args_ok = any(
-                str(p).startswith("*")
-                for p in signature(linked_func).parameters.values()
-            )
-
-        if unknown_args and not extra_args_ok:
-            parser.error(f"unrecognized arguments: {' '.join(unknown_args)}")
+                func_var_kwargs["_called_from_cli"] = True
 
         if not args_model:
             args_model = make_dataclass_from_func(func)
@@ -1118,36 +1091,11 @@ class ArgumentParser(argparse.ArgumentParser):
             )
         )
 
-        if accepts_kwargs:
-            unknown_name_map: Dict[str, str] = {}
-            unknown_parser: ArgumentParser = cls()
-            for x in unknown_args:
-                if x.startswith("-"):
-                    x_flag: str = x.split("=", maxsplit=1)[0]
-                    x_flag_bare = x_flag.lstrip("-")
-                    if x_flag_bare:
-                        unknown_parser.add_argument(
-                            x_flag,
-                            nargs="?",
-                            default=None,
-                            required=False,
-                        )
-                        unknown_name_map[x_flag_bare] = x_flag
+        func_var_kwargs.update(vars(model_inst))
 
-            parsed_unknown, unknown_args = unknown_parser.parse_known_args(
-                args=unknown_args,
-            )
+        func_var_args: List[str] = func_var_kwargs.pop(var_arg_name, [])  # unknown_args
 
-            extra_kwargs: Dict[str, str] = {
-                unknown_name_map[k]: v for k, v in vars(parsed_unknown).items()
-            }
-
-            func_kwargs.update(extra_kwargs)
-
-        if accepts_args:
-            func_args = unknown_args
-
-        return func(*func_args, **vars(model_inst), **func_kwargs)
+        return func(*func_var_args, **func_var_kwargs)
 
     @classmethod
     def _build_parser(
@@ -1222,19 +1170,19 @@ class ArgumentParser(argparse.ArgumentParser):
             ...
             >>> def print_nums(*args):
             ...     print('Args: ', *args)
+            ...     return args
             ...
-            >>> def find_evens(*args):
-            ...     return [x for x in args if int(x) % 2 == 0]
+            >>> def find_evens(_relay_value):
+            ...     return [x for x in _relay_value if int(x) % 2 == 0]
             ...
-            >>> def find_odds(*args):
-            ...     return [x for x in args if int(x) % 2 != 0]
+            >>> def find_odds(_relay_value):
+            ...     return [x for x in _relay_value if int(x) % 2 != 0]
             ...
-            >>> cli_args = ['find-odds', '1', '2', '3', '4', '5']
+            >>> cli_args = ['1', '2', '3', '4', '5', 'find-odds']
             >>> yapx.run(print_nums, [find_evens, find_odds], args=cli_args)
             Args:  1 2 3 4 5
             ['1', '3', '5']
         """
-
         parser: ArgumentParser = cls._build_parser(*parser_args, **parser_kwargs)
 
         if args is None:
@@ -1243,8 +1191,9 @@ class ArgumentParser(argparse.ArgumentParser):
         if not args and default_args:
             args = default_args
 
-        known_args: argparse.Namespace
-        known_args, unknown_args = parser.parse_known_args(args)
+        #  known_args: argparse.Namespace
+        #  known_args, unknown_args = parser.parse_known_args(args)
+        known_args: Namespace = parser.parse_args(args)
 
         root_func: Optional[Callable[..., Any]] = getattr(
             known_args,
@@ -1276,9 +1225,8 @@ class ArgumentParser(argparse.ArgumentParser):
                 parser=parser,
                 func=root_func,
                 namespace=known_args,
-                unknown_args=unknown_args,
+                #  unknown_args=unknown_args,
                 args_model=root_func_args_model,
-                linked_func=command_func,
             )
 
         if try_isinstance(root_result, GeneratorType):
@@ -1295,9 +1243,8 @@ class ArgumentParser(argparse.ArgumentParser):
                     parser=parser,
                     func=command_func,
                     namespace=known_args,
-                    unknown_args=unknown_args,
+                    #  unknown_args=unknown_args,
                     args_model=command_func_args_model,
-                    linked_func=root_func,
                     relay_value=relay_value,
                 )
         finally:
