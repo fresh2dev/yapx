@@ -140,10 +140,11 @@ class ArgumentParser(argparse.ArgumentParser):
 
         self._dest_type: Dict[str, Union[type, Callable[[str], Any]]] = {}
 
-        if is_tui_available:
-            if tui_flags is None:
-                tui_flags = ["--tui"]
-            elif isinstance(tui_flags, str):
+        if tui_flags is None:
+            tui_flags = ["--tui"]
+
+        if is_tui_available and tui_flags:
+            if isinstance(tui_flags, str):
                 tui_flags = [tui_flags]
 
             tui_help: str = "Show Textual User Interface (TUI)."
