@@ -30,6 +30,7 @@ from .actions import (
     FeatureFlagAction,
     HelpAction,
     HelpAllAction,
+    PrePostAction,
     SplitCsvDictAction,
     SplitCsvListAction,
     SplitCsvSetAction,
@@ -624,10 +625,7 @@ class ArgumentParser(argparse.ArgumentParser):
                 or fld.default_factory is not MISSING
                 or kwargs.get("default") is not None
             ):
-                if kwargs.get("action") and try_issubclass(
-                    kwargs["action"],
-                    (argparse.Action, BooleanOptionalAction),
-                ):
+                if try_issubclass(kwargs.get("action"), PrePostAction):
                     # https://stackoverflow.com/a/24448351
                     dummy_namespace: object = type("", (), {})()
                     kwargs["action"](option_strings=args, dest=kwargs["dest"])(
@@ -948,8 +946,8 @@ class ArgumentParser(argparse.ArgumentParser):
         parsed_args, unknown_args = self.parse_known_args(args)
 
         return (
-            self._parse_args_to_model(
-                args=parsed_args,
+            self._parse_namespace_to_model(
+                namespace=parsed_args,
                 args_model=args_model,
                 skip_pydantic_validation=skip_pydantic_validation,
             ),
@@ -987,19 +985,19 @@ class ArgumentParser(argparse.ArgumentParser):
 
         """
         parsed_args: argparse.Namespace = self.parse_args(args)
-        return self._parse_args_to_model(
-            args=parsed_args,
+        return self._parse_namespace_to_model(
+            namespace=parsed_args,
             args_model=args_model,
             skip_pydantic_validation=skip_pydantic_validation,
         )
 
-    def _parse_args_to_model(
+    def _parse_namespace_to_model(
         self,
-        args: argparse.Namespace,
+        namespace: argparse.Namespace,
         args_model: Optional[Type[Dataclass]] = None,
         skip_pydantic_validation: bool = False,
     ) -> Dataclass:
-        parsed_args: Dict[str, Any] = vars(args)
+        parsed_args: Dict[str, Any] = vars(namespace)
 
         if not args_model:
             args_model = parsed_args.get(self.CMD_FUNC_ARGS_ATTR_NAME)
@@ -1075,7 +1073,8 @@ class ArgumentParser(argparse.ArgumentParser):
         cls,
         parser: "ArgumentParser",
         func: Callable[..., Any],
-        args: List[str],
+        namespace: Namespace,
+        unknown_args: List[str],
         args_model: Optional[Type[Any]] = None,
         linked_func: Optional[Callable[..., Any]] = None,
         relay_value: Optional[Any] = None,
@@ -1083,90 +1082,70 @@ class ArgumentParser(argparse.ArgumentParser):
         func_args: List[str] = []
         func_kwargs: Dict[str, Optional[Any]] = {}
 
+        accepts_args: bool = False
+        accepts_kwargs: bool = False
+
         extra_args_ok: bool = False
 
-        accepts_args: bool = False
-        accepts_extra_args: bool = False
-
-        accepts_kwargs: bool = False
-        accepts_extra_kwargs: bool = False
-
         for p in signature(func).parameters.values():
-            if str(p).startswith("**"):
-                accepts_kwargs = True
-            elif str(p).startswith("*"):
-                accepts_args = True
-            elif p.name == "_extra_args":
-                accepts_extra_args = True
-            elif p.name == "_extra_kwargs":
-                accepts_extra_kwargs = True
-            elif p.name == "_all_args":
-                func_kwargs["_all_args"] = args
+            if str(p).startswith("*"):
+                extra_args_ok = True
+                if str(p).startswith("**"):
+                    accepts_kwargs = True
+                else:
+                    accepts_args = True
             elif p.name == "_relay_value":
                 func_kwargs["_relay_value"] = relay_value
             elif p.name == "_called_from_cli":
                 func_kwargs["_called_from_cli"] = True
 
-        extra_args_ok = (
-            accepts_args or accepts_kwargs or accepts_extra_args or accepts_extra_kwargs
-        )
-
         if not extra_args_ok and linked_func:
             extra_args_ok = any(
-                str(p).startswith("*") or p.name in ("_extra_args", "_extra_kwargs")
+                str(p).startswith("*")
                 for p in signature(linked_func).parameters.values()
             )
+
+        if unknown_args and not extra_args_ok:
+            parser.error(f"unrecognized arguments: {' '.join(unknown_args)}")
 
         if not args_model:
             args_model = make_dataclass_from_func(func)
 
-        model_inst: Dataclass
-        if extra_args_ok:
-            unknown_args: List[str]
-            model_inst, unknown_args = parser.parse_known_args_to_model(
-                args=args,
+        model_inst: Dataclass = (
+            parser._parse_namespace_to_model(  # pylint: disable=protected-access
+                namespace=namespace,
                 args_model=args_model,
             )
+        )
 
-            if accepts_kwargs or accepts_extra_kwargs:
-                unknown_name_map: Dict[str, str] = {}
-                unknown_parser: ArgumentParser = cls()
-                for x in unknown_args:
-                    if x.startswith("-"):
-                        x_flag: str = x.split("=", maxsplit=1)[0]
-                        x_flag_bare = x_flag.lstrip("-")
-                        if x_flag_bare:
-                            unknown_parser.add_argument(
-                                x_flag,
-                                nargs="?",
-                                default=None,
-                                required=False,
-                            )
-                            unknown_name_map[x_flag_bare] = x_flag
+        if accepts_kwargs:
+            unknown_name_map: Dict[str, str] = {}
+            unknown_parser: ArgumentParser = cls()
+            for x in unknown_args:
+                if x.startswith("-"):
+                    x_flag: str = x.split("=", maxsplit=1)[0]
+                    x_flag_bare = x_flag.lstrip("-")
+                    if x_flag_bare:
+                        unknown_parser.add_argument(
+                            x_flag,
+                            nargs="?",
+                            default=None,
+                            required=False,
+                        )
+                        unknown_name_map[x_flag_bare] = x_flag
 
-                parsed_unknown, unknown_args = unknown_parser.parse_known_args(
-                    args=unknown_args,
-                )
-
-                extra_kwargs: Dict[str, str] = {
-                    unknown_name_map[k]: v for k, v in vars(parsed_unknown).items()
-                }
-                if accepts_kwargs:
-                    func_kwargs.update(extra_kwargs)
-                if accepts_extra_kwargs:
-                    func_kwargs["_extra_kwargs"] = extra_kwargs
-
-            if accepts_args:
-                func_args = unknown_args
-
-            if accepts_extra_args:
-                func_kwargs["_extra_args"] = unknown_args
-
-        else:
-            model_inst = parser.parse_args_to_model(
-                args=args,
-                args_model=args_model,
+            parsed_unknown, unknown_args = unknown_parser.parse_known_args(
+                args=unknown_args,
             )
+
+            extra_kwargs: Dict[str, str] = {
+                unknown_name_map[k]: v for k, v in vars(parsed_unknown).items()
+            }
+
+            func_kwargs.update(extra_kwargs)
+
+        if accepts_args:
+            func_args = unknown_args
 
         return func(*func_args, **vars(model_inst), **func_kwargs)
 
@@ -1174,7 +1153,11 @@ class ArgumentParser(argparse.ArgumentParser):
     def _build_parser(
         cls,
         command: Optional[Callable[..., Any]] = None,
-        subcommands: Optional[Sequence[Callable[..., Any]]] = None,
+        subcommands: Union[
+            None,
+            Callable[..., Any],
+            Sequence[Callable[..., Any]],
+        ] = None,
         named_subcommands: Optional[Dict[str, Callable[..., Any]]] = None,
         **kwargs: Any,
     ) -> "ArgumentParser":
@@ -1261,21 +1244,28 @@ class ArgumentParser(argparse.ArgumentParser):
             args = default_args
 
         known_args: argparse.Namespace
-        known_args, _ = parser.parse_known_args(args)
-        parsed_args: Dict[str, Any] = vars(known_args)
+        known_args, unknown_args = parser.parse_known_args(args)
 
-        root_func: Optional[Callable[..., Any]] = parsed_args.get(
+        root_func: Optional[Callable[..., Any]] = getattr(
+            known_args,
             cls.ROOT_FUNC_ATTR_NAME,
+            None,
         )
-        root_func_args_model: Optional[Type[Any]] = parsed_args.get(
+        root_func_args_model: Optional[Type[Any]] = getattr(
+            known_args,
             cls.ROOT_FUNC_ARGS_ATTR_NAME,
+            None,
         )
-        command_name: Optional[str] = parsed_args.get(cls.CMD_ATTR_NAME)
-        command_func: Optional[Callable[..., Any]] = parsed_args.get(
+        command_name: Optional[str] = getattr(known_args, cls.CMD_ATTR_NAME, None)
+        command_func: Optional[Callable[..., Any]] = getattr(
+            known_args,
             cls.CMD_FUNC_ATTR_NAME,
+            None,
         )
-        command_func_args_model: Optional[Type[Any]] = parsed_args.get(
+        command_func_args_model: Optional[Type[Any]] = getattr(
+            known_args,
             cls.CMD_FUNC_ARGS_ATTR_NAME,
+            None,
         )
 
         relay_value: Any = None
@@ -1285,9 +1275,10 @@ class ArgumentParser(argparse.ArgumentParser):
             root_result = cls._run_func(
                 parser=parser,
                 func=root_func,
+                namespace=known_args,
+                unknown_args=unknown_args,
                 args_model=root_func_args_model,
                 linked_func=command_func,
-                args=args,
             )
 
         if try_isinstance(root_result, GeneratorType):
@@ -1303,8 +1294,9 @@ class ArgumentParser(argparse.ArgumentParser):
                 relay_value = cls._run_func(
                     parser=parser,
                     func=command_func,
+                    namespace=known_args,
+                    unknown_args=unknown_args,
                     args_model=command_func_args_model,
-                    args=args,
                     linked_func=root_func,
                     relay_value=relay_value,
                 )

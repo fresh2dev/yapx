@@ -556,15 +556,11 @@ def test_extra_args():
 
     def _setup(
         *args,
-        _extra_args: Optional[List[str]] = None,
-        _extra_kwargs: Optional[Dict[str, str]] = None,
         **kwargs,
-    ) -> str:
-        assert args == tuple(_extra_args)
-        assert kwargs == _extra_kwargs
+    ) -> List[str]:
         assert kwargs["--world"] == "this"
         assert kwargs["--wat"] is None
-        return _extra_args
+        return list(args)
 
     def _subcmd(_relay_value: Any, _called_from_cli=False) -> str:
         assert _relay_value == expected
@@ -759,8 +755,6 @@ def test_run_everything(disable_pydantic: bool):
 
     def _func(
         *args: str,
-        _extra_args: List[str],
-        _extra_kwargs: Dict[str, str],
         v1,
         v2: str,
         v3: Annotated[str, yapx.arg("hello_v3")],
@@ -814,8 +808,10 @@ def test_run_everything(disable_pydantic: bool):
         **kwargs: Optional[str],
     ) -> None:
         assert args
-        assert args == tuple(_extra_args)
-        assert kwargs == _extra_kwargs
+        assert "purposefully_extra" in args
+        assert kwargs
+        assert "--purposefully" in kwargs
+        assert kwargs["--purposefully"] == "extra"
         assert _relay_value == "hello_relay"
 
         assert v1 == "hello_v1"
@@ -910,6 +906,8 @@ def test_run_everything(disable_pydantic: bool):
         "hello=3.19,",
         "--v35",
         "world=3.192",
+        "--purposefully",
+        "extra",
         "--",
         "purposefully_extra",
         "purposefully_hello=world",
