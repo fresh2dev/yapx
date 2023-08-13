@@ -20,6 +20,11 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+build = [
+    "build==0.*",
+    "wheel==0.*",
+    "twine==4.*",
+]
 dev = [
     "python-lsp-server[rope]==1.*",
     "pylint==2.*",
