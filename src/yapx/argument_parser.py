@@ -943,8 +943,8 @@ class ArgumentParser(argparse.ArgumentParser):
         parsed_args, unknown_args = self.parse_known_args(args)
 
         return (
-            self._parse_namespace_to_model(
-                namespace=parsed_args,
+            self._parse_args_to_model(
+                args=vars(parsed_args),
                 args_model=args_model,
                 skip_pydantic_validation=skip_pydantic_validation,
             ),
@@ -982,27 +982,25 @@ class ArgumentParser(argparse.ArgumentParser):
 
         """
         parsed_args: argparse.Namespace = self.parse_args(args)
-        return self._parse_namespace_to_model(
-            namespace=parsed_args,
+        return self._parse_args_to_model(
+            args=vars(parsed_args),
             args_model=args_model,
             skip_pydantic_validation=skip_pydantic_validation,
         )
 
-    def _parse_namespace_to_model(
+    def _parse_args_to_model(
         self,
-        namespace: argparse.Namespace,
+        args: Dict[str, Any],
         args_model: Optional[Type[Dataclass]] = None,
         skip_pydantic_validation: bool = False,
     ) -> Dataclass:
-        parsed_args: Dict[str, Any] = vars(namespace)
-
         if not args_model:
-            args_model = parsed_args.get(self.CMD_FUNC_ARGS_ATTR_NAME)
+            args_model = args.get(self.CMD_FUNC_ARGS_ATTR_NAME)
             if not args_model:
                 raise NoArgsModelError
 
         args_union: Dict[str, Any] = self._union_args_with_model(
-            args_dict=parsed_args,
+            args_dict=args,
             args_model=args_model,
         )
 
@@ -1072,25 +1070,34 @@ class ArgumentParser(argparse.ArgumentParser):
         context: Context,
         args_model: Optional[Type[Any]] = None,
     ) -> Any:
-        func_var_kwargs: Dict[str, Optional[Any]] = {}
-
+        context_arg_name: Optional[str] = None
         var_arg_name: Optional[str] = None
+        var_kwarg_name: Optional[str] = None
 
         for p in signature(func).parameters.values():
             if p.kind is p.VAR_POSITIONAL:
                 var_arg_name = p.name
+            elif p.kind is p.VAR_KEYWORD:
+                var_kwarg_name = p.name
             elif p.annotation is Context:
-                func_var_kwargs[p.name] = context
+                context_arg_name = p.name
 
         if not args_model:
             args_model = make_dataclass_from_func(func)
 
-        model_inst: Dataclass = context.parser._parse_namespace_to_model(  # pylint: disable=protected-access
-            namespace=context.namespace,
-            args_model=args_model,
+        model_inst: Dataclass = (
+            context.parser._parse_args_to_model(  # pylint: disable=protected-access
+                args=vars(context.namespace),
+                args_model=args_model,
+            )
         )
 
-        func_var_kwargs.update(vars(model_inst))
+        func_var_kwargs: Dict[str, Optional[Any]] = vars(model_inst)
+
+        func_var_kwargs.update(func_var_kwargs.pop(var_kwarg_name, {}))
+
+        if context_arg_name:
+            func_var_kwargs[context_arg_name] = context
 
         func_var_args: List[str] = func_var_kwargs.pop(var_arg_name, [])
 

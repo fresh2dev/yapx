@@ -253,10 +253,10 @@ def make_dataclass_from_func(
     func_signature = signature(func)
     type_hints: Dict[str, Any]
     try:
-        include_extras: Dict[str, bool] = {}
         if sys.version_info >= (3, 9):
-            include_extras["include_extras"] = True
-        type_hints = get_type_hints(func, **include_extras)
+            type_hints = get_type_hints(func, include_extras=True)
+        else:
+            type_hints = get_type_hints(func)
     except (TypeError, NameError):
         # this can happen if deferred evaluation is used,
         # via `from __future__ import annotations`
@@ -268,9 +268,6 @@ def make_dataclass_from_func(
         params = [*params[1:], params[0]]
 
     for param in params:
-        if param.kind is param.VAR_KEYWORD:
-            continue
-
         annotation: Type[Any] = (
             _eval_type(param.annotation)
             if isinstance(param.annotation, str)
@@ -308,6 +305,20 @@ def make_dataclass_from_func(
             if annotation is param.empty:
                 annotation = fallback_type
             annotation = Optional[Sequence[annotation]]
+        elif param.kind is param.VAR_KEYWORD:
+            assert not isinstance(annotation, _AnnotatedAlias)
+            assert param.default is param.empty
+            field_metadata = arg(
+                default=None,
+                pos=True,
+                nargs="*",
+                metavar="<x=y>",
+                help="Any extra command-line key-value pairs.",
+            )
+            default_value = MISSING
+            if annotation is param.empty:
+                annotation = fallback_type
+            annotation = Optional[Dict[str, annotation]]
         elif isinstance(default, Field):
             if default.default_factory is not MISSING:
                 default_value = default.default_factory()
