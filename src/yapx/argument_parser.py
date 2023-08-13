@@ -46,6 +46,7 @@ from .arg import (
     get_type_origin,
     make_dataclass_from_func,
 )
+from .context import Context
 from .exceptions import NoArgsModelError, raise_unsupported_type_error
 from .namespace import Namespace
 from .types import Dataclass, Literal, NoneType
@@ -1062,12 +1063,9 @@ class ArgumentParser(argparse.ArgumentParser):
     @classmethod
     def _run_func(
         cls,
-        parser: "ArgumentParser",
         func: Callable[..., Any],
-        namespace: Namespace,
-        #  unknown_args: List[str],
+        context: Context,
         args_model: Optional[Type[Any]] = None,
-        relay_value: Optional[Any] = None,
     ) -> Any:
         func_var_kwargs: Dict[str, Optional[Any]] = {}
 
@@ -1076,24 +1074,20 @@ class ArgumentParser(argparse.ArgumentParser):
         for p in signature(func).parameters.values():
             if p.kind is p.VAR_POSITIONAL:
                 var_arg_name = p.name
-            elif p.name == "_relay_value":
-                func_var_kwargs["_relay_value"] = relay_value
-            elif p.name == "_called_from_cli":
-                func_var_kwargs["_called_from_cli"] = True
+            elif p.annotation is Context:
+                func_var_kwargs[p.name] = context
 
         if not args_model:
             args_model = make_dataclass_from_func(func)
 
-        model_inst: Dataclass = (
-            parser._parse_namespace_to_model(  # pylint: disable=protected-access
-                namespace=namespace,
-                args_model=args_model,
-            )
+        model_inst: Dataclass = context.parser._parse_namespace_to_model(  # pylint: disable=protected-access
+            namespace=context.namespace,
+            args_model=args_model,
         )
 
         func_var_kwargs.update(vars(model_inst))
 
-        func_var_args: List[str] = func_var_kwargs.pop(var_arg_name, [])  # unknown_args
+        func_var_args: List[str] = func_var_kwargs.pop(var_arg_name, [])
 
         return func(*func_var_args, **func_var_kwargs)
 
@@ -1172,11 +1166,11 @@ class ArgumentParser(argparse.ArgumentParser):
             ...     print('Args: ', *args)
             ...     return args
             ...
-            >>> def find_evens(_relay_value):
-            ...     return [x for x in _relay_value if int(x) % 2 == 0]
+            >>> def find_evens(_context: yapx.Context):
+            ...     return [x for x in _context.relay_value if int(x) % 2 == 0]
             ...
-            >>> def find_odds(_relay_value):
-            ...     return [x for x in _relay_value if int(x) % 2 != 0]
+            >>> def find_odds(_context: yapx.Context):
+            ...     return [x for x in _context.relay_value if int(x) % 2 != 0]
             ...
             >>> cli_args = ['1', '2', '3', '4', '5', 'find-odds']
             >>> yapx.run(print_nums, [find_evens, find_odds], args=cli_args)
@@ -1191,8 +1185,6 @@ class ArgumentParser(argparse.ArgumentParser):
         if not args and default_args:
             args = default_args
 
-        #  known_args: argparse.Namespace
-        #  known_args, unknown_args = parser.parse_known_args(args)
         known_args: Namespace = parser.parse_args(args)
 
         root_func: Optional[Callable[..., Any]] = getattr(
@@ -1220,12 +1212,17 @@ class ArgumentParser(argparse.ArgumentParser):
         relay_value: Any = None
         root_result: Any = None
 
+        context: Context = Context(
+            parser=parser,
+            args=args,
+            namespace=known_args,
+            relay_value=relay_value,
+        )
+
         if root_func:
             root_result = cls._run_func(
-                parser=parser,
                 func=root_func,
-                namespace=known_args,
-                #  unknown_args=unknown_args,
+                context=context,
                 args_model=root_func_args_model,
             )
 
@@ -1238,14 +1235,16 @@ class ArgumentParser(argparse.ArgumentParser):
             relay_value = root_result
 
         try:
+            if relay_value is not None:
+                context_kwargs: Dict[str, Any] = vars(context)
+                context_kwargs["relay_value"] = relay_value
+                context = Context(**vars(context))
+
             if command_name and command_func:
                 relay_value = cls._run_func(
-                    parser=parser,
                     func=command_func,
-                    namespace=known_args,
-                    #  unknown_args=unknown_args,
+                    context=context,
                     args_model=command_func_args_model,
-                    relay_value=relay_value,
                 )
         finally:
             if try_isinstance(root_result, GeneratorType):

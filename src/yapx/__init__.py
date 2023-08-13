@@ -5,6 +5,7 @@ from . import exceptions, types
 from .__version__ import __version__
 from .arg import arg
 from .argument_parser import ArgumentParser
+from .context import Context
 from .namespace import Namespace
 from .utils import is_pydantic_available, is_shtab_available, is_tui_available
 
@@ -87,11 +88,11 @@ def run(
         ...     print('Args: ', *args)
         ...     return args
         ...
-        >>> def find_evens(_relay_value):
-        ...     return [x for x in _relay_value if int(x) % 2 == 0]
+        >>> def find_evens(_context: yapx.Context):
+        ...     return [x for x in _context.relay_value if int(x) % 2 == 0]
         ...
-        >>> def find_odds(_relay_value):
-        ...     return [x for x in _relay_value if int(x) % 2 != 0]
+        >>> def find_odds(_context: yapx.Context):
+        ...     return [x for x in _context.relay_value if int(x) % 2 != 0]
         ...
         >>> cli_args = ['1', '2', '3', '4', '5', 'find-odds']
         >>> yapx.run(print_nums, [find_evens, find_odds], args=cli_args)

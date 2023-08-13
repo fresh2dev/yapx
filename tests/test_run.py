@@ -9,7 +9,6 @@ import pytest
 from _pytest.capture import CaptureFixture, CaptureResult
 
 import yapx
-import yapx.argument_parser
 from yapx.types import Annotated
 
 
@@ -568,10 +567,10 @@ def test_extra_args():
     ) -> List[str]:
         return list(args)
 
-    def _subcmd(_relay_value: List[str], _called_from_cli=False) -> List[str]:
-        assert _relay_value == expected
-        assert _called_from_cli is True
-        return _relay_value
+    def _subcmd(_context: yapx.Context):
+        assert _context
+        assert _context.args == cli_args
+        return _context.relay_value
 
     # 2. ACT
     result = yapx.run(
@@ -811,12 +810,12 @@ def test_run_everything(disable_pydantic: bool):
         v37: Dict[str, float] = lambda: {"hello": 3.21},
         v38: Dict[str, float] = yapx.arg(lambda: {"hello": 3.22}),
         #
-        _relay_value: Any = None,
+        _context: yapx.Context = None,
     ) -> None:
         assert args
         assert "purposefully_extra" in args
 
-        assert _relay_value == "hello_relay"
+        assert _context.relay_value == "hello_relay"
 
         assert v1 == "hello_v1"
         assert v2 == "hello_v2"
@@ -914,20 +913,6 @@ def test_run_everything(disable_pydantic: bool):
         "purposefully_extra",
         "purposefully_hello=world",
     ]
-
-    # 2. ACT
-    #  try:
-    #      if disable_pydantic:
-    #          mock.patch.object(
-    #              yapx.argument_parser.create_pydantic_model_from_dataclass,
-    #              attribute="__module__",
-    #              new_callable=mock.PropertyMock(return_value="yapx.argument_parser"),
-    #          ).start()
-    #
-    #      with mock.patch.object(yapx.argument_parser.sys, "argv", [""] + cli_args):
-    #          yapx.run(_setup, _func)
-    #  finally:
-    #      mock.patch.stopall()
 
     # 2. ACT
     yapx.run_patched(
