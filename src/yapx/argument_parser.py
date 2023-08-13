@@ -669,8 +669,13 @@ class ArgumentParser(argparse.ArgumentParser):
             help_msg_parts: List[str] = [f"Type: {help_type}"]
 
             # pylint: disable=protected-access
-            if not required and kwargs.get("default") is not None:
-                if isinstance(kwargs["default"], str):
+            default: Any = kwargs.get("default")
+            if (
+                not required
+                and default is not None
+                and (not hasattr(default, "__len__") or len(default) > 1)
+            ):
+                if isinstance(default, str):
                     help_msg_parts.append('Default: "%(default)s"')
                 else:
                     help_msg_parts.append("Default: %(default)s")
