@@ -112,7 +112,11 @@ def arg(
         flags: list of flags to use for the argument.
         help: help text / description
         metavar: variable name printed in help text.
+        nargs: the number of values this argument accepts.
         action: custom action for this argument.
+
+    Returns:
+        ...
 
     Examples:
         >>> import yapx
@@ -254,6 +258,7 @@ def make_dataclass_from_func(
     type_hints: Dict[str, Any]
     try:
         if sys.version_info >= (3, 9):
+            # pylint: disable=unexpected-keyword-arg
             type_hints = get_type_hints(func, include_extras=True)
         else:
             type_hints = get_type_hints(func)

@@ -229,6 +229,7 @@ class ArgumentParser(argparse.ArgumentParser):
         """Print CLI help.
 
         Args:
+            file: ...
             include_commands: if True, also print help for each command.
 
         Examples:
@@ -321,15 +322,16 @@ class ArgumentParser(argparse.ArgumentParser):
         args_model: Union[Callable[..., Any], Type[Dataclass]],
         name: Optional[str] = None,
         **kwargs: Any,
-    ) -> argparse.ArgumentParser:
+    ) -> "ArgumentParser":
         """Create a new subcommand and add arguments from the given function or dataframe to it.
 
         Args:
             args_model: a function or dataclass from which to derive arguments.
             name: name of the command
+            **kwargs: passed to `subparsers.add_parser(...)`
 
         Returns:
-            the new argparse subparser
+            the new subparser
 
         Examples:
             >>> import yapx
@@ -914,9 +916,12 @@ class ArgumentParser(argparse.ArgumentParser):
         """Use parsed args to instantiate the given data model.
 
         Args:
-            args:
-            args_model:
-            skip_pydantic_validation:
+            args: ...
+            args_model: ...
+            skip_pydantic_validation: ...
+
+        Returns:
+            ...
 
         Examples:
             >>> import yapx
@@ -960,9 +965,12 @@ class ArgumentParser(argparse.ArgumentParser):
         """Use parsed args to instantiate the given data model.
 
         Args:
-            args:
-            args_model:
-            skip_pydantic_validation:
+            args: ...
+            args_model: ...
+            skip_pydantic_validation: ...
+
+        Returns:
+            ...
 
         Examples:
             >>> import yapx
@@ -1162,14 +1170,17 @@ class ArgumentParser(argparse.ArgumentParser):
         default_args: Optional[List[str]] = None,
         **parser_kwargs: Any,
     ) -> Any:
-        """Use given functions to construct a CLI, parse the args, and invoke the appropriate command.
+        """Use given functions to construct an ArgumentParser,
+        parse the args, invoke the appropriate command, and return any result.
 
         Args:
-            *parser_args:
-            args:
-            default_args:
-            **parser_kwargs:
+            *parser_args: ...
+            args: ...
+            default_args: ...
+            **parser_kwargs: ...
 
+        Returns:
+            ...
 
         Examples:
             >>> import yapx
