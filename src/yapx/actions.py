@@ -293,8 +293,10 @@ class SplitCsvDictAction(PrePostAction, _AppendAction):
     def __call__(self, parser, namespace, values, option_string=None):
         split_values_dict: Optional[Dict[str, Any]] = None
 
-        if not values or isinstance(values, dict):
+        if values is None or isinstance(values, dict):
             split_values_dict = values
+        elif not values:
+            split_values_dict = {}
         else:
             split_values: Optional[List[str]] = _split_csv_sequence(
                 values,
