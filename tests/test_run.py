@@ -552,15 +552,14 @@ def test_print_shell_completion(capsys: CaptureFixture):
 def test_var_args():
     # 1. ARRANGE
     cli_args: List[str] = [
-        "--",
+        "subcmd",
         "what",
         "--in",
         "-the",
         "--world=this",
         "--wat",
-        "subcmd",
     ]
-    expected: List[str] = cli_args[1:-1]
+    expected: List[str] = cli_args[1:]
 
     def _setup(
         *args,
@@ -586,9 +585,9 @@ def test_var_args():
 def test_var_kwargs():
     # 1. ARRANGE
     cli_args: List[str] = [
+        "subcmd",
         "one=1",
         "two=2",
-        "subcmd",
     ]
     expected: Dict[str, int] = {"one": 1, "two": 2}
 
@@ -841,9 +840,11 @@ def test_run_everything(disable_pydantic: bool):
         v38: Dict[str, float] = yapx.arg(lambda: {"hello": 3.22}),
         #
         _context: yapx.Context = None,
+        **kwargs: str,
     ) -> None:
         assert args
-        assert "purposefully_extra" in args
+        assert kwargs
+        assert args == tuple(kwargs.keys())
 
         assert _context.relay_value == "hello_relay"
 
@@ -939,9 +940,7 @@ def test_run_everything(disable_pydantic: bool):
         "hello=3.19,",
         "--v35",
         "world=3.192",
-        "--",
         "purposefully_extra",
-        "purposefully_hello=world",
     ]
 
     # 2. ACT

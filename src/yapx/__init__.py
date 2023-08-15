@@ -58,17 +58,17 @@ def build_parser(
     Examples:
         >>> import yapx
         ...
-        >>> def print_nums(*args):
+        >>> def print_nums(*args: int):
         ...     print('Args: ', *args)
         ...     return args
         ...
         >>> def find_evens(_context: yapx.Context):
-        ...     return [x for x in _context.relay_value if int(x) % 2 == 0]
+        ...     return [x for x in _context.relay_value if x % 2 == 0]
         ...
         >>> def find_odds(_context: yapx.Context):
-        ...     return [x for x in _context.relay_value if int(x) % 2 != 0]
+        ...     return [x for x in _context.relay_value if x % 2 != 0]
         ...
-        >>> cli_args = ['1', '2', '3', '4', '5', 'find-odds']
+        >>> cli_args = ['find-odds', '1', '2', '3', '4', '5']
         >>> parser = yapx.build_parser(print_nums, [find_evens, find_odds])
         ...
         >>> import argparse
@@ -109,20 +109,20 @@ def run(
     Examples:
         >>> import yapx
         ...
-        >>> def print_nums(*args):
+        >>> def print_nums(*args: int):
         ...     print('Args: ', *args)
         ...     return args
         ...
         >>> def find_evens(_context: yapx.Context):
-        ...     return [x for x in _context.relay_value if int(x) % 2 == 0]
+        ...     return [x for x in _context.relay_value if x % 2 == 0]
         ...
         >>> def find_odds(_context: yapx.Context):
-        ...     return [x for x in _context.relay_value if int(x) % 2 != 0]
+        ...     return [x for x in _context.relay_value if x % 2 != 0]
         ...
-        >>> cli_args = ['1', '2', '3', '4', '5', 'find-odds']
+        >>> cli_args = ['find-odds', '1', '2', '3', '4', '5']
         >>> yapx.run(print_nums, [find_evens, find_odds], args=cli_args)
         Args:  1 2 3 4 5
-        ['1', '3', '5']
+        [1, 3, 5]
     """
     # pylint: disable=protected-access
     return ArgumentParser._run(
@@ -155,15 +155,15 @@ def run_commands(
     Examples:
         >>> import yapx
         ...
-        >>> def find_evens(*args):
-        ...     return [x for x in args if int(x) % 2 == 0]
+        >>> def find_evens(*args: int):
+        ...     return [x for x in args if x % 2 == 0]
         ...
-        >>> def find_odds(*args):
-        ...     return [x for x in args if int(x) % 2 != 0]
+        >>> def find_odds(*args: int):
+        ...     return [x for x in args if x % 2 != 0]
         ...
         >>> cli_args = ['find-odds', '1', '2', '3', '4', '5']
         >>> yapx.run_commands([find_evens, find_odds], args=cli_args)
-        ['1', '3', '5']
+        [1, 3, 5]
     """
     # pylint: disable=protected-access
     return run(None, *args, **kwargs)

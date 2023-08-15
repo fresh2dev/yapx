@@ -1,6 +1,6 @@
+import argparse
 import os
 import sys
-from argparse import Action
 from contextlib import suppress
 from dataclasses import MISSING, Field, dataclass, field, make_dataclass
 from inspect import Parameter, signature
@@ -20,6 +20,7 @@ from typing import (
 
 import yapx  # pylint: disable=unused-import # noqa: F401
 
+from .context import Context
 from .types import Dataclass
 
 if sys.version_info >= (3, 8):
@@ -52,12 +53,38 @@ def get_type_metadata(t: Type[Any]) -> Tuple[Type[Any], ...]:
     return getattr(t, "__metadata__", ())
 
 
+class DummyArgAction(argparse.Action):
+    def __init__(
+        self,
+        option_strings,
+        dest,
+        help=None,  # pylint: disable=redefined-builtin
+        metavar=None,
+        **_kwargs,
+    ):
+        super().__init__(
+            option_strings=option_strings,
+            dest=dest,
+            help=help,
+            metavar=metavar,
+            nargs=0,
+            default=argparse.SUPPRESS,
+            required=False,
+            const=None,
+            type=None,
+            choices=None,
+        )
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        pass
+
+
 @dataclass
 class ArgparseArg:
     dest: Optional[str] = None
     option_strings: Optional[Sequence[str]] = None
     type: Union[None, Type[Any], Callable[[str], Any]] = None
-    action: Union[None, str, Type[Action]] = None
+    action: Union[None, str, Type[argparse.Action]] = None
     required: bool = True
     group: Optional[str] = None
     exclusive: Optional[bool] = False
@@ -98,7 +125,7 @@ def arg(
     help: Optional[str] = None,  # pylint: disable=redefined-builtin
     metavar: Optional[str] = None,
     nargs: Optional[Union[int, str]] = None,
-    action: Union[None, str, Type[Action]] = None,
+    action: Union[None, str, Type[argparse.Action]] = None,
 ) -> Field:
     """Provides an interface to modify argument options.
 
@@ -282,7 +309,7 @@ def make_dataclass_from_func(
         default: Any = param.default
         default_value: Any
 
-        if (
+        if annotation is Context or (
             param.name.startswith("_")
             and not isinstance(default, Field)
             and (
@@ -302,7 +329,8 @@ def make_dataclass_from_func(
             field_metadata = arg(
                 default=None,
                 pos=True,
-                nargs="*",
+                nargs=0,
+                action=DummyArgAction,
                 metavar="<...>",
                 help="Any extra command-line values.",
             )
@@ -316,14 +344,15 @@ def make_dataclass_from_func(
             field_metadata = arg(
                 default=None,
                 pos=True,
-                nargs="*",
-                metavar="<x=y>",
+                nargs=0,
+                action=DummyArgAction,
+                metavar="<x=y> ...",
                 help="Any extra command-line key-value pairs.",
             )
             default_value = MISSING
             if annotation is param.empty:
                 annotation = fallback_type
-            annotation = Optional[Dict[str, annotation]]
+            annotation = Optional[Dict[str, Optional[annotation]]]
         elif isinstance(default, Field):
             if default.default_factory is not MISSING:
                 default_value = default.default_factory()
