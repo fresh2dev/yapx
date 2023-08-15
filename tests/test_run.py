@@ -950,3 +950,22 @@ def test_run_everything(disable_pydantic: bool):
         test_args=cli_args,
         disable_pydantic=disable_pydantic,
     )
+
+
+def test_vanity_args():
+    cli_args: List[str] = ["-vvvvv", "--prod", "1", "2", "3"]
+
+    expected_verbose: int = 5
+    expected_feature: str = "prod"
+    expected_values: List[int] = [1, 2, 3]
+
+    def my_func(
+        verbose: Annotated[int, yapx.counting_arg(flags="-v")],
+        feature: Annotated[str, yapx.feature_arg(flags=["--dev", "--test", "--prod"])],
+        values: Annotated[Optional[List[int]], yapx.unbounded_arg(None, pos=True)],
+    ):
+        assert verbose == expected_verbose
+        assert feature == expected_feature
+        assert values == expected_values
+
+    yapx.run(my_func, args=cli_args)

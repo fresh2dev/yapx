@@ -390,3 +390,106 @@ def make_dataclass_from_func(
     dc.__doc__ = func.__doc__
 
     return dc
+
+
+def counting_arg(
+    *args,
+    **kwargs,
+) -> Field:
+    """Designates this argument as a counting argument.
+
+    `yapx.counting_arg(...)` is equal to `yapx.arg(nargs=0, ...)`
+
+    Must be used with a parameter annotated with type `int`.
+
+    Args:
+        *args: passed to arg(...)
+        **kwargs: passed to arg(...)
+
+    Returns:
+        ...
+
+    Examples:
+        >>> import yapx
+        >>> from yapx.types import Annotated
+        >>> from typing import List
+        ...
+        >>> def say_hello(
+        ...     verbosity: Annotated[int, yapx.feature_arg(flags=["-v"])]
+        ... ):
+        ...     print("verbosity:", verbosity)
+        ...
+        >>> yapx.run(say_hello, args=["-vvvvv"])
+        verbosity: 5
+    """
+    kwargs["nargs"] = 0
+    return arg(*args, **kwargs)
+
+
+def feature_arg(
+    *args,
+    **kwargs,
+) -> Field:
+    """Designates this argument as a feature-flag argument.
+
+    `yapx.feature_arg(...)` is equal to `yapx.arg(nargs=0, ...)`
+
+    Must be used with a parameter annotated with type `str`.
+
+    Args:
+        *args: passed to arg(...)
+        **kwargs: passed to arg(...)
+
+    Returns:
+        ...
+
+    Examples:
+        >>> import yapx
+        >>> from yapx.types import Annotated
+        >>> from typing import List
+        ...
+        >>> def say_hello(
+        ...     value: Annotated[str, yapx.feature_arg(flags=["--dev", "--test", "--prod"])]
+        ... ):
+        ...     print(value)
+        ...
+        >>> yapx.run(say_hello, args=["--prod"])
+        prod
+    """
+    kwargs["nargs"] = 0
+    return arg(*args, **kwargs)
+
+
+def unbounded_arg(
+    *args,
+    **kwargs,
+) -> Field:
+    """Designates this argument as an unbounded, multi-value argument.
+
+    `yapx.unbounded_arg(...)` is equal to `yapx.arg(nargs=-1, ...)`
+
+    Must be used with a parameter annotated with a sequence type:
+    `Sequence[...]`, `List[...]`, `Set[...]`, `Tuple[..., ...]`, or `Dict[str, ...]`
+
+    Args:
+        *args: passed to arg(...)
+        **kwargs: passed to arg(...)
+
+    Returns:
+        ...
+
+    Examples:
+        >>> import yapx
+        >>> from yapx.types import Annotated
+        >>> from typing import List
+        ...
+        >>> def say_hello(
+        ...     values: Annotated[List[int], yapx.unbounded_arg()]
+        ... ):
+        ...     print(values)
+        ...
+        >>> yapx.run(say_hello, args=["--values", "1", "2", "3"])
+        [1, 2, 3]
+    """
+    kwargs["nargs"] = -1
+    return arg(*args, **kwargs)

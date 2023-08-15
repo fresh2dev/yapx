@@ -3,7 +3,7 @@ from typing import Any, Callable, Dict, List, Optional, Sequence
 
 from . import exceptions, types
 from .__version__ import __version__
-from .arg import arg
+from .arg import arg, counting_arg, feature_arg, unbounded_arg
 from .argument_parser import ArgumentParser
 from .context import Context
 from .namespace import Namespace
@@ -25,6 +25,9 @@ __all__ = [
     "ArgumentParser",
     "Namespace",
     "arg",
+    "counting_arg",
+    "feature_arg",
+    "unbounded_arg",
     "build_parser",
     "exceptions",
     "is_pydantic_available",

@@ -565,7 +565,14 @@ class ArgumentParser(argparse.ArgumentParser):
                             fld_type,
                         )
 
-                    if argparse_argument.pos and argparse_argument.nargs is None:
+                    unbounded_arg: bool = False
+                    with suppress(ValueError, TypeError):
+                        if int(argparse_argument.nargs) < 0:
+                            unbounded_arg = True
+
+                    if unbounded_arg or (
+                        argparse_argument.pos and argparse_argument.nargs is None
+                    ):
                         if argparse_argument.required:
                             argparse_argument.nargs = "+"
                         else:
