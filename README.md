@@ -2,15 +2,6 @@
 
 > The next generation of Python's Argparse.
 
----
-
-<iframe src="https://www.f2dv.com/s/yapx" frameborder="0" scrolling="no" style="height: 400px; width: 100%; border: none;"></iframe>
-
-- <a href="https://www.f2dv.com/s/yapx" target="_blank">*View the Slides*</a>
-- <a href="https://www.f2dv.com/r/yapx" target="_blank">*Read the Docs*</a>
-
----
-
 [![GitHub tag (with filter)](https://img.shields.io/github/v/tag/fresh2dev/yapx?filter=!*%5Ba-z%5D*&style=for-the-badge&label=Release&color=blue)](https://www.f2dv.com/r/yapx/changelog)
 [![GitHub last commit (branch)](https://img.shields.io/github/last-commit/fresh2dev/yapx/main?style=for-the-badge&label=updated&color=blue)](https://www.f2dv.com/r/yapx/changelog)
 [![GitHub Repo stars](https://img.shields.io/github/stars/fresh2dev/yapx?color=blue&style=for-the-badge)](https://star-history.com/#fresh2dev/yapx&Date)
