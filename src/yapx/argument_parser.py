@@ -1103,7 +1103,7 @@ class ArgumentParser(argparse.ArgumentParser):
                 var_arg_name = p.name
             elif p.kind is p.VAR_KEYWORD:
                 var_kwarg_name = p.name
-            elif p.annotation is Context:
+            elif p.annotation is Context or Context in get_type_args(p.annotation):
                 context_arg_name = p.name
 
         if (

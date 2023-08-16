@@ -566,7 +566,7 @@ def test_var_args():
     ) -> List[str]:
         return list(args)
 
-    def _subcmd(_context: yapx.Context):
+    def _subcmd(_context: Optional[yapx.Context] = None):
         assert _context
         assert _context.args == cli_args
         return _context.relay_value
