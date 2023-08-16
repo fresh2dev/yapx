@@ -30,6 +30,7 @@ from .actions import (
     FeatureFlagAction,
     HelpAction,
     HelpAllAction,
+    PrePostAction,
     SplitCsvDictAction,
     SplitCsvListAction,
     SplitCsvSetAction,
@@ -40,8 +41,12 @@ from .arg import (
     ArgparseArg,
     _eval_type,
     convert_to_command_string,
+    get_type_args,
+    get_type_metadata,
+    get_type_origin,
     make_dataclass_from_func,
 )
+from .context import Context
 from .exceptions import NoArgsModelError, raise_unsupported_type_error
 from .namespace import Namespace
 from .types import Dataclass, Literal, NoneType
@@ -54,6 +59,7 @@ from .utils import (
     cast_type,
     completion_action,
     create_pydantic_model_from_dataclass,
+    get_action_result,
     is_dataclass_type,
     is_pydantic_available,
     is_shtab_available,
@@ -140,10 +146,11 @@ class ArgumentParser(argparse.ArgumentParser):
 
         self._dest_type: Dict[str, Union[type, Callable[[str], Any]]] = {}
 
-        if is_tui_available:
-            if tui_flags is None:
-                tui_flags = ["--tui"]
-            elif isinstance(tui_flags, str):
+        if tui_flags is None:
+            tui_flags = ["--tui"]
+
+        if is_tui_available and tui_flags:
+            if isinstance(tui_flags, str):
                 tui_flags = [tui_flags]
 
             tui_help: str = "Show Textual User Interface (TUI)."
@@ -223,6 +230,7 @@ class ArgumentParser(argparse.ArgumentParser):
         """Print CLI help.
 
         Args:
+            file: ...
             include_commands: if True, also print help for each command.
 
         Examples:
@@ -254,7 +262,7 @@ class ArgumentParser(argparse.ArgumentParser):
 
         if include_commands and self._subparsers:
             if self._subparsers_action is None:
-                self._subparsers_action = self._find_subparsers_action()
+                self._subparsers_action = self._find_subparsers_action(parser=self)
 
             for _choice, subparser in self._subparsers_action.choices.items():
                 subparser.print_help(file, include_commands=include_commands)
@@ -315,15 +323,16 @@ class ArgumentParser(argparse.ArgumentParser):
         args_model: Union[Callable[..., Any], Type[Dataclass]],
         name: Optional[str] = None,
         **kwargs: Any,
-    ) -> argparse.ArgumentParser:
+    ) -> "ArgumentParser":
         """Create a new subcommand and add arguments from the given function or dataframe to it.
 
         Args:
             args_model: a function or dataclass from which to derive arguments.
             name: name of the command
+            **kwargs: passed to `subparsers.add_parser(...)`
 
         Returns:
-            the new argparse subparser
+            the new subparser
 
         Examples:
             >>> import yapx
@@ -472,23 +481,23 @@ class ArgumentParser(argparse.ArgumentParser):
 
             if (
                 sys.version_info >= (3, 10) and try_isinstance(fld_type, UnionType)
-            ) or cls._get_type_origin(fld_type) is Union:
+            ) or get_type_origin(fld_type) is Union:
                 fld_type = cls._extract_type_from_container(
                     fld_type,
                     is_union_type=True,
                 )
 
             if try_isinstance(fld_type, _AnnotatedAlias):
-                for x in cls._get_type_metadata(fld_type):
+                for x in get_type_metadata(fld_type):
                     if isinstance(x, Field) and ARGPARSE_ARG_METADATA_KEY in x.metadata:
                         argparse_argument = x.metadata[ARGPARSE_ARG_METADATA_KEY]
                         break
 
-                fld_type = cls._get_type_origin(fld_type)
+                fld_type = get_type_origin(fld_type)
 
                 if (
                     sys.version_info >= (3, 10) and try_isinstance(fld_type, UnionType)
-                ) or cls._get_type_origin(fld_type) is Union:
+                ) or get_type_origin(fld_type) is Union:
                     fld_type = cls._extract_type_from_container(
                         fld_type,
                         is_union_type=True,
@@ -510,10 +519,10 @@ class ArgumentParser(argparse.ArgumentParser):
                     argparse_argument.default = fld.default_factory()
                     argparse_argument.required = False
 
-            fld_type_origin: Optional[Type[Any]] = cls._get_type_origin(fld_type)
+            fld_type_origin: Optional[Type[Any]] = get_type_origin(fld_type)
             if fld_type_origin:
                 if fld_type_origin and fld_type_origin is Literal:
-                    argparse_argument.choices = list(cls._get_type_args(fld_type))
+                    argparse_argument.choices = list(get_type_args(fld_type))
                     if argparse_argument.choices:
                         fld_type = type(argparse_argument.choices[0])
                 else:
@@ -556,7 +565,14 @@ class ArgumentParser(argparse.ArgumentParser):
                             fld_type,
                         )
 
-                    if argparse_argument.pos and argparse_argument.nargs is None:
+                    unbounded_arg: bool = False
+                    with suppress(ValueError, TypeError):
+                        if int(argparse_argument.nargs) < 0:
+                            unbounded_arg = True
+
+                    if unbounded_arg or (
+                        argparse_argument.pos and argparse_argument.nargs is None
+                    ):
                         if argparse_argument.required:
                             argparse_argument.nargs = "+"
                         else:
@@ -623,18 +639,14 @@ class ArgumentParser(argparse.ArgumentParser):
                 or fld.default_factory is not MISSING
                 or kwargs.get("default") is not None
             ):
-                if kwargs.get("action") and try_issubclass(
-                    kwargs["action"],
-                    (argparse.Action, BooleanOptionalAction),
-                ):
-                    # https://stackoverflow.com/a/24448351
-                    dummy_namespace: object = type("", (), {})()
-                    kwargs["action"](option_strings=args, dest=kwargs["dest"])(
+                if try_issubclass(kwargs.get("action"), PrePostAction):
+                    kwargs["default"] = get_action_result(
+                        action=kwargs["action"],
                         parser=parser,
-                        namespace=dummy_namespace,
-                        values=kwargs["default"],
+                        dest=kwargs["dest"],
+                        default=kwargs["default"],
+                        option_strings=args,
                     )
-                    kwargs["default"] = getattr(dummy_namespace, kwargs["dest"])
                 elif "type" in kwargs:
                     kwargs["default"] = kwargs["type"](kwargs["default"])
 
@@ -666,8 +678,13 @@ class ArgumentParser(argparse.ArgumentParser):
             help_msg_parts: List[str] = [f"Type: {help_type}"]
 
             # pylint: disable=protected-access
-            if not required:
-                if isinstance(kwargs.get("default"), str):
+            default: Any = kwargs.get("default")
+            if (
+                not required
+                and default is not None
+                and (not hasattr(default, "__len__") or len(default) > 1)
+            ):
+                if isinstance(default, str):
                     help_msg_parts.append('Default: "%(default)s"')
                 else:
                     help_msg_parts.append("Default: %(default)s")
@@ -719,18 +736,6 @@ class ArgumentParser(argparse.ArgumentParser):
 
         return added_args
 
-    @staticmethod
-    def _get_type_origin(t: Type[Any]) -> Optional[Type[Any]]:
-        return getattr(t, "__origin__", None)
-
-    @staticmethod
-    def _get_type_args(t: Type[Any]) -> Tuple[Type[Any], ...]:
-        return getattr(t, "__args__", ())
-
-    @staticmethod
-    def _get_type_metadata(t: Type[Any]) -> Tuple[Type[Any], ...]:
-        return getattr(t, "__metadata__", ())
-
     @classmethod
     def _extract_type_from_container(
         cls,
@@ -739,7 +744,7 @@ class ArgumentParser(argparse.ArgumentParser):
         is_union_type: bool = False,
     ) -> Type[Any]:
         type_container_origin: Any = (
-            Union if is_union_type else cls._get_type_origin(type_container)
+            Union if is_union_type else get_type_origin(type_container)
         )
 
         if type_container_origin is None:
@@ -747,7 +752,7 @@ class ArgumentParser(argparse.ArgumentParser):
                 f"Given type is not a container: {type_container.__name__}",
             )
 
-        type_container_args = cls._get_type_args(type_container)
+        type_container_args = get_type_args(type_container)
 
         results: List[Type[Any]] = [
             a for a in type_container_args if a is not ... and a is not NoneType
@@ -778,13 +783,13 @@ class ArgumentParser(argparse.ArgumentParser):
         if not results:
             raise TypeError("Too many types in container")
 
-        type_container_subtype_origin = cls._get_type_origin(type_container_subtype)
+        type_container_subtype_origin = get_type_origin(type_container_subtype)
 
         if type_container_subtype_origin is Union:
             type_container_subtype = cls._extract_type_from_container(
                 type_container_subtype,
             )
-            type_container_subtype_origin = cls._get_type_origin(type_container_subtype)
+            type_container_subtype_origin = get_type_origin(type_container_subtype)
 
         if (
             assert_primitive
@@ -813,22 +818,28 @@ class ArgumentParser(argparse.ArgumentParser):
 
         return self._subparsers_action
 
-    def _find_subparsers_action(self) -> Optional[argparse._SubParsersAction]:
-        for a in self._actions:
-            if isinstance(
-                a,
-                argparse._SubParsersAction,  # pylint: disable=protected-access
-            ):
-                self._subparsers_action = a
-                return self._subparsers_action
-        return None
+    @classmethod
+    def _find_subparsers_action(
+        cls,
+        parser: "ArgumentParser",
+    ) -> Optional[argparse._SubParsersAction]:
+        # pylint: disable=protected-access
+        if not parser._subparsers_action:
+            for a in parser._actions:
+                if isinstance(a, argparse._SubParsersAction):
+                    parser._subparsers_action = a
+                    break
+            else:
+                return None
+
+        return parser._subparsers_action
 
     def _get_or_add_subparsers(self) -> argparse._SubParsersAction:
         if self._subparsers_action is not None:
             return self._subparsers_action
 
         if self._subparsers:
-            self._find_subparsers_action()
+            self._find_subparsers_action(parser=self)
             assert self._subparsers_action
             return self._subparsers_action
 
@@ -918,9 +929,12 @@ class ArgumentParser(argparse.ArgumentParser):
         """Use parsed args to instantiate the given data model.
 
         Args:
-            args:
-            args_model:
-            skip_pydantic_validation:
+            args: ...
+            args_model: ...
+            skip_pydantic_validation: ...
+
+        Returns:
+            ...
 
         Examples:
             >>> import yapx
@@ -948,7 +962,7 @@ class ArgumentParser(argparse.ArgumentParser):
 
         return (
             self._parse_args_to_model(
-                args=parsed_args,
+                args=vars(parsed_args),
                 args_model=args_model,
                 skip_pydantic_validation=skip_pydantic_validation,
             ),
@@ -964,9 +978,12 @@ class ArgumentParser(argparse.ArgumentParser):
         """Use parsed args to instantiate the given data model.
 
         Args:
-            args:
-            args_model:
-            skip_pydantic_validation:
+            args: ...
+            args_model: ...
+            skip_pydantic_validation: ...
+
+        Returns:
+            ...
 
         Examples:
             >>> import yapx
@@ -987,26 +1004,24 @@ class ArgumentParser(argparse.ArgumentParser):
         """
         parsed_args: argparse.Namespace = self.parse_args(args)
         return self._parse_args_to_model(
-            args=parsed_args,
+            args=vars(parsed_args),
             args_model=args_model,
             skip_pydantic_validation=skip_pydantic_validation,
         )
 
     def _parse_args_to_model(
         self,
-        args: argparse.Namespace,
+        args: Dict[str, Any],
         args_model: Optional[Type[Dataclass]] = None,
         skip_pydantic_validation: bool = False,
     ) -> Dataclass:
-        parsed_args: Dict[str, Any] = vars(args)
-
         if not args_model:
-            args_model = parsed_args.get(self.CMD_FUNC_ARGS_ATTR_NAME)
+            args_model = args.get(self.CMD_FUNC_ARGS_ATTR_NAME)
             if not args_model:
                 raise NoArgsModelError
 
         args_union: Dict[str, Any] = self._union_args_with_model(
-            args_dict=parsed_args,
+            args_dict=args,
             args_model=args_model,
         )
 
@@ -1064,7 +1079,7 @@ class ArgumentParser(argparse.ArgumentParser):
         parser: argparse.ArgumentParser,
         args_model: Union[Callable[..., Any], Type[Dataclass]],
     ) -> None:
-        description: str = cls._get_description_from_docstring(args_model)
+        description: Optional[str] = cls._get_description_from_docstring(args_model)
 
         if description:
             parser.description = description
@@ -1072,108 +1087,109 @@ class ArgumentParser(argparse.ArgumentParser):
     @classmethod
     def _run_func(
         cls,
-        parser: "ArgumentParser",
         func: Callable[..., Any],
-        args: List[str],
+        context: Context,
+        unknown_args: List[str],
+        linked_func: Optional[Callable[..., Any]],
         args_model: Optional[Type[Any]] = None,
-        linked_func: Optional[Callable[..., Any]] = None,
-        relay_value: Optional[Any] = None,
+        is_subcommand: bool = False,
     ) -> Any:
-        func_args: List[str] = []
-        func_kwargs: Dict[str, Optional[Any]] = {}
-
-        extra_args_ok: bool = False
-
-        accepts_args: bool = False
-        accepts_extra_args: bool = False
-
-        accepts_kwargs: bool = False
-        accepts_extra_kwargs: bool = False
+        context_arg_name: Optional[str] = None
+        var_arg_name: Optional[str] = None
+        var_kwarg_name: Optional[str] = None
 
         for p in signature(func).parameters.values():
-            if str(p).startswith("**"):
-                accepts_kwargs = True
-            elif str(p).startswith("*"):
-                accepts_args = True
-            elif p.name == "_extra_args":
-                accepts_extra_args = True
-            elif p.name == "_extra_kwargs":
-                accepts_extra_kwargs = True
-            elif p.name == "_all_args":
-                func_kwargs["_all_args"] = args
-            elif p.name == "_relay_value":
-                func_kwargs["_relay_value"] = relay_value
-            elif p.name == "_called_from_cli":
-                func_kwargs["_called_from_cli"] = True
+            if p.kind is p.VAR_POSITIONAL:
+                var_arg_name = p.name
+            elif p.kind is p.VAR_KEYWORD:
+                var_kwarg_name = p.name
+            elif p.annotation is Context or Context in get_type_args(p.annotation):
+                context_arg_name = p.name
 
-        extra_args_ok = (
-            accepts_args or accepts_kwargs or accepts_extra_args or accepts_extra_kwargs
-        )
-
-        if not extra_args_ok and linked_func:
-            extra_args_ok = any(
-                str(p).startswith("*") or p.name in ("_extra_args", "_extra_kwargs")
-                for p in signature(linked_func).parameters.values()
+        if (
+            unknown_args
+            and not var_arg_name
+            and not var_kwarg_name
+            and (
+                not linked_func
+                or (
+                    not any(
+                        p.kind in (p.VAR_POSITIONAL, p.VAR_KEYWORD)
+                        for p in signature(linked_func).parameters.values()
+                    )
+                )
+            )
+        ):
+            context.parser.error(
+                f"Unrecognized arguments: {' '.join(unknown_args)}",
             )
 
         if not args_model:
             args_model = make_dataclass_from_func(func)
 
-        model_inst: Dataclass
-        if extra_args_ok:
-            unknown_args: List[str]
-            model_inst, unknown_args = parser.parse_known_args_to_model(
-                args=args,
-                args_model=args_model,
-            )
+        model_args: Dict[str, Any] = vars(context.namespace)
 
-            if accepts_kwargs or accepts_extra_kwargs:
-                unknown_name_map: Dict[str, str] = {}
-                unknown_parser: ArgumentParser = cls()
-                for x in unknown_args:
-                    if x.startswith("-"):
-                        x_flag: str = x.split("=", maxsplit=1)[0]
-                        x_flag_bare = x_flag.lstrip("-")
-                        if x_flag_bare:
-                            unknown_parser.add_argument(
-                                x_flag,
-                                nargs="?",
-                                default=None,
-                                required=False,
-                            )
-                            unknown_name_map[x_flag_bare] = x_flag
+        if var_arg_name or var_kwarg_name:
+            # we must pass the parser of the subcommand,
+            # in order to access `parser._dest_type`
+            cmd_parser = context.parser
+            if is_subcommand:
+                cmd_name: Optional[str] = getattr(
+                    context.namespace,
+                    cls.CMD_ATTR_NAME,
+                    None,
+                )
+                if cmd_name:
+                    subparsers: argparse._SubParsersAction = (
+                        cls._find_subparsers_action(context.parser)
+                    )
+                    assert subparsers
+                    cmd_parser = subparsers.choices[cmd_name]
 
-                parsed_unknown, unknown_args = unknown_parser.parse_known_args(
-                    args=unknown_args,
+            if var_arg_name:
+                model_args[var_arg_name] = get_action_result(
+                    action=SplitCsvTupleAction,
+                    parser=cmd_parser,
+                    dest=var_arg_name,
+                    default=unknown_args,
+                    option_strings=[],
+                )
+            if var_kwarg_name:
+                model_args[var_kwarg_name] = get_action_result(
+                    action=SplitCsvDictAction,
+                    parser=cmd_parser,
+                    dest=var_kwarg_name,
+                    default=unknown_args,
+                    option_strings=[],
                 )
 
-                extra_kwargs: Dict[str, str] = {
-                    unknown_name_map[k]: v for k, v in vars(parsed_unknown).items()
-                }
-                if accepts_kwargs:
-                    func_kwargs.update(extra_kwargs)
-                if accepts_extra_kwargs:
-                    func_kwargs["_extra_kwargs"] = extra_kwargs
-
-            if accepts_args:
-                func_args = unknown_args
-
-            if accepts_extra_args:
-                func_kwargs["_extra_args"] = unknown_args
-
-        else:
-            model_inst = parser.parse_args_to_model(
-                args=args,
+        model_inst: Dataclass = (
+            context.parser._parse_args_to_model(  # pylint: disable=protected-access
+                args=model_args,
                 args_model=args_model,
             )
+        )
 
-        return func(*func_args, **vars(model_inst), **func_kwargs)
+        func_var_kwargs: Dict[str, Optional[Any]] = vars(model_inst)
+
+        func_var_kwargs.update(func_var_kwargs.pop(var_kwarg_name, {}))
+
+        if context_arg_name:
+            func_var_kwargs[context_arg_name] = context
+
+        func_var_args: List[str] = func_var_kwargs.pop(var_arg_name, [])
+
+        return func(*func_var_args, **func_var_kwargs)
 
     @classmethod
     def _build_parser(
         cls,
         command: Optional[Callable[..., Any]] = None,
-        subcommands: Optional[Sequence[Callable[..., Any]]] = None,
+        subcommands: Union[
+            None,
+            Callable[..., Any],
+            Sequence[Callable[..., Any]],
+        ] = None,
         named_subcommands: Optional[Dict[str, Callable[..., Any]]] = None,
         **kwargs: Any,
     ) -> "ArgumentParser":
@@ -1224,33 +1240,36 @@ class ArgumentParser(argparse.ArgumentParser):
         default_args: Optional[List[str]] = None,
         **parser_kwargs: Any,
     ) -> Any:
-        """Use given functions to construct a CLI, parse the args, and invoke the appropriate command.
+        """Use given functions to construct an ArgumentParser,
+        parse the args, invoke the appropriate command, and return any result.
 
         Args:
-            *parser_args:
-            args:
-            default_args:
-            **parser_kwargs:
+            *parser_args: ...
+            args: ...
+            default_args: ...
+            **parser_kwargs: ...
 
+        Returns:
+            ...
 
         Examples:
             >>> import yapx
             ...
-            >>> def print_nums(*args):
+            >>> def print_nums(*args: int):
             ...     print('Args: ', *args)
+            ...     return args
             ...
-            >>> def find_evens(*args):
-            ...     return [x for x in args if int(x) % 2 == 0]
+            >>> def find_evens(_context: yapx.Context):
+            ...     return [x for x in _context.relay_value if x % 2 == 0]
             ...
-            >>> def find_odds(*args):
-            ...     return [x for x in args if int(x) % 2 != 0]
+            >>> def find_odds(_context: yapx.Context):
+            ...     return [x for x in _context.relay_value if x % 2 != 0]
             ...
             >>> cli_args = ['find-odds', '1', '2', '3', '4', '5']
             >>> yapx.run(print_nums, [find_evens, find_odds], args=cli_args)
             Args:  1 2 3 4 5
-            ['1', '3', '5']
+            [1, 3, 5]
         """
-
         parser: ArgumentParser = cls._build_parser(*parser_args, **parser_kwargs)
 
         if args is None:
@@ -1259,34 +1278,49 @@ class ArgumentParser(argparse.ArgumentParser):
         if not args and default_args:
             args = default_args
 
-        known_args: argparse.Namespace
-        known_args, _ = parser.parse_known_args(args)
-        parsed_args: Dict[str, Any] = vars(known_args)
+        known_args: Namespace
+        unknown_args: List[str]
+        known_args, unknown_args = parser.parse_known_args(args)
 
-        root_func: Optional[Callable[..., Any]] = parsed_args.get(
+        root_func: Optional[Callable[..., Any]] = getattr(
+            known_args,
             cls.ROOT_FUNC_ATTR_NAME,
+            None,
         )
-        root_func_args_model: Optional[Type[Any]] = parsed_args.get(
+        root_func_args_model: Optional[Type[Any]] = getattr(
+            known_args,
             cls.ROOT_FUNC_ARGS_ATTR_NAME,
+            None,
         )
-        command_name: Optional[str] = parsed_args.get(cls.CMD_ATTR_NAME)
-        command_func: Optional[Callable[..., Any]] = parsed_args.get(
+        command_name: Optional[str] = getattr(known_args, cls.CMD_ATTR_NAME, None)
+        command_func: Optional[Callable[..., Any]] = getattr(
+            known_args,
             cls.CMD_FUNC_ATTR_NAME,
+            None,
         )
-        command_func_args_model: Optional[Type[Any]] = parsed_args.get(
+        command_func_args_model: Optional[Type[Any]] = getattr(
+            known_args,
             cls.CMD_FUNC_ARGS_ATTR_NAME,
+            None,
         )
 
         relay_value: Any = None
         root_result: Any = None
 
+        context: Context = Context(
+            parser=parser,
+            args=args,
+            namespace=known_args,
+            relay_value=relay_value,
+        )
+
         if root_func:
             root_result = cls._run_func(
-                parser=parser,
                 func=root_func,
+                context=context,
                 args_model=root_func_args_model,
+                unknown_args=unknown_args,
                 linked_func=command_func,
-                args=args,
             )
 
         if try_isinstance(root_result, GeneratorType):
@@ -1298,14 +1332,19 @@ class ArgumentParser(argparse.ArgumentParser):
             relay_value = root_result
 
         try:
+            if relay_value is not None:
+                context_kwargs: Dict[str, Any] = vars(context)
+                context_kwargs["relay_value"] = relay_value
+                context = Context(**vars(context))
+
             if command_name and command_func:
                 relay_value = cls._run_func(
-                    parser=parser,
                     func=command_func,
+                    context=context,
                     args_model=command_func_args_model,
-                    args=args,
+                    unknown_args=unknown_args,
                     linked_func=root_func,
-                    relay_value=relay_value,
+                    is_subcommand=True,
                 )
         finally:
             if try_isinstance(root_result, GeneratorType):

@@ -16,8 +16,7 @@ from yapx.arg import (
 
 def test_convert_to_command_string() -> None:
     assert convert_to_command_string(" this_THAT ") == "this-that"
-    assert convert_to_command_string(" _this_that ") == "that"
-    assert convert_to_command_string(" x_that ") == "that"
+    assert convert_to_command_string(" _this_that ") == "this-that"
     assert convert_to_command_string(" --WatIsThis ") == "wat-is-this"
     assert convert_to_command_string(" Wat Is This ") == "wat-is-this"
 
@@ -28,15 +27,22 @@ def test_convert_to_flag_string() -> None:
     assert convert_to_flag_string("test_this") == "--test-this"
     assert convert_to_flag_string("t") == "-t"
     assert convert_to_flag_string("-t") == "-t"
+    assert convert_to_flag_string("go/no-go") == "--go/--no-go"
     assert convert_to_flag_string(" --WatIsThis ") == "--wat-is-this"
+    assert (
+        convert_to_flag_string(" WatIsThis / SomeCoolShit ")
+        == "--wat-is-this/--some-cool-shit"
+    )
 
 
 def test_convert_to_short_flag_string() -> None:
     assert convert_to_short_flag_string("test") == "-t"
     assert convert_to_short_flag_string("  --TeST  ") == "-t"
     assert convert_to_short_flag_string("test_this") == "-t"
-    assert convert_to_flag_string("t") == "-t"
-    assert convert_to_flag_string("-t") == "-t"
+    assert convert_to_short_flag_string("t") == "-t"
+    assert convert_to_short_flag_string("-t") == "-t"
+    assert convert_to_flag_string("x/X") == "-x/-X"
+    assert convert_to_short_flag_string(" WatIsThis / SomeCoolShit ") == "-w/-s"
 
 
 def test_argument_parser_arg_defaults():

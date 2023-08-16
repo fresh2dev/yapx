@@ -1,5 +1,6 @@
 import collections.abc
 import shlex
+from abc import ABC
 from argparse import Action, Namespace, _AppendAction, _CountAction
 from argparse import _HelpAction as HelpAction
 from copy import copy
@@ -9,7 +10,17 @@ from .types import ArgumentParser, ArgValueType
 from .utils import coalesce, try_isinstance
 
 
-class BooleanOptionalAction(Action):
+class PrePostAction(ABC, Action):
+    """When an action inherits from this class, and a default argument value is given,
+    Yapx will run the action once *before* parsing, and once again *after* parsing.
+
+    This is useful for ensuring that the default value is of the proper type.
+    """
+
+    ...
+
+
+class BooleanOptionalAction(PrePostAction):
     # ref: https://github.com/python/cpython/blob/main/Lib/argparse.py#L889C1-L943C47
     NEGATION_PREFIX: str = "--no-"
 
@@ -28,9 +39,7 @@ class BooleanOptionalAction(Action):
 
         _option_strings = []
         for option_string in option_strings:
-            if not option_string.startswith("--"):
-                _option_strings.append(option_string)
-            elif "/" in option_string:
+            if "/" in option_string:
                 opt_str, opt_str_neg = map(
                     str.strip,
                     option_string.split("/", maxsplit=1),
@@ -39,6 +48,8 @@ class BooleanOptionalAction(Action):
                 _option_strings.extend([opt_str, opt_str_neg])
 
                 self._negation_option_strings.append(opt_str_neg)
+            elif not option_string.startswith("--"):
+                _option_strings.append(option_string)
             elif not option_string.startswith(self.NEGATION_PREFIX):
                 opt_str_neg = self.NEGATION_PREFIX + option_string[2:]
                 _option_strings.extend(
@@ -108,7 +119,7 @@ class HelpAllAction(HelpAction):
         parser.exit()
 
 
-class CountAction(_CountAction):
+class CountAction(PrePostAction, _CountAction):
     def __init__(
         self,
         option_strings,
@@ -137,7 +148,7 @@ class CountAction(_CountAction):
         setattr(namespace, self.dest, count)
 
 
-class FeatureFlagAction(Action):
+class FeatureFlagAction(PrePostAction):
     def __call__(self, parser, namespace, values, option_string=None):
         if option_string:
             values = option_string
@@ -227,7 +238,7 @@ def _copy_items(items: Optional[List[T]]) -> List[T]:
     return copy(items)
 
 
-class SplitCsvListAction(_AppendAction):
+class SplitCsvListAction(PrePostAction, _AppendAction):
     def __call__(self, parser, namespace, values, option_string=None):
         split_values: Optional[List[str]] = _split_csv_sequence(
             values,
@@ -244,7 +255,7 @@ class SplitCsvListAction(_AppendAction):
         setattr(namespace, self.dest, items)
 
 
-class SplitCsvTupleAction(_AppendAction):
+class SplitCsvTupleAction(PrePostAction, _AppendAction):
     def __call__(self, parser, namespace, values, option_string=None):
         split_values: Optional[List[str]] = _split_csv_sequence(
             values,
@@ -261,7 +272,7 @@ class SplitCsvTupleAction(_AppendAction):
         setattr(namespace, self.dest, tuple(items) if items is not None else None)
 
 
-class SplitCsvSetAction(_AppendAction):
+class SplitCsvSetAction(PrePostAction, _AppendAction):
     def __call__(self, parser, namespace, values, option_string=None):
         split_values: Optional[List[str]] = _split_csv_sequence(
             values,
@@ -278,12 +289,14 @@ class SplitCsvSetAction(_AppendAction):
         setattr(namespace, self.dest, set(items) if items is not None else None)
 
 
-class SplitCsvDictAction(_AppendAction):
+class SplitCsvDictAction(PrePostAction, _AppendAction):
     def __call__(self, parser, namespace, values, option_string=None):
         split_values_dict: Optional[Dict[str, Any]] = None
 
-        if not values or isinstance(values, dict):
+        if values is None or isinstance(values, dict):
             split_values_dict = values
+        elif not values:
+            split_values_dict = {}
         else:
             split_values: Optional[List[str]] = _split_csv_sequence(
                 values,

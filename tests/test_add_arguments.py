@@ -31,7 +31,7 @@ else:
         ),
         (
             "a_str",
-            Annotated[str, yapx.arg("hello")],
+            Annotated[str, yapx.arg(default="hello")],
             MISSING,
             ArgparseArg(
                 option_strings=["--a-str"],
@@ -42,7 +42,7 @@ else:
         ),
         (
             "a_str",
-            Annotated[Optional[str], yapx.arg("hello")],
+            Annotated[Optional[str], yapx.arg(default="hello")],
             None,
             ArgparseArg(
                 option_strings=["--a-str"],
@@ -79,7 +79,7 @@ else:
             None,
             ArgparseArg(
                 option_strings=["--a-str"],
-                help="> Type: str, Default: %(default)s",
+                help="> Type: str",
                 required=False,
                 default=None,
             ),
@@ -112,7 +112,7 @@ else:
             None,
             ArgparseArg(
                 option_strings=["--a-int"],
-                help="> Type: int, Default: %(default)s",
+                help="> Type: int",
                 required=False,
                 default=None,
             ),
@@ -183,7 +183,7 @@ else:
             list,
             ArgparseArg(
                 option_strings=["--a-list"],
-                help="> Type: List[str], Default: %(default)s",
+                help="> Type: List[str]",
                 nargs=None,
                 required=False,
                 default=[],
@@ -207,7 +207,7 @@ else:
             tuple,
             ArgparseArg(
                 option_strings=["--a-tuple"],
-                help="> Type: Tuple[str], Default: %(default)s",
+                help="> Type: Tuple[str]",
                 nargs=None,
                 required=False,
                 default=(),
@@ -231,7 +231,7 @@ else:
             list,
             ArgparseArg(
                 option_strings=["--a-sequence"],
-                help="> Type: Sequence[str], Default: %(default)s",
+                help="> Type: Sequence[str]",
                 nargs=None,
                 required=False,
                 default=[],
@@ -255,7 +255,7 @@ else:
             set,
             ArgparseArg(
                 option_strings=["--a-set"],
-                help="> Type: Set[str], Default: %(default)s",
+                help="> Type: Set[str]",
                 nargs=None,
                 required=False,
                 default=set(),
@@ -279,7 +279,7 @@ else:
             dict,
             ArgparseArg(
                 option_strings=["--a-dict"],
-                help="> Type: Dict[str, str], Default: %(default)s",
+                help="> Type: Dict[str, str]",
                 nargs=None,
                 required=False,
                 default={},
@@ -303,7 +303,7 @@ else:
             dict,
             ArgparseArg(
                 option_strings=["--a-mapping"],
-                help="> Type: Mapping[str, str], Default: %(default)s",
+                help="> Type: Mapping[str, str]",
                 nargs=None,
                 required=False,
                 default={},
@@ -394,7 +394,7 @@ def test_add_arguments_conflict():
     # 1. ARRANGE
     @dataclass
     class ArgsModel:
-        conflict: str = yapx.arg(flags=["--value"])
+        conflict: str = yapx.arg("value")
         value: Optional[str] = None
 
     expected: str = "hello world"

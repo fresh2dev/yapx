@@ -1,4 +1,5 @@
 import sys
+from argparse import Action, ArgumentParser
 from contextlib import suppress
 from dataclasses import is_dataclass
 from enum import Enum
@@ -129,6 +130,23 @@ def coalesce(x: Any, d: Any, null_or_empty: bool = False) -> Any:
     if (null_or_empty and x) or (not null_or_empty and x is not None):
         return x
     return d
+
+
+def get_action_result(
+    action: Action,
+    parser: ArgumentParser,
+    default: Any,
+    dest: str = "tmp",
+    **kwargs,
+) -> Any:
+    # https://stackoverflow.com/a/24448351
+    dummy_namespace: object = type("", (), {})()
+    action(dest=dest, **kwargs)(
+        parser=parser,
+        namespace=dummy_namespace,
+        values=default,
+    )
+    return getattr(dummy_namespace, dest)
 
 
 def cast_bool(value: Union[None, str, bool]) -> bool:

@@ -1,6 +1,33 @@
 # Changelog
 
+## 0.3.0 - 2023-08-17
+
+### :clap: Features
+
+- Add vanity arg methods; counting_arg, feature_arg, unbounded_arg [135c34c]
+- *Breaking:* `yapx.Context` used instead of `_relay_value` [a93341a]
+
+### :fist: Fixes
+
+- Refactor to ensure `parse_args` is called only once [a401a4f]
+- Dict annotation returning empty list when empty arg given [47dcd49]
+- Restore ability to suppress tui option [223ba03]
+
+### :point_right: Changes
+
+- *Breaking:* Positional args to `yapx.arg(...)` are now considered flags. [8a5540f]
+- *Breaking:* `*args` and `**kwargs` are populated by unknown args [1338dcd]
+- Only show defaults in help text if not null or empty [bc60880]
+
+SLOC Analysis:
+
+| Directory   |   Empty |   Comment |   Docstring |   Code |   Statements |
+|-------------|---------|-----------|-------------|--------|--------------|
+| src/yapx    |     404 |        51 |         509 |   1804 |          984 |
+| tests       |     358 |       184 |         251 |   1460 |          738 |
+
 ---
+
 
 ## 0.2.4 - 2023-07-29
 
