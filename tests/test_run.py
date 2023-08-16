@@ -483,8 +483,8 @@ def test_run_bools(disable_pydantic: bool):
 @pytest.mark.parametrize("disable_pydantic", [False, True])
 def test_run_pos_list(disable_pydantic: bool):
     def _func(
-        this: Optional[List[str]] = yapx.arg(None, pos=True, exclusive=True),
-        that: Optional[List[str]] = yapx.arg(None, exclusive=True),
+        this: Optional[List[str]] = yapx.arg(default=None, pos=True, exclusive=True),
+        that: Optional[List[str]] = yapx.arg(default=None, exclusive=True),
     ) -> List[int]:
         return this, that
 
@@ -505,9 +505,9 @@ def test_run_pos_list(disable_pydantic: bool):
 @pytest.mark.parametrize("disable_pydantic", [False, True])
 def test_run_exclusive(disable_pydantic: bool):
     def _func(
-        this: Optional[List[str]] = yapx.arg(None, pos=True, exclusive=True),
-        that: Optional[List[str]] = yapx.arg(None, exclusive=True),
-        the: Optional[bool] = yapx.arg(None, exclusive=True),
+        this: Optional[List[str]] = yapx.arg(default=None, pos=True, exclusive=True),
+        that: Optional[List[str]] = yapx.arg(default=None, exclusive=True),
+        the: Optional[bool] = yapx.arg(default=None, exclusive=True),
     ) -> List[int]:
         return this, that, the
 
@@ -619,9 +619,9 @@ def test_annotated():
 
     def _setup(
         *args,
-        value: Annotated[int, yapx.arg(expected_value)],
-        value2: int = yapx.arg(expected_value),
-        value3: Annotated[Optional[int], yapx.arg(expected_value)] = None,
+        value: Annotated[int, yapx.arg(default=expected_value)],
+        value2: int = yapx.arg(default=expected_value),
+        value3: Annotated[Optional[int], yapx.arg(default=expected_value)] = None,
         value4: Annotated[float, yapx.arg()] = expected_value,
     ) -> str:
         return args, value, value2, value3, value4
@@ -643,31 +643,35 @@ def test_annotated():
 def test_run_multivalue(disable_pydantic: bool):
     def _func(
         v19: Optional[Annotated[List[float], yapx.arg(nargs="*")]] = None,
-        v20: Optional[Annotated[List[float], yapx.arg(lambda: [3.2])]] = None,
+        v20: Optional[Annotated[List[float], yapx.arg(default=lambda: [3.2])]] = None,
         v21: List[float] = lambda: [3.21],
-        v22: List[float] = yapx.arg(lambda: [3.22]),
+        v22: List[float] = yapx.arg(default=lambda: [3.22]),
         #
         v23: Optional[Annotated[Sequence[float], yapx.arg(nargs="*")]] = None,
-        v24: Optional[Annotated[Sequence[float], yapx.arg(lambda: [3.2])]] = None,
+        v24: Optional[
+            Annotated[Sequence[float], yapx.arg(default=lambda: [3.2])]
+        ] = None,
         v25: Sequence[float] = lambda: [3.21],
-        v26: Sequence[float] = yapx.arg(lambda: [3.22]),
+        v26: Sequence[float] = yapx.arg(default=lambda: [3.22]),
         #
         v27: Optional[Annotated[Tuple[float, ...], yapx.arg(nargs="*")]] = None,
-        v28: Optional[Annotated[Tuple[float, ...], yapx.arg(lambda: (3.2,))]] = None,
+        v28: Optional[
+            Annotated[Tuple[float, ...], yapx.arg(default=lambda: (3.2,))]
+        ] = None,
         v29: Tuple[float, ...] = lambda: (3.21,),
-        v30: Tuple[float, ...] = yapx.arg(lambda: (3.22,)),
+        v30: Tuple[float, ...] = yapx.arg(default=lambda: (3.22,)),
         #
         v31: Optional[Annotated[Set[float], yapx.arg(nargs="*")]] = None,
-        v32: Optional[Annotated[Set[float], yapx.arg(lambda: {3.2})]] = None,
+        v32: Optional[Annotated[Set[float], yapx.arg(default=lambda: {3.2})]] = None,
         v33: Set[float] = lambda: {3.21},
-        v34: Set[float] = yapx.arg(lambda: {3.22}),
+        v34: Set[float] = yapx.arg(default=lambda: {3.22}),
         #
         v35: Optional[Annotated[Dict[str, float], yapx.arg(nargs="*")]] = None,
         v36: Optional[
-            Annotated[Dict[str, float], yapx.arg(lambda: {"hello": 3.2})]
+            Annotated[Dict[str, float], yapx.arg(default=lambda: {"hello": 3.2})]
         ] = None,
         v37: Dict[str, float] = lambda: {"hello": 3.21},
-        v38: Dict[str, float] = yapx.arg(lambda: {"hello": 3.22}),
+        v38: Dict[str, float] = yapx.arg(default=lambda: {"hello": 3.22}),
     ) -> None:
         # list
         assert v19 == [3.19, 3.19, 3.192]
@@ -732,11 +736,11 @@ def test_run_multivalue(disable_pydantic: bool):
 @pytest.mark.parametrize("disable_pydantic", [False, True])
 def test_run_moar(disable_pydantic: bool):
     def _func(
-        verbose: Annotated[int, yapx.arg(default=0, nargs=0, flags="-v")],
+        verbose: Annotated[int, yapx.arg("v", default=0, nargs=0)],
         live: bool,
         dye: Annotated[bool, yapx.arg(pos=True)],
-        start: Annotated[bool, yapx.arg(flags=["--init/--no-init", "-x/-X"])] = False,
-        feet: Annotated[str, yapx.arg(nargs=0, flags=["--dev", "--prod"])] = "nada",
+        start: Annotated[bool, yapx.arg("init/no-init", "x/X")] = False,
+        feet: Annotated[str, yapx.arg("dev", "prod", nargs=0)] = "nada",
         stop: bool = True,
         no_fear: bool = True,
         no_doubt: bool = False,
@@ -762,6 +766,8 @@ def test_run_moar(disable_pydantic: bool):
         "--no-stop",
         "--fear",
         "-x",
+        "-X",
+        "-x",
         "--fly",
         "--no-fly",
         "--dowat",
@@ -784,7 +790,7 @@ def test_run_moar(disable_pydantic: bool):
 
 @pytest.mark.parametrize("disable_pydantic", [False, True])
 def test_run_everything(disable_pydantic: bool):
-    def _setup(_test_private: Annotated[bool, yapx.arg(True)]):
+    def _setup(_test_private: Annotated[bool, yapx.arg(default=True)]):
         assert _test_private is True
         return "hello_relay"
 
@@ -792,52 +798,58 @@ def test_run_everything(disable_pydantic: bool):
         *args: str,
         v1,
         v2: str,
-        v3: Annotated[str, yapx.arg("hello_v3")],
+        v3: Annotated[str, yapx.arg(default="hello_v3")],
         v4: str = "hello_v4",
-        v5: str = yapx.arg("hello_v5"),
+        v5: str = yapx.arg(default="hello_v5"),
         #
         v6: Optional[int] = None,
-        v7: Optional[Annotated[int, yapx.arg(7)]] = None,
+        v7: Optional[Annotated[int, yapx.arg(default=7)]] = None,
         v8: int = 8,
-        v9: int = yapx.arg(9),
+        v9: int = yapx.arg(default=9),
         #
         v10: Optional[float] = None,
-        v11: Optional[Annotated[float, yapx.arg(3.11)]] = None,
+        v11: Optional[Annotated[float, yapx.arg(default=3.11)]] = None,
         v12: float = 3.12,
-        v13: float = yapx.arg(3.13),
+        v13: float = yapx.arg(default=3.13),
         #
         v14: Optional[bool] = None,
-        v15: Optional[Annotated[bool, yapx.arg(False)]] = None,
-        v16: Optional[Annotated[bool, yapx.arg(True, action="store_false")]] = None,
+        v15: Optional[Annotated[bool, yapx.arg(default=False)]] = None,
+        v16: Optional[
+            Annotated[bool, yapx.arg(default=True, action="store_false")]
+        ] = None,
         v17: bool = False,
-        v18: bool = yapx.arg(False),
+        v18: bool = yapx.arg(default=False),
         #
         v19: Optional[List[float]] = None,
-        v20: Optional[Annotated[List[float], yapx.arg(lambda: [3.2])]] = None,
+        v20: Optional[Annotated[List[float], yapx.arg(default=lambda: [3.2])]] = None,
         v21: List[float] = lambda: [3.21],
-        v22: List[float] = yapx.arg(lambda: [3.22]),
+        v22: List[float] = yapx.arg(default=lambda: [3.22]),
         #
         v23: Optional[Sequence[float]] = None,
-        v24: Optional[Annotated[Sequence[float], yapx.arg(lambda: [3.2])]] = None,
+        v24: Optional[
+            Annotated[Sequence[float], yapx.arg(default=lambda: [3.2])]
+        ] = None,
         v25: Sequence[float] = lambda: [3.21],
-        v26: Sequence[float] = yapx.arg(lambda: [3.22]),
+        v26: Sequence[float] = yapx.arg(default=lambda: [3.22]),
         #
         v27: Optional[Tuple[float, ...]] = None,
-        v28: Optional[Annotated[Tuple[float, ...], yapx.arg(lambda: (3.2,))]] = None,
+        v28: Optional[
+            Annotated[Tuple[float, ...], yapx.arg(default=lambda: (3.2,))]
+        ] = None,
         v29: Tuple[float, ...] = lambda: (3.21,),
-        v30: Tuple[float, ...] = yapx.arg(lambda: (3.22,)),
+        v30: Tuple[float, ...] = yapx.arg(default=lambda: (3.22,)),
         #
         v31: Optional[Set[float]] = None,
-        v32: Optional[Annotated[Set[float], yapx.arg(lambda: {3.2})]] = None,
+        v32: Optional[Annotated[Set[float], yapx.arg(default=lambda: {3.2})]] = None,
         v33: Set[float] = lambda: {3.21},
-        v34: Set[float] = yapx.arg(lambda: {3.22}),
+        v34: Set[float] = yapx.arg(default=lambda: {3.22}),
         #
         v35: Optional[Dict[str, float]] = None,
         v36: Optional[
-            Annotated[Dict[str, float], yapx.arg(lambda: {"hello": 3.2})]
+            Annotated[Dict[str, float], yapx.arg(default=lambda: {"hello": 3.2})]
         ] = None,
         v37: Dict[str, float] = lambda: {"hello": 3.21},
-        v38: Dict[str, float] = yapx.arg(lambda: {"hello": 3.22}),
+        v38: Dict[str, float] = yapx.arg(default=lambda: {"hello": 3.22}),
         #
         _context: yapx.Context = None,
         **kwargs: str,
@@ -960,9 +972,12 @@ def test_vanity_args():
     expected_values: List[int] = [1, 2, 3]
 
     def my_func(
-        verbose: Annotated[int, yapx.counting_arg(flags="-v")],
-        feature: Annotated[str, yapx.feature_arg(flags=["--dev", "--test", "--prod"])],
-        values: Annotated[Optional[List[int]], yapx.unbounded_arg(None, pos=True)],
+        verbose: Annotated[int, yapx.counting_arg("v")],
+        feature: Annotated[str, yapx.feature_arg("dev", "test", "prod")],
+        values: Annotated[
+            Optional[List[int]],
+            yapx.unbounded_arg(default=None, pos=True),
+        ],
     ):
         assert verbose == expected_verbose
         assert feature == expected_feature

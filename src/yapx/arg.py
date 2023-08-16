@@ -1,7 +1,6 @@
 import argparse
 import os
 import sys
-from contextlib import suppress
 from dataclasses import MISSING, Field, dataclass, field, make_dataclass
 from inspect import Parameter, signature
 from pathlib import Path
@@ -103,25 +102,34 @@ class ArgparseArg:
     def set_dest(self, value: Optional[str]) -> None:
         self.dest = value
 
-        if self.option_strings:
-            if self.pos:
-                self.option_strings = None
-            elif isinstance(self.option_strings, str):
+        if not self.option_strings and self.dest and not self.pos:
+            self.option_strings = [self.dest]
+
+        if not self.option_strings:
+            self.option_strings = None
+        else:
+            if isinstance(self.option_strings, str):
                 self.option_strings = [self.option_strings]
-        elif self.dest and not self.pos:
-            self.option_strings = [convert_to_flag_string(self.dest)]
+
+            self.option_strings = [
+                convert_to_flag_string(x) for x in self.option_strings
+            ]
+
+            if self.pos:
+                err: str = f"Positional arguments cannot have flags: {' '.join(self.option_strings)}"
+                raise ValueError(err)
 
     def asdict(self) -> Dict[str, Any]:
         return {k: v for k, v in vars(self).items() if not k.startswith("_")}
 
 
 def arg(
+    *flags: str,
     default: Optional[Any] = MISSING,
     env: Union[None, str, Sequence[str]] = None,
     pos: Optional[bool] = False,
     group: Optional[str] = None,
     exclusive: Optional[bool] = False,
-    flags: Union[None, str, Sequence[str]] = None,
     help: Optional[str] = None,  # pylint: disable=redefined-builtin
     metavar: Optional[str] = None,
     nargs: Optional[Union[int, str]] = None,
@@ -130,13 +138,12 @@ def arg(
     """Provides an interface to modify argument options.
 
     Args:
-        default: default value for the argument.
-            If not given, argument is required.
+        *flags: one or more flags to use for the argument.
+        default: default value for the argument. Argument is required if no default is given.
         env: list of environment variables that will provide the argument value.
         pos: if True, argument is positional (no flags).
         group: group for the argument.
         exclusive: if True, this arg cannot be specified along with another exclusive arg in the same group.
-        flags: list of flags to use for the argument.
         help: help text / description
         metavar: variable name printed in help text.
         nargs: the number of values this argument accepts.
@@ -186,6 +193,13 @@ def arg(
                         default = value_from_file
                         break
 
+    all_flags: List[str] = []
+    for x in flags:
+        if isinstance(x, str):
+            all_flags.append(x)
+        else:
+            all_flags.extend(x)
+
     metadata: Dict[str, ArgparseArg] = {
         ARGPARSE_ARG_METADATA_KEY: ArgparseArg(
             action=action,
@@ -216,43 +230,51 @@ def arg(
     return field(**kwargs)
 
 
-def convert_to_command_string(x: str) -> str:
-    x = x.strip()
+def _convert_to_command_strings(*args) -> List[str]:
+    x_split: List[str] = [y for x in args for y in [x.strip(" _-")] if y]
 
-    x_prefix: str = "x_"
-    under: str = "_"
-    if x.startswith(x_prefix):
-        x = x[len(x_prefix) :]
-    elif x.startswith(under):
-        # `_xxx_cmd_name` --> `cmd-name`
-        next_under: int = 0
-        with suppress(ValueError):
-            next_under = x.index(under, 1)
-        if not next_under:
-            x = x.lstrip(under)
-        else:
-            x = x[next_under + 1 :]
+    cmd_strings: List[str] = []
 
-    x = x.replace(" ", "-").replace("_", "-").strip("-")
+    for i in range(len(x_split)):
+        x = x_split[i].replace(" ", "-").replace("_", "-")
 
-    if not x:
-        raise ValueError("Expected at least one character")
+        if not x:
+            continue
 
-    if not x.islower() and not x.isupper() and "-" not in x:
-        x = "".join(
-            ["-" + c if c.isupper() and i > 0 else c for i, c in enumerate(x)],
-        )
+        if not x.islower() and not x.isupper() and "-" not in x:
+            # camelCase -> camel-case
+            x = "".join(
+                ["-" + c if c.isupper() and i > 0 else c for i, c in enumerate(x)],
+            )
 
-    return x.lower()
+        if len(x) > 1:
+            # avoid lower-casing single-letter commands/flags.
+            x = x.lower()
 
+        cmd_strings.append(x)
 
-def convert_to_flag_string(x: str) -> str:
-    cmd_str: str = convert_to_command_string(x)
-    return "--" + cmd_str if len(cmd_str) > 1 else "-" + cmd_str
+    if not cmd_strings:
+        err: str = "Expected at least one valid character"
+        raise ValueError(err)
+
+    return cmd_strings
 
 
-def convert_to_short_flag_string(x: str) -> str:
-    return "-" + convert_to_command_string(x)[0]
+def convert_to_command_string(text: str) -> str:
+    cmd_strings: List[str] = _convert_to_command_strings(text)
+    assert len(cmd_strings) == 1
+    return cmd_strings[0]
+
+
+def convert_to_flag_string(text: str) -> str:
+    return "/".join(
+        f"--{x}" if len(x) > 1 else f"-{x}"
+        for x in _convert_to_command_strings(*text.split("/"))
+    )
+
+
+def convert_to_short_flag_string(text: str) -> str:
+    return "/".join(f"-{x[0]}" for x in _convert_to_command_strings(*text.split("/")))
 
 
 def _eval_type(type_str: str) -> Type[Any]:
@@ -415,7 +437,7 @@ def counting_arg(
         >>> from typing import List
         ...
         >>> def say_hello(
-        ...     verbosity: Annotated[int, yapx.feature_arg(flags=["-v"])]
+        ...     verbosity: Annotated[int, yapx.feature_arg("v")]
         ... ):
         ...     print("verbosity:", verbosity)
         ...
@@ -449,7 +471,7 @@ def feature_arg(
         >>> from typing import List
         ...
         >>> def say_hello(
-        ...     value: Annotated[str, yapx.feature_arg(flags=["--dev", "--test", "--prod"])]
+        ...     value: Annotated[str, yapx.feature_arg("dev", "test", "prod")]
         ... ):
         ...     print(value)
         ...

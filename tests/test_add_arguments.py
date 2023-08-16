@@ -31,7 +31,7 @@ else:
         ),
         (
             "a_str",
-            Annotated[str, yapx.arg("hello")],
+            Annotated[str, yapx.arg(default="hello")],
             MISSING,
             ArgparseArg(
                 option_strings=["--a-str"],
@@ -42,7 +42,7 @@ else:
         ),
         (
             "a_str",
-            Annotated[Optional[str], yapx.arg("hello")],
+            Annotated[Optional[str], yapx.arg(default="hello")],
             None,
             ArgparseArg(
                 option_strings=["--a-str"],
@@ -394,7 +394,7 @@ def test_add_arguments_conflict():
     # 1. ARRANGE
     @dataclass
     class ArgsModel:
-        conflict: str = yapx.arg(flags=["--value"])
+        conflict: str = yapx.arg("value")
         value: Optional[str] = None
 
     expected: str = "hello world"

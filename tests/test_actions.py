@@ -33,7 +33,7 @@ def test_split_no_args(annotation):
     # 1. ARRANGE
     @dataclass
     class ArgsModel:
-        values: Annotated[annotation, yapx.arg(None, nargs="*")]
+        values: Annotated[annotation, yapx.arg(default=None, nargs="*")]
 
     # 2. ACT
     _common_test(args=[], args_model=ArgsModel, expected=None)

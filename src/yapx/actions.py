@@ -39,9 +39,7 @@ class BooleanOptionalAction(PrePostAction):
 
         _option_strings = []
         for option_string in option_strings:
-            if not option_string.startswith("--"):
-                _option_strings.append(option_string)
-            elif "/" in option_string:
+            if "/" in option_string:
                 opt_str, opt_str_neg = map(
                     str.strip,
                     option_string.split("/", maxsplit=1),
@@ -50,6 +48,8 @@ class BooleanOptionalAction(PrePostAction):
                 _option_strings.extend([opt_str, opt_str_neg])
 
                 self._negation_option_strings.append(opt_str_neg)
+            elif not option_string.startswith("--"):
+                _option_strings.append(option_string)
             elif not option_string.startswith(self.NEGATION_PREFIX):
                 opt_str_neg = self.NEGATION_PREFIX + option_string[2:]
                 _option_strings.extend(
