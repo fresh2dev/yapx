@@ -226,7 +226,7 @@ def test_run_args(disable_pydantic: bool, capsys: CaptureFixture):
 
 
 @pytest.mark.parametrize("disable_pydantic", [False, True])
-def test_run_kwargs_alias(disable_pydantic: bool, capsys: CaptureFixture):
+def test_run_cmd(disable_pydantic: bool, capsys: CaptureFixture):
     # 1. ARRANGE
     text: str = "donald"
     cli_args: List[str] = [
@@ -243,7 +243,7 @@ def test_run_kwargs_alias(disable_pydantic: bool, capsys: CaptureFixture):
     # 2. ACT
     yapx.run_patched(
         example_setup,
-        named_subcommands={"command-alias": example_subcmd},
+        yapx.cmd(example_subcmd, "command-alias"),
         test_args=cli_args,
         disable_pydantic=disable_pydantic,
     )
@@ -790,6 +790,7 @@ def test_run_moar(disable_pydantic: bool):
 
 @pytest.mark.parametrize("disable_pydantic", [False, True])
 def test_run_everything(disable_pydantic: bool):
+    # 1. ARRANGE
     def _setup(_test_private: Annotated[bool, yapx.arg(default=True)]):
         assert _test_private is True
         return "hello_relay"
@@ -984,3 +985,79 @@ def test_vanity_args():
         assert values == expected_values
 
     yapx.run(my_func, args=cli_args)
+
+
+@pytest.mark.parametrize(
+    "cli_args",
+    [
+        (),
+        ("a1",),
+        ("a1", "b2"),
+        ("a1", "b2", "c2"),
+        ("a1", "b2", "c2", "d6"),
+        ("x1",),
+        ("x1", "y1"),
+        ("x1", "y1", "z1"),
+        ("x1", "y1", "z1", "v3"),
+        ("x1", "y1", "z2"),
+        ("x1", "y1", "z2", "v6"),
+    ],
+)
+def test_run_nested_subcommands(cli_args: List[str], capsys: CaptureFixture):
+    # 1. ARRANGE
+    def my_func(context: yapx.Context) -> int:
+        i_list: List[int]
+        if not context.relay_value:
+            i_list = [0]
+        else:
+            i_next = context.relay_value[-1] + 1
+            i_list = [*context.relay_value, i_next]
+        yield i_list
+        print(len(i_list) - 1)
+
+    # 2. ACT
+    result = yapx.run(
+        my_func,
+        {
+            yapx.cmd(my_func, "a1"): {
+                yapx.cmd(my_func, "b1"): {
+                    yapx.cmd(my_func, "c1"): [
+                        yapx.cmd(my_func, "d1"),
+                        yapx.cmd(my_func, "d2"),
+                        yapx.cmd(my_func, "d3"),
+                    ],
+                },
+                yapx.cmd(my_func, "b2"): {
+                    yapx.cmd(my_func, "c2"): [
+                        yapx.cmd(my_func, "d4"),
+                        yapx.cmd(my_func, "d5"),
+                        yapx.cmd(my_func, "d6"),
+                    ],
+                },
+            },
+            yapx.cmd(my_func, "x1"): {
+                yapx.cmd(my_func, "y1"): {
+                    yapx.cmd(my_func, "z1"): [
+                        yapx.cmd(my_func, "v1"),
+                        yapx.cmd(my_func, "v2"),
+                        yapx.cmd(my_func, "v3"),
+                    ],
+                    yapx.cmd(my_func, "z2"): [
+                        yapx.cmd(my_func, "v4"),
+                        yapx.cmd(my_func, "v5"),
+                        yapx.cmd(my_func, "v6"),
+                    ],
+                },
+            },
+        },
+        args=cli_args,
+    )
+
+    # 3. ASSERT
+    assert result
+    assert result == list(range(len(cli_args) + 1))
+
+    captured: CaptureResult = capsys.readouterr()
+    assert captured.out
+
+    assert [int(x) for x in captured.out.split()] == list(reversed(result))
