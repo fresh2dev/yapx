@@ -130,8 +130,14 @@ class ArgumentParser(argparse.ArgumentParser):
 
         self._subparsers_action: Optional[argparse._SubParsersAction] = None
 
-        # self._positionals.title = "commands"
-        self._optionals.title = "helpful parameters"
+        self._positionals.title = "required parameters"
+        self._optionals.title = "optional parameters"
+
+        helpful_arg_group = self.add_argument_group(
+            "helpful parameters",
+        ).add_mutually_exclusive_group()
+
+        self._action_groups = [self._action_groups[-1], *self._action_groups[:-1]]
 
         if add_help is False:
             help_flags = []
@@ -140,12 +146,12 @@ class ArgumentParser(argparse.ArgumentParser):
         self._tui_flags = tui_flags
 
         if help_flags is None:
-            help_flags = ["-h", "--help"]
+            help_flags = ["--help", "-h"]
 
         if help_flags and add_help is not False:
             if isinstance(help_flags, str):
                 help_flags = [help_flags]
-            self.add_argument(
+            helpful_arg_group.add_argument(
                 *help_flags,
                 action=HelpAction,
                 help="Show this help message.",
@@ -163,7 +169,7 @@ class ArgumentParser(argparse.ArgumentParser):
         if not self._parent_parser:
             if help_flags and add_help is not False:
                 help_all_flags = [f"{x}-all" for x in help_flags if x.startswith("--")]
-                self.add_argument(
+                helpful_arg_group.add_argument(
                     *help_all_flags,
                     action=HelpAllAction,
                     help="Show help for all commands.",
@@ -181,7 +187,7 @@ class ArgumentParser(argparse.ArgumentParser):
                         prog_version = get_distribution(self.prog).version
 
                 if prog_version:
-                    self.add_argument(
+                    helpful_arg_group.add_argument(
                         *version_flags,
                         action="version",
                         version=f"%(prog)s {prog_version}",
@@ -195,7 +201,7 @@ class ArgumentParser(argparse.ArgumentParser):
                 if isinstance(completion_flags, str):
                     completion_flags = [completion_flags]
 
-                self.add_argument(
+                helpful_arg_group.add_argument(
                     *completion_flags,
                     action=completion_action(),
                     default=argparse.SUPPRESS,
@@ -223,7 +229,7 @@ class ArgumentParser(argparse.ArgumentParser):
             else:
                 tui_flags = [convert_to_flag_string(x) for x in tui_flags]
                 add_tui_argument(
-                    parser=self,
+                    parser=helpful_arg_group,
                     parent_parser=self._get_parser_chain()[0],
                     option_strings=tui_flags,
                     help=tui_help,
@@ -265,11 +271,18 @@ class ArgumentParser(argparse.ArgumentParser):
         print(f"$ {self.prog}")
         print(separator)
 
-        # don't include usage in help text.
+        # print usage last
         usage = self.usage
         self.usage = argparse.SUPPRESS
 
+        if not file:
+            file = sys.stdout
+
         super().print_help(file)
+
+        self.usage = usage
+        self._print_message("\n", file)
+        self.print_usage(file)
 
         if include_commands and self._subparsers:
             if self._subparsers_action is None:
@@ -277,8 +290,6 @@ class ArgumentParser(argparse.ArgumentParser):
 
             for _choice, subparser in self._subparsers_action.choices.items():
                 subparser.print_help(file, include_commands=include_commands)
-
-        self.usage = usage
 
     def add_arguments(
         self,
@@ -450,7 +461,9 @@ class ArgumentParser(argparse.ArgumentParser):
             **{(parser.CMD_FUNC_ARGS_ATTR_NAME + str(parser._depth)): model},
         )
 
-        parser_arg_groups: Dict[str, argparse._ArgumentGroup] = {}
+        parser_arg_groups: Dict[str, argparse._ArgumentGroup] = {
+            x.title: x for x in parser._action_groups if x.title
+        }
 
         novel_fields: List[Field] = list(
             filter(
@@ -499,11 +512,7 @@ class ArgumentParser(argparse.ArgumentParser):
                         is_union_type=True,
                     )
 
-            help_type: str = (
-                fld_type.__name__
-                if try_isinstance(fld_type, type)
-                else str(fld_type).rsplit(".", maxsplit=1)[-1]
-            )
+            default_metavar: str = "#" if fld_type in (int, float) else "value"
 
             argparse_argument.set_dest(fld.name)
 
@@ -528,6 +537,7 @@ class ArgumentParser(argparse.ArgumentParser):
                             fld_type,
                             assert_primitive=True,
                         )
+                        default_metavar = f"key={default_metavar}"
                         if not argparse_argument.action:
                             argparse_argument.action = SplitCsvDictAction
 
@@ -593,10 +603,11 @@ class ArgumentParser(argparse.ArgumentParser):
                 else [x for x in option_strings if x.startswith("-")]
             )
 
+            if not args:
+                default_metavar = kwargs["dest"].upper()
+
             if not kwargs["metavar"] and not kwargs.get("choices"):
-                kwargs["metavar"] = (
-                    f"<{kwargs['dest'].upper()}>" if not args else "<value>"
-                )
+                kwargs["metavar"] = f"<{default_metavar}>"
 
             required: bool = kwargs["required"]
 
@@ -671,7 +682,7 @@ class ArgumentParser(argparse.ArgumentParser):
                             )
                             parser.error(err)
 
-            help_msg_parts: List[str] = [f"Type: {help_type}"]
+            help_msg_parts: List[str] = []
 
             # pylint: disable=protected-access
             default: Any = kwargs.get("default")
@@ -679,6 +690,7 @@ class ArgumentParser(argparse.ArgumentParser):
                 not required
                 and default is not None
                 and (not hasattr(default, "__len__") or len(default) > 1)
+                and argparse_argument.type is not bool
             ):
                 if isinstance(default, str):
                     help_msg_parts.append('Default: "%(default)s"')
@@ -691,12 +703,13 @@ class ArgumentParser(argparse.ArgumentParser):
             if argparse_argument._env_var:
                 help_msg_parts.append(f"Env: {argparse_argument._env_var}")
 
-            help_msg: str = f"> {', '.join(help_msg_parts)}"
+            if help_msg_parts:
+                help_msg: str = f"| {', '.join(help_msg_parts)}"
 
-            if kwargs.get("help"):
-                kwargs["help"] += "\n" + help_msg
-            else:
-                kwargs["help"] = help_msg
+                if kwargs.get("help"):
+                    kwargs["help"] += "\n" + help_msg
+                else:
+                    kwargs["help"] = help_msg
 
             group: Optional[str] = kwargs.pop("group", None)
 

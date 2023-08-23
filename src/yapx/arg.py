@@ -368,7 +368,7 @@ def make_dataclass_from_func(
                 pos=True,
                 nargs=0,
                 action=DummyArgAction,
-                metavar="<x=y> ...",
+                metavar="<key=value ...>",
                 help="Any extra command-line key-value pairs.",
             )
             default_value = MISSING
