@@ -2,8 +2,6 @@ from argparse import Namespace
 from dataclasses import dataclass
 from typing import Any, List, Optional
 
-from .types import ArgumentParser
-
 
 @dataclass(frozen=True)
 class Context:
@@ -36,8 +34,8 @@ class Context:
         [1, 3, 5]
     """
 
-    parser: ArgumentParser
-    subparser: Optional[ArgumentParser]
+    parser: "ArgumentParser"
+    subparser: Optional["ArgumentParser"]
     args: List[str]
     namespace: Namespace
     relay_value: Any
