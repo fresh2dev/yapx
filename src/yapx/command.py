@@ -31,6 +31,27 @@ def cmd(
     name: Optional[str] = None,
     **kwargs: Any,
 ) -> Command:
+    """Modify properties of a subcommand.
+
+    Args:
+        function: the function called when this subcommand is provided.
+        name: the name of the subcommand added to the parser.
+        **kwargs: passed to the `ArgumentParser` constructor for this command.
+
+    Returns:
+        ...
+
+    Examples:
+        >>> import yapx
+        ...
+        >>> def sum_ints(*args: int):
+        ...     print(sum(args))
+        ...
+        >>> yapx.run_commands([
+        ...     yapx.cmd(sum_ints, name="add-nums")
+        ... ], args=["add-nums", "1", "2", "3"])
+        6
+    """
     if isinstance(function, Command):
         return function
 
