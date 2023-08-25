@@ -3,7 +3,7 @@ from argparse import Action, ArgumentParser
 from contextlib import suppress
 from dataclasses import is_dataclass
 from enum import Enum
-from functools import wraps
+from functools import partial, wraps
 from typing import Any, List, Optional, Type, TypeVar, Union
 
 # pylint: disable=unused-import
@@ -50,7 +50,7 @@ except ModuleNotFoundError:
 
 
 try:
-    from pydantic import ValidationError
+    from pydantic import ConfigDict, ValidationError
     from pydantic import __version__ as pydantic_version
 
     pydantic_major_version: int = int(pydantic_version.split(".", 1)[0])
@@ -58,8 +58,11 @@ try:
 
     if pydantic_major_version >= pydantic_v2:
         from pydantic import TypeAdapter
-        from pydantic.dataclasses import (
-            dataclass as create_pydantic_model_from_dataclass,
+        from pydantic.dataclasses import dataclass
+
+        create_pydantic_model_from_dataclass = partial(
+            dataclass,
+            config=ConfigDict(arbitrary_types_allowed=True),
         )
 
         def parse_obj_as(type_: Type[T], obj: Any) -> T:
