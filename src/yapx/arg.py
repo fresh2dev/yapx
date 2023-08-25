@@ -331,12 +331,18 @@ def make_dataclass_from_func(
         default: Any = param.default
         default_value: Any
 
-        if annotation is Context or (
-            param.name.startswith("_")
-            and not isinstance(default, Field)
-            and (
-                not isinstance(annotation, _AnnotatedAlias)
-                or not any(isinstance(x, Field) for x in get_type_metadata(annotation))
+        if (
+            annotation is Context
+            or Context in get_type_args(annotation)
+            or (
+                param.name.startswith("_")
+                and not isinstance(default, Field)
+                and (
+                    not isinstance(annotation, _AnnotatedAlias)
+                    or not any(
+                        isinstance(x, Field) for x in get_type_metadata(annotation)
+                    )
+                )
             )
         ):
             continue
