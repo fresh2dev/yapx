@@ -71,13 +71,13 @@ rich = [
     "rich-argparse==1.*",
 ]
 tui = [
-    "argparse-tui>=0.2.0,<1",
+    "argparse-tui>=0.2.1,<1",
 ]
 extras = [
     "pydantic>=1.10.3,<3",
     "shtab==1.6.2",
     "rich-argparse==1.*",
-    "argparse-tui>=0.2.0,<1",
+    "argparse-tui>=0.2.1,<1",
 ]
 
 [project.urls]

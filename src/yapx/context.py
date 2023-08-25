@@ -1,8 +1,6 @@
 from argparse import Namespace
 from dataclasses import dataclass
-from typing import Any, List
-
-from .types import ArgumentParser
+from typing import Any, List, Optional
 
 
 @dataclass(frozen=True)
@@ -11,7 +9,8 @@ class Context:
     giving them access to the argument parser, raw arguments, parsed namespace, and any relay value.
 
     Attributes:
-        parser: the argparse ArgumentParser
+        parser: the root argparse ArgumentParser
+        subparser: this command's subparser
         args: raw command-line arguments
         namespace: parsed command-line arguments
         relay_value: Any value returned from the root command
@@ -35,7 +34,8 @@ class Context:
         [1, 3, 5]
     """
 
-    parser: ArgumentParser
+    parser: "ArgumentParser"
+    subparser: Optional["ArgumentParser"]
     args: List[str]
     namespace: Namespace
     relay_value: Any

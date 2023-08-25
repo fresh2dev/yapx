@@ -20,7 +20,7 @@ extra:
 nav:
   - Home: index.md
   - Articles:
-      - 'page/overview.ipynb'
+      - 'page/examples.ipynb'
       - 'page/sequences.ipynb'
       - 'page/completion.md'
       - 'page/tui.md'

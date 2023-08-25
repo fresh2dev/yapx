@@ -12,7 +12,7 @@
 
 ## [simple-parsing](https://github.com/lebrice/SimpleParsing)
 
-### [myke](https://github.com/fresh2dev/myke)
+## [myke](https://github.com/fresh2dev/myke)
 
 ## [argparse-dataclass](https://github.com/mivade/argparse_dataclass)
 

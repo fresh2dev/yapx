@@ -1,5 +1,25 @@
 # Changelog
 
+### :clap: Features
+
+- *Breaking:* Support infinitely nested subcommands [b8ad0c4]
+
+### :fist: Fixes
+
+- Don't add field to dataclass when annotated with `Optional[yapx.Context]` [00db7bd]
+- Allow arbitrary types when using pydantic v2 [3105bac]
+
+### :point_right: Changes
+
+- Simplify help messages and metavars [66d81d4]
+
+SLOC Analysis:
+
+| Directory   |   Empty |   Comment |   Docstring |   Code |   Statements |
+|-------------|---------|-----------|-------------|--------|--------------|
+| src/yapx    |     434 |        57 |         504 |   1860 |         1030 |
+| tests       |     364 |       188 |         252 |   1524 |          753 |
+
 ## 0.3.0 - 2023-08-17
 
 ### :clap: Features

@@ -1,10 +1,11 @@
 from contextlib import suppress
-from typing import Any, Callable, Dict, List, Optional, Sequence
+from typing import Any, Callable, Dict, List, Optional, Sequence, Union
 
 from . import exceptions, types
 from .__version__ import __version__
 from .arg import arg, counting_arg, feature_arg, unbounded_arg
 from .argument_parser import ArgumentParser
+from .command import Command, CommandMap, CommandOrCallable, CommandSequence, cmd
 from .context import Context
 from .namespace import Namespace
 from .utils import is_pydantic_available, is_shtab_available, is_tui_available
@@ -24,6 +25,8 @@ __all__ = [
     "__version__",
     "ArgumentParser",
     "Namespace",
+    "cmd",
+    "Command",
     "arg",
     "counting_arg",
     "feature_arg",
@@ -43,16 +46,20 @@ __all__ = [
 
 def build_parser(
     command: Optional[Callable[..., Any]] = None,
-    subcommands: Optional[Sequence[Callable[..., Any]]] = None,
-    named_subcommands: Optional[Dict[str, Callable[..., Any]]] = None,
+    subcommands: Union[
+        None,
+        str,
+        CommandOrCallable,
+        CommandSequence,
+        CommandMap,
+    ] = None,
     **kwargs: Any,
 ) -> ArgumentParser:
     """Use given functions to construct an ArgumentParser.
 
     Args:
         command: the root command function
-        subcommands: a list of subcommand functions
-        named_subcommands: a dict of named subcommand functions
+        subcommands: a list or mapping of subcommand functions
         **kwargs: passed to the ArgumentParser constructor
 
     Returns:
@@ -82,15 +89,19 @@ def build_parser(
     return ArgumentParser._build_parser(
         command=command,
         subcommands=subcommands,
-        named_subcommands=named_subcommands,
         **kwargs,
     )
 
 
 def run(
     command: Optional[Callable[..., Any]] = None,
-    subcommands: Optional[Sequence[Callable[..., Any]]] = None,
-    named_subcommands: Optional[Dict[str, Callable[..., Any]]] = None,
+    subcommands: Union[
+        None,
+        str,
+        CommandOrCallable,
+        CommandSequence,
+        CommandMap,
+    ] = None,
     args: Optional[List[str]] = None,
     default_args: Optional[List[str]] = None,
     **kwargs: Any,
@@ -100,8 +111,7 @@ def run(
 
     Args:
         command: the root command function
-        subcommands: a list of subcommand functions
-        named_subcommands: a dict of named subcommand functions
+        subcommands: a list or mapping of subcommand functions
         args: arguments to parse (default=`sys.argv[1:]`)
         default_args: arguments to parse when no arguments are given.
         **kwargs: passed to the ArgumentParser constructor
@@ -131,7 +141,6 @@ def run(
     return ArgumentParser._run(
         command=command,
         subcommands=subcommands,
-        named_subcommands=named_subcommands,
         args=args,
         default_args=default_args,
         **kwargs,
