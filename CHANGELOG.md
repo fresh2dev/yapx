@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.1 - 2023-08-29
+
+### :clap: Features
+
+- Suppress `--help-all` flag with `add_help_all=False` [048ad79]
+
+## 0.4.0 - 2023-08-26
+
 ### :clap: Features
 
 - *Breaking:* Support infinitely nested subcommands [b8ad0c4]
