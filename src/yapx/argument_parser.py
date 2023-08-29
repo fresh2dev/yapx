@@ -101,6 +101,8 @@ class ArgumentParser(argparse.ArgumentParser):
         version_flags: Optional[List[str]] = None,
         completion_flags: Optional[List[str]] = None,
         formatter_class: Type[Any] = RawTextHelpFormatter,
+        add_help: Optional[bool] = True,
+        add_help_all: Optional[bool] = None,
         _parent_parser: Optional["ArgumentParser"] = None,
         **kwargs: Any,
     ):
@@ -116,8 +118,6 @@ class ArgumentParser(argparse.ArgumentParser):
                 help_flags = self._parent_parser._help_flags
             if tui_flags is None:
                 tui_flags = self._parent_parser._tui_flags
-
-        add_help: Optional[bool] = kwargs.pop("add_help", None)
 
         super().__init__(
             *args,
@@ -142,20 +142,31 @@ class ArgumentParser(argparse.ArgumentParser):
         if add_help is False:
             help_flags = []
 
+        if add_help_all is None:
+            add_help_all = add_help and self._parent_parser is None
+
         self._help_flags = help_flags
         self._tui_flags = tui_flags
 
         if help_flags is None:
             help_flags = ["--help", "-h"]
 
-        if help_flags and add_help is not False:
+        if help_flags:
             if isinstance(help_flags, str):
                 help_flags = [help_flags]
+
             helpful_arg_group.add_argument(
                 *help_flags,
                 action=HelpAction,
                 help="Show this help message.",
             )
+            if add_help_all:
+                help_all_flags = [f"{x}-all" for x in help_flags if x.startswith("--")]
+                helpful_arg_group.add_argument(
+                    *help_all_flags,
+                    action=HelpAllAction,
+                    help="Show help for all commands.",
+                )
 
         self.kv_separator = "="
 
@@ -167,14 +178,6 @@ class ArgumentParser(argparse.ArgumentParser):
         self._dest_type: Dict[str, Union[type, Callable[[str], Any]]] = {}
 
         if not self._parent_parser:
-            if help_flags and add_help is not False:
-                help_all_flags = [f"{x}-all" for x in help_flags if x.startswith("--")]
-                helpful_arg_group.add_argument(
-                    *help_all_flags,
-                    action=HelpAllAction,
-                    help="Show help for all commands.",
-                )
-
             if version_flags is None:
                 version_flags = ["--version"]
 
