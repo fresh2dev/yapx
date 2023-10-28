@@ -1,6 +1,6 @@
 import sys
 from argparse import Action, ArgumentError
-from dataclasses import MISSING, dataclass, make_dataclass
+from dataclasses import MISSING, Field, dataclass, make_dataclass
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Set, Tuple, Type
 
 import pytest
@@ -429,6 +429,103 @@ def test_add_arguments_func():
     assert args
     assert "value" in args
     assert args["value"] == expected
+
+
+def test_add_arguments_dict():
+    # 1. ARRANGE
+    expected: int = 69
+
+    arg_fields: Dict[str, Field] = {
+        "value": yapx.custom_arg(type=int, default=str(expected)),
+    }
+
+    # 2. ACT
+    parser: yapx.ArgumentParser = yapx.ArgumentParser()
+    parser.add_arguments(arg_fields)
+    args: Dict[str, Any] = vars(parser.parse_args([]))
+
+    # 3. ASSERT
+    assert args
+    assert "value" in args
+    assert args["value"] == expected
+
+
+def test_build_parser_from_spec():
+    # pylint: disable=protected-access
+    # 1. ARRANGE
+    expected_value: int = 69
+    expected_description: str = "halp"
+    expected_prog: str = "test-cli"
+    expected_subcmd: str = "test-subcmd"
+
+    parser_spec: Dict[str, Any] = {
+        expected_prog: {
+            "description": expected_description,
+            "add_help": True,
+            "arguments": {
+                "value": {
+                    "type": "int",
+                    "default": str(expected_value),
+                },
+                "flag": {"action": "store_true"},
+                "altflag": {"action": "store_false"},
+            },
+            "subparsers": {
+                expected_subcmd: {
+                    "description": expected_description,
+                    "add_help": True,
+                },
+            },
+        },
+    }
+
+    # 2. ACT
+    parser: yapx.ArgumentParser = yapx.build_parser_from_spec(parser_spec)
+
+    assert parser
+    assert isinstance(parser, yapx.ArgumentParser)
+    assert parser.prog == expected_prog
+    assert parser.description == expected_description
+    assert parser._subparsers_action
+    assert expected_subcmd in parser._subparsers_action.choices
+
+    args: Dict[str, Any] = vars(parser.parse_args([]))
+
+    # 3. ASSERT
+    assert args
+    assert "value" in args
+    assert args["value"] == expected_value
+    assert "flag" in args
+    assert args["flag"] is False
+    assert "altflag" in args
+    assert args["altflag"] is True
+
+
+@pytest.mark.parametrize("file_name", ["cli.yml", "cli.json"])
+def test_build_parser_from_file(resources_dir, file_name: str):
+    # pylint: disable=protected-access
+    # 1. ARRANGE
+    expected_value: int = 69
+    expected_description: str = "halp"
+    expected_prog: str = "test-cli"
+    expected_subcmd: str = "test-subcmd"
+
+    # 2. ACT
+    parser: yapx.ArgumentParser = yapx.build_parser_from_file(resources_dir / file_name)
+
+    assert parser
+    assert isinstance(parser, yapx.ArgumentParser)
+    assert parser.prog == expected_prog
+    assert parser.description == expected_description
+    assert parser._subparsers_action
+    assert expected_subcmd in parser._subparsers_action.choices
+
+    args: Dict[str, Any] = vars(parser.parse_args([]))
+
+    # 3. ASSERT
+    assert args
+    assert "value" in args
+    assert args["value"] == expected_value
 
 
 @pytest.mark.skipif(

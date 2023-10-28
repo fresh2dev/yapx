@@ -1,0 +1,32 @@
+.parser_ref:
+  description: "..."
+  add_help: true
+  arguments: {}
+  subparsers: {}
+
+.argument_ref:
+  flags: []
+  pos: false
+  required: false
+  default: null
+  nargs: 1
+  type: str
+  choices: []
+  help: ""
+  metavar: ""
+  action: ""
+  group: ""
+  exclusive: false
+  const: null
+
+'test-cli':
+  description: "halp"
+  add_help: true
+  arguments:
+    value:
+      type: int
+      default: 69
+  subparsers:
+    'test-subcmd':
+      arguments: {}
+      subparsers: {}

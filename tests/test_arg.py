@@ -74,7 +74,7 @@ def test_argument_parser_arg_defaults():
 
 
 # pylint: disable=dangerous-default-value
-def test_build_dataclass_from_func_raises_type_error():
+def test_make_dataclass_from_func_raises_type_error():
     # 1. ARRANGE
     # pylint: disable=unused-argument,too-many-arguments
     def func1(value=lambda: []):
@@ -117,7 +117,7 @@ def _assert_model_field_attributes(
         assert f_metadata.asdict() == expected_metadata_field_props[f.name]
 
 
-def test_build_dataclass_from_func_no_anno():
+def test_make_dataclass_from_func_no_anno():
     # 1. ARRANGE
     expected_field_props: Dict[str, Dict[str, Any]] = {
         "value": {
@@ -143,7 +143,7 @@ def test_build_dataclass_from_func_no_anno():
     )
 
 
-def test_build_dataclass_from_func_none_anno():
+def test_make_dataclass_from_func_none_anno():
     # 1. ARRANGE
     # pylint: disable=unused-argument,too-many-arguments
     def func(value=None):
@@ -174,7 +174,7 @@ def test_build_dataclass_from_func_none_anno():
     assert model.__doc__ == func.__doc__
 
 
-def test_build_dataclass_from_func_default():
+def test_make_dataclass_from_func_default():
     # 1. ARRANGE
     # pylint: disable=unused-argument,too-many-arguments
     def func(value=3.14):
@@ -202,7 +202,7 @@ def test_build_dataclass_from_func_default():
     )
 
 
-def test_build_dataclass_from_func_argfield_default():
+def test_make_dataclass_from_func_argfield_default():
     # 1. ARRANGE
     # pylint: disable=unused-argument,too-many-arguments
     def func(value=yapx.arg(default=3.14)):
@@ -230,7 +230,7 @@ def test_build_dataclass_from_func_argfield_default():
     )
 
 
-def test_build_dataclass_from_func_argfield_envvar():
+def test_make_dataclass_from_func_argfield_envvar():
     # 1. ARRANGE
     env_var_name: str = "FUNKY_ARG"
     os.environ[env_var_name] = "3.1415"
@@ -263,7 +263,7 @@ def test_build_dataclass_from_func_argfield_envvar():
     )
 
 
-def test_build_dataclass_from_func_argfield_envvar_file(clean_dir):
+def test_make_dataclass_from_func_argfield_envvar_file(clean_dir):
     # 1. ARRANGE
     env_var_name: str = "FUNKY_ARG"
     env_var_name_file: str = env_var_name + "_FILE"

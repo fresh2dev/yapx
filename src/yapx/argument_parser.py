@@ -296,7 +296,7 @@ class ArgumentParser(argparse.ArgumentParser):
 
     def add_arguments(
         self,
-        args_model: Union[Callable[..., Any], Type[Dataclass]],
+        args_model: Union[Callable[..., Any], Type[Dataclass], Dict[str, Field]],
     ) -> None:
         """Add arguments from the given function or dataframe.
 
@@ -444,16 +444,30 @@ class ArgumentParser(argparse.ArgumentParser):
     def _add_arguments(
         cls,
         parser: "ArgumentParser",
-        args_model: Union[Callable[..., Any], Type[Dataclass]],
+        args_model: Union[Callable[..., Any], Type[Dataclass], Dict[str, Field]],
     ) -> List[ArgparseArg]:
         # Derived from: https://github.com/mivade/argparse_dataclass
 
-        model: Type[Dataclass]
+        model: Type[Union[Dataclass, Dict[Any, Any]]]
 
-        if is_dataclass_type(args_model):
-            model = args_model
+        arg_fields: Tuple[Field, ...]
+
+        if isinstance(args_model, dict):
+            for k, v in args_model.items():
+                v.name = k
+            arg_fields = tuple(args_model.values())
+            model = dict
         else:
-            model = make_dataclass_from_func(args_model)
+            if is_dataclass_type(args_model):
+                model = args_model
+            else:
+                model = make_dataclass_from_func(args_model)
+
+            arg_fields = [
+                f
+                for f in fields(model)
+                if not cls._is_attribute_inherited(dcls=model, attr=f.name)
+            ]
 
         # pylint: disable=protected-access
         if parser.get_default(cls.CMD_FUNC_ARGS_ATTR_NAME + str(parser._depth)):
@@ -468,16 +482,9 @@ class ArgumentParser(argparse.ArgumentParser):
             x.title: x for x in parser._action_groups if x.title
         }
 
-        novel_fields: List[Field] = list(
-            filter(
-                lambda f: not cls._is_attribute_inherited(dcls=model, attr=f.name),
-                fields(model),
-            ),
-        )
-
         novel_field_args: List[Tuple[Field, ArgparseArg]] = [
-            (x, x.metadata.get(ARGPARSE_ARG_METADATA_KEY, ArgparseArg()))
-            for x in novel_fields
+            (f, f.metadata.get(ARGPARSE_ARG_METADATA_KEY, ArgparseArg()))
+            for f in arg_fields
         ]
 
         added_args: List[ArgparseArg] = []
@@ -593,6 +600,8 @@ class ArgumentParser(argparse.ArgumentParser):
 
             elif try_issubclass(fld_type, Enum):
                 argparse_argument.choices = list(fld_type)
+            elif fld_type is None:
+                fld_type = str
 
             argparse_argument.type = fld_type
 
@@ -629,11 +638,8 @@ class ArgumentParser(argparse.ArgumentParser):
                         fld_type,
                     )
 
-                for k in "type", "nargs", "const", "choices", "metavar":
-                    kwargs.pop(k, None)
                 if not kwargs["action"]:
                     kwargs["action"] = BooleanOptionalAction
-
             elif argparse_argument.nargs != 0:
                 kwargs["type"] = partial(cast_type, fld_type)
             elif fld_type is int:
@@ -741,6 +747,34 @@ class ArgumentParser(argparse.ArgumentParser):
                         args[-1] if args else None,
                     ),
                 )
+
+            action_class: Union[None, str, Callable[[...], Any]] = kwargs.get("action")
+            if action_class is not None:
+                if isinstance(kwargs.get("action"), str):
+                    action_class = parser._registries["action"].get(
+                        kwargs["action"],
+                    )
+                assert callable(action_class)
+                if try_issubclass(action_class, argparse._StoreConstAction):
+                    kwargs["nargs"] = 0
+                    kwargs["required"] = False
+                    if try_issubclass(
+                        action_class,
+                        (argparse._StoreTrueAction, argparse._StoreFalseAction),
+                    ):
+                        kwargs["type"] = bool
+                        if kwargs["default"] is None:
+                            kwargs["default"] = not try_issubclass(
+                                action_class,
+                                argparse._StoreTrueAction,
+                            )
+                action_class_kwargs: List[str] = [
+                    *signature(action_class).parameters,
+                    "action",
+                ]
+                for k in list(kwargs):
+                    if k not in action_class_kwargs:
+                        del kwargs[k]
 
             arg_group.add_argument(*args, **kwargs)
 

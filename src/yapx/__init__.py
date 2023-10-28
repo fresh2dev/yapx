@@ -1,9 +1,13 @@
+import json
+from argparse import _SubParsersAction
 from contextlib import suppress
+from copy import deepcopy
+from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Sequence, Union
 
 from . import exceptions, types
 from .__version__ import __version__
-from .arg import arg, counting_arg, feature_arg, unbounded_arg
+from .arg import arg, counting_arg, custom_arg, feature_arg, unbounded_arg
 from .argument_parser import ArgumentParser
 from .command import Command, CommandMap, CommandOrCallable, CommandSequence, cmd
 from .context import Context
@@ -29,9 +33,12 @@ __all__ = [
     "Command",
     "arg",
     "counting_arg",
+    "custom_arg",
     "feature_arg",
     "unbounded_arg",
     "build_parser",
+    "build_parser_from_spec",
+    "build_parser_from_file",
     "exceptions",
     "is_pydantic_available",
     "is_shtab_available",
@@ -91,6 +98,79 @@ def build_parser(
         subcommands=subcommands,
         **kwargs,
     )
+
+
+def build_parser_from_spec(
+    spec: Dict[str, Any],
+    _subparsers_action: Union[
+        None,
+        _SubParsersAction,
+    ] = None,
+) -> ArgumentParser:
+    _parent_parser: Union[ArgumentParser, _SubParsersAction]
+    if not _subparsers_action:
+        spec = deepcopy(spec)
+
+        keys: List[str] = list(spec)
+
+        for k in keys:
+            if k.startswith("."):
+                del spec[k]
+
+    if len(spec) == 0:
+        err: str = "No program defined in spec."
+        raise ValueError(err)
+
+    if len(spec) > 1:
+        err = "Multiple program defined in spec."
+        raise ValueError(err)
+
+    name: str = list(spec)[0]
+    spec: Dict[str, Dict[str, Any]] = spec.pop(name)
+    args: Dict[str, Dict[str, Any]] = spec.pop("arguments", {})
+    subparsers: Dict[str, Dict[str, Any]] = spec.pop(
+        "subparsers",
+        spec.pop("subcommands", {}),
+    )
+
+    this_parser: ArgumentParser = (
+        _subparsers_action.add_parser(name, **spec)
+        if _subparsers_action
+        else ArgumentParser(prog=name, **spec)
+    )
+
+    this_parser.add_arguments(
+        {k: custom_arg(*v.pop("flags", []), **v) for k, v in args.items()},
+    )
+
+    if subparsers:
+        subparsers_action: _SubParsersAction = this_parser.add_subparsers()
+
+        for sp_name, sp_spec in subparsers.items():
+            build_parser_from_spec(
+                {sp_name: sp_spec},
+                _subparsers_action=subparsers_action,
+            )
+
+    return this_parser
+
+
+def build_parser_from_file(path: Union[str, Path]) -> ArgumentParser:
+    path = Path(path)
+    loader: Callable[[...], Dict[str, Any]]
+    if path.stem.lower() == ".json":
+        loader = json.load
+    else:
+        import yaml
+
+        loader = yaml.safe_load
+
+    spec: Dict[str, Any]
+    with path.open("r", encoding="utf-8") as f:
+        spec = loader(f)
+    assert isinstance(spec, dict)
+
+    return build_parser_from_spec(spec)
 
 
 def run(

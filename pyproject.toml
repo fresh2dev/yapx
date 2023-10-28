@@ -60,6 +60,7 @@ tests = [
     "pydantic>=1.10.3,<3",
     "shtab==1.6.*",
     "rich-argparse==1.*",
+    "pyyaml>=5,<7",
 ]
 pydantic = [
     "pydantic>=1.10.3,<3",
@@ -70,6 +71,9 @@ shtab = [
 rich = [
     "rich-argparse==1.*",
 ]
+yaml = [
+    "pyyaml>=5,<7",
+]
 tui = [
     "argparse-tui>=0.2.1,<1",
 ]
@@ -77,7 +81,8 @@ extras = [
     "pydantic>=1.10.3,<3",
     "shtab==1.6.2",
     "rich-argparse==1.*",
-    "argparse-tui>=0.2.1,<1",
+    "pyyaml>=5,<7",
+    "argparse-tui>=0.2.2,<1",
 ]
 
 [project.urls]
