@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.4.2 - 2023-10-30
+
+### :clap: Features
+
+- `build_parser_from_spec/file` [9e51ae8]
+
+SLOC Analysis:
+
+| Directory   |   Empty |   Comment |   Docstring |   Code |   Statements |
+|-------------|---------|-----------|-------------|--------|--------------|
+| src/yapx    |     455 |        57 |         510 |   1987 |         1100 |
+| tests       |     382 |       199 |         264 |   1580 |          799 |
+
 ## 0.4.1 - 2023-08-29
 
 ### :clap: Features
