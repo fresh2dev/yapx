@@ -63,7 +63,7 @@ def build_parser(
     ] = None,
     **kwargs: Any,
 ) -> ArgumentParser:
-    """Use given functions to construct an ArgumentParser.
+    """Use given functions to construct an `ArgumentParser`.
 
     Args:
         command: the root command function
@@ -108,6 +108,37 @@ def build_parser_from_spec(
         _SubParsersAction,
     ] = None,
 ) -> ArgumentParser:
+    """Use given spec to construct an `ArgumentParser`.
+
+    Args:
+        spec: ...
+
+    Returns:
+        ...
+
+    Examples:
+        >>> import yapx
+        ...
+        >>> parser_spec: Dict[str, Any] = {
+        ...     "expected_prog": {
+        ...         "description": "expected_description",
+        ...         "arguments": {
+        ...             "value": {
+        ...                 "type": "int",
+        ...                 "default": 69
+        ...             },
+        ...             "flag": {"action": "store_true"}
+        ...         },
+        ...         "subparsers": {
+        ...             "expected_subcmd": {
+        ...                 "description": "expected_description"
+        ...             }
+        ...         },
+        ...     },
+        ... }
+
+        >>> parser: yapx.ArgumentParser = yapx.build_parser_from_spec(parser_spec)
+    """
     _parent_parser: Union[ArgumentParser, _SubParsersAction]
     if not _subparsers_action:
         spec = deepcopy(spec)
@@ -157,6 +188,56 @@ def build_parser_from_spec(
 
 
 def build_parser_from_file(path: Union[str, Path]) -> ArgumentParser:
+    """Use given file to construct an `ArgumentParser`.
+
+    Supports files in json or yaml format.
+
+    Args:
+        path: path to file containing spec.
+
+    Returns:
+        ...
+
+    Examples:
+        Full spec for parsers and arguments:
+        ```yaml
+        .parser_ref:
+          description: "..."
+          add_help: true
+          arguments: {}
+          subparsers: {}
+
+        .argument_ref:
+          flags: []
+          pos: false
+          required: false
+          default: null
+          nargs: 1
+          type: str
+          choices: []
+          help: ""
+          metavar: ""
+          action: ""
+          group: ""
+          exclusive: false
+          const: null
+        ```
+
+        Example spec in YAML:
+        ```yaml
+        'test-cli':
+          description: "halp"
+          add_help: true
+          arguments:
+            value:
+              type: int
+              default: 69
+          subparsers:
+            'test-subcmd':
+              arguments: {}
+              subparsers: {}
+        ```
+    """
     path = Path(path)
     loader: Callable[[...], Dict[str, Any]]
     if path.stem.lower() == ".json":
@@ -188,7 +269,7 @@ def run(
     **kwargs: Any,
 ) -> Any:
     """Use given functions to construct an ArgumentParser,
-    parse the args, invoke the appropriate command, and return any result.
+    parse the args, invoke the appropriate command and return any result.
 
     Args:
         command: the root command function
@@ -233,7 +314,7 @@ def run_commands(
     **kwargs: Any,
 ) -> Any:
     """Use given functions to construct an ArgumentParser,
-    parse the args, invoke the appropriate command, and return any result.
+    parse the args, invoke the appropriate command and return any result.
 
     `yapx.run_commands(...)` is equivalent to `yapx.run(None, ...)`, to be used when
     there is no root command.

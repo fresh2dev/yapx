@@ -87,4 +87,4 @@ An example TUI could look like:
   <source src="https://user-images.githubusercontent.com/554369/239734211-c9e5dabb-5624-45cb-8612-f6ecfde70362.mov" type="video/mp4">
 </video>
 
-*gif source: https://github.com/Textualize/trogon/README.md*
+*gif source: https://github.com/Textualize/trogon*
