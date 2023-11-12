@@ -235,7 +235,7 @@ def arg(
     default_param: str = "default_factory" if callable(default) else "default"
     kwargs[default_param] = default
 
-    f: Field = field(metadata=metadata, **kwargs)
+    f: Field = field(metadata=metadata, **kwargs)  # pylint: disable=invalid-field-call
     f.type = _type
 
     return f
