@@ -1315,7 +1315,7 @@ class ArgumentParser(argparse.ArgumentParser):
         if args is None:
             args = sys.argv[1:]
 
-        if not args and default_args:
+        if not args and default_args and sys.stdin.isatty():
             args = default_args
 
         known_args: Namespace

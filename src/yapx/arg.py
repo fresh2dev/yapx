@@ -128,6 +128,7 @@ def arg(
     default: Optional[Any] = MISSING,
     env: Union[None, str, Sequence[str]] = None,
     pos: Optional[bool] = False,
+    stdin: bool = False,
     group: Optional[str] = None,
     exclusive: Optional[bool] = False,
     help: Optional[str] = None,  # pylint: disable=redefined-builtin
@@ -146,6 +147,7 @@ def arg(
         default: default value for the argument. Argument is required if no default is given.
         env: list of environment variables that will provide the argument value.
         pos: if True, argument is positional (no flags).
+        stdin: if True, argument can get its value from stdin.
         group: group for the argument.
         exclusive: if True, this arg cannot be specified along with another exclusive arg in the same group.
         help: help text / description
@@ -197,12 +199,8 @@ def arg(
                         default = value_from_file
                         break
 
-    all_flags: List[str] = []
-    for x in flags:
-        if isinstance(x, str):
-            all_flags.append(x)
-        else:
-            all_flags.extend(x)
+    if stdin and not sys.stdin.isatty():
+        default = " ".join(sys.stdin)
 
     if _required is None:
         _required = default is MISSING
