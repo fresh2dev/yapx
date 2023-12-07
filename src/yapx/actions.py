@@ -211,10 +211,6 @@ def _split_csv_sequence(
     list_prefix: str = "["
     list_suffix: str = "]"
 
-    # if all (ignoring last) end with comma, remove comma.
-    if all(x.endswith(",") for x in values[:-1]):
-        values = [x.rstrip(",") for x in values]
-
     for value in values:
         value_clean: str = value.strip()
 
