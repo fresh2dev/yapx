@@ -951,7 +951,7 @@ class ArgumentParser(argparse.ArgumentParser):
     def parse_args(  # type: ignore[override]
         self,
         args: Optional[Sequence[str]] = None,
-        namespace: Optional[argparse.Namespace] = None,
+        namespace: None = None,
     ) -> Namespace:
         try:
             parsed: argparse.Namespace = super().parse_args(
@@ -965,7 +965,7 @@ class ArgumentParser(argparse.ArgumentParser):
     def parse_known_args(  # type: ignore[override]
         self,
         args: Optional[Sequence[str]] = None,
-        namespace: Optional[argparse.Namespace] = None,
+        namespace: None = None,
     ) -> Tuple[Namespace, List[str]]:
         parsed: argparse.Namespace
         unknown: List[str]
@@ -1198,11 +1198,9 @@ class ArgumentParser(argparse.ArgumentParser):
                     option_strings=[],
                 )
 
-        model_inst: Dataclass = (
-            context.parser._parse_args_to_model(  # pylint: disable=protected-access
-                args=model_kwargs,
-                args_model=args_model,
-            )
+        model_inst: Dataclass = context.parser._parse_args_to_model(  # pylint: disable=protected-access
+            args=model_kwargs,
+            args_model=args_model,
         )
 
         func_var_kwargs: Dict[str, Optional[Any]] = vars(model_inst)

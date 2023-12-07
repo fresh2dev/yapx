@@ -3,6 +3,7 @@ import shlex
 from abc import ABC
 from argparse import Action, Namespace, _AppendAction, _CountAction
 from argparse import _HelpAction as HelpAction
+from contextlib import suppress
 from copy import copy
 from typing import Any, Dict, List, Optional, Sequence, Type, TypeVar
 
@@ -17,7 +18,15 @@ class PrePostAction(ABC, Action):
     This is useful for ensuring that the default value is of the proper type.
     """
 
-    ...
+    def __call__(self, parser, namespace, values, option_string=None):
+        if getattr(self, "_initial_call", True):
+            # if this is the first call to this action, remove any existing
+            # value for this destination. This accounts for default sequence values
+            # being appended to. See: https://bugs.python.org/issue16399
+            # pylint: disable=attribute-defined-outside-init
+            self._initial_call = False
+            with suppress(AttributeError):
+                delattr(namespace, self.dest)
 
 
 class BooleanOptionalAction(PrePostAction):
@@ -138,18 +147,21 @@ class CountAction(PrePostAction, _CountAction):
         )
 
     def __call__(self, parser, namespace, values, option_string=None):
+        super().__call__(parser, namespace, values, option_string)
+
         count = getattr(namespace, self.dest, None)
         if count is None:
             count = 0
 
-        if option_string:
-            count += 1
+        count += 1
 
         setattr(namespace, self.dest, count)
 
 
 class FeatureFlagAction(PrePostAction):
     def __call__(self, parser, namespace, values, option_string=None):
+        super().__call__(parser, namespace, values, option_string)
+
         if option_string:
             values = option_string
         setattr(namespace, self.dest, values.lstrip("-"))
@@ -240,12 +252,15 @@ def _copy_items(items: Optional[List[T]]) -> List[T]:
 
 class SplitCsvListAction(PrePostAction, _AppendAction):
     def __call__(self, parser, namespace, values, option_string=None):
+        super().__call__(parser, namespace, values, option_string)
+
         split_values: Optional[List[str]] = _split_csv_sequence(
             values,
             target_type=parser._dest_type.get(  # pylint: disable=protected-access
                 self.dest,
             ),
         )
+
         items = _append_new_dest_values(
             namespace,
             dest=self.dest,
@@ -257,6 +272,8 @@ class SplitCsvListAction(PrePostAction, _AppendAction):
 
 class SplitCsvTupleAction(PrePostAction, _AppendAction):
     def __call__(self, parser, namespace, values, option_string=None):
+        super().__call__(parser, namespace, values, option_string)
+
         split_values: Optional[List[str]] = _split_csv_sequence(
             values,
             target_type=parser._dest_type.get(  # pylint: disable=protected-access
@@ -274,6 +291,8 @@ class SplitCsvTupleAction(PrePostAction, _AppendAction):
 
 class SplitCsvSetAction(PrePostAction, _AppendAction):
     def __call__(self, parser, namespace, values, option_string=None):
+        super().__call__(parser, namespace, values, option_string)
+
         split_values: Optional[List[str]] = _split_csv_sequence(
             values,
             target_type=parser._dest_type.get(  # pylint: disable=protected-access
@@ -291,6 +310,8 @@ class SplitCsvSetAction(PrePostAction, _AppendAction):
 
 class SplitCsvDictAction(PrePostAction, _AppendAction):
     def __call__(self, parser, namespace, values, option_string=None):
+        super().__call__(parser, namespace, values, option_string)
+
         split_values_dict: Optional[Dict[str, Any]] = None
 
         if values is None or isinstance(values, dict):

@@ -1061,3 +1061,18 @@ def test_run_nested_subcommands(cli_args: List[str], capsys: CaptureFixture):
     assert captured.out
 
     assert [int(x) for x in captured.out.split()] == list(reversed(result))
+
+
+def test_default_sequence_no_append():
+    def _func(
+        text: Annotated[
+            List[str],
+            yapx.unbounded_arg(pos=True, default=lambda: ["default"]),
+        ],
+    ) -> List[str]:
+        return text
+
+    expected: List[str] = ["value1", "value2", "value3"]
+    result: List[str] = yapx.run(_func, args=expected)
+    assert result
+    assert result == expected
