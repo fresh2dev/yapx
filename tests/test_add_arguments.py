@@ -183,7 +183,7 @@ else:
             list,
             ArgparseArg(
                 option_strings=["--a-list"],
-                help=None,
+                help="| Default: %(default)s",
                 nargs=None,
                 required=False,
                 default=[],
@@ -207,7 +207,7 @@ else:
             tuple,
             ArgparseArg(
                 option_strings=["--a-tuple"],
-                help=None,
+                help="| Default: %(default)s",
                 nargs=None,
                 required=False,
                 default=(),
@@ -231,7 +231,7 @@ else:
             list,
             ArgparseArg(
                 option_strings=["--a-sequence"],
-                help=None,
+                help="| Default: %(default)s",
                 nargs=None,
                 required=False,
                 default=[],
@@ -255,7 +255,7 @@ else:
             set,
             ArgparseArg(
                 option_strings=["--a-set"],
-                help=None,
+                help="| Default: %(default)s",
                 nargs=None,
                 required=False,
                 default=set(),
@@ -279,7 +279,7 @@ else:
             dict,
             ArgparseArg(
                 option_strings=["--a-dict"],
-                help=None,
+                help="| Default: %(default)s",
                 nargs=None,
                 required=False,
                 default={},
@@ -303,7 +303,7 @@ else:
             dict,
             ArgparseArg(
                 option_strings=["--a-mapping"],
-                help=None,
+                help="| Default: %(default)s",
                 nargs=None,
                 required=False,
                 default={},

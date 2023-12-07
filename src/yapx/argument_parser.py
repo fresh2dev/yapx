@@ -698,7 +698,6 @@ class ArgumentParser(argparse.ArgumentParser):
             if (
                 not required
                 and default is not None
-                and (not hasattr(default, "__len__") or len(default) > 1)
                 and argparse_argument.type is not bool
             ):
                 if isinstance(default, str):
