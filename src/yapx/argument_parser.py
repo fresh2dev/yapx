@@ -826,7 +826,7 @@ class ArgumentParser(argparse.ArgumentParser):
             raise_unsupported_type_error(type_container)
 
         if not results:
-            raise TypeError("Too many types in container")
+            raise TypeError(f"Too many types in container: {type_container}")
 
         type_container_subtype_origin = get_type_origin(type_container_subtype)
 

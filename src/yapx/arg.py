@@ -131,13 +131,13 @@ def arg(
     stdin: bool = False,
     group: Optional[str] = None,
     exclusive: Optional[bool] = False,
-    help: Optional[str] = None,  # pylint: disable=redefined-builtin
+    help: Optional[str] = None,  # pylint: disable=redefined-builtin # noqa: A002
     metavar: Optional[str] = None,
     nargs: Optional[Union[int, str]] = None,
+    choices: Optional[Sequence[Any]] = None,
     action: Union[None, str, Type[argparse.Action]] = None,
     _type: Union[None, Type[Any], Callable[[str], Any]] = None,
     _const: Optional[Any] = None,
-    _choices: Optional[Sequence[Any]] = None,
     _required: Optional[bool] = None,
 ) -> Field:
     """Provides an interface to modify argument options.
@@ -153,6 +153,7 @@ def arg(
         help: help text / description
         metavar: variable name printed in help text.
         nargs: the number of values this argument accepts.
+        choices: a sequence of acceptable values.
         action: custom action for this argument.
 
     Returns:
@@ -225,7 +226,7 @@ def arg(
             nargs=nargs,
             _env_var=env,
             const=_const,
-            choices=_choices,
+            choices=choices,
         ),
     }
 
@@ -256,7 +257,7 @@ def custom_arg(
         *args,
         _type=type,
         _const=const,
-        _choices=choices,
+        choices=choices,
         _required=required,
         **kwargs,
     )

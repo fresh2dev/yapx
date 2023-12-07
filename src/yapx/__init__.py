@@ -31,6 +31,7 @@ __all__ = [
     "Namespace",
     "cmd",
     "Command",
+    "Context",
     "arg",
     "counting_arg",
     "custom_arg",
