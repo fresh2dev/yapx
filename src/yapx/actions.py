@@ -240,7 +240,7 @@ def _copy_items(items: Optional[List[T]]) -> List[T]:
     # The copy module is used only in the 'append' and 'append_const'
     # actions, and it is needed only when the default value isn't a list.
     # Delay its import for speeding up the common case.
-    if type(items) is list:
+    if isinstance(items, list):
         return items[:]
 
     return copy(items)

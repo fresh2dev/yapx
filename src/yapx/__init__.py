@@ -3,7 +3,7 @@ from argparse import _SubParsersAction
 from contextlib import suppress
 from copy import deepcopy
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Sequence, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
 from . import exceptions, types
 from .__version__ import __version__
@@ -126,7 +126,7 @@ def build_parser_from_spec(
         err = "Multiple program defined in spec."
         raise ValueError(err)
 
-    name: str = list(spec)[0]
+    name: str = next(iter(spec))
     spec: Dict[str, Dict[str, Any]] = spec.pop(name)
     args: Dict[str, Dict[str, Any]] = spec.pop("arguments", {})
     subparsers: Dict[str, Dict[str, Any]] = spec.pop(
@@ -268,7 +268,9 @@ def run_patched(
     disable_pydantic: bool = False,
     **kwargs: Any,
 ) -> Any:
-    """For use in tests. Same as `yapx.run`, with the ability to patch args and disable pydantic.
+    """For use in tests.
+
+    Same as `yapx.run`, with the ability to patch args and disable pydantic.
 
     Args:
         *args: ...
