@@ -128,15 +128,16 @@ def arg(
     default: Optional[Any] = MISSING,
     env: Union[None, str, Sequence[str]] = None,
     pos: Optional[bool] = False,
+    stdin: bool = False,
     group: Optional[str] = None,
     exclusive: Optional[bool] = False,
-    help: Optional[str] = None,  # pylint: disable=redefined-builtin
+    help: Optional[str] = None,  # pylint: disable=redefined-builtin # noqa: A002
     metavar: Optional[str] = None,
     nargs: Optional[Union[int, str]] = None,
+    choices: Optional[Sequence[Any]] = None,
     action: Union[None, str, Type[argparse.Action]] = None,
     _type: Union[None, Type[Any], Callable[[str], Any]] = None,
     _const: Optional[Any] = None,
-    _choices: Optional[Sequence[Any]] = None,
     _required: Optional[bool] = None,
 ) -> Field:
     """Provides an interface to modify argument options.
@@ -146,11 +147,13 @@ def arg(
         default: default value for the argument. Argument is required if no default is given.
         env: list of environment variables that will provide the argument value.
         pos: if True, argument is positional (no flags).
+        stdin: if True, argument can get its value from stdin.
         group: group for the argument.
         exclusive: if True, this arg cannot be specified along with another exclusive arg in the same group.
         help: help text / description
         metavar: variable name printed in help text.
         nargs: the number of values this argument accepts.
+        choices: a sequence of acceptable values.
         action: custom action for this argument.
 
     Returns:
@@ -197,12 +200,8 @@ def arg(
                         default = value_from_file
                         break
 
-    all_flags: List[str] = []
-    for x in flags:
-        if isinstance(x, str):
-            all_flags.append(x)
-        else:
-            all_flags.extend(x)
+    if stdin and not sys.stdin.isatty():
+        default = " ".join(sys.stdin)
 
     if _required is None:
         _required = default is MISSING
@@ -227,7 +226,7 @@ def arg(
             nargs=nargs,
             _env_var=env,
             const=_const,
-            choices=_choices,
+            choices=choices,
         ),
     }
 
@@ -235,7 +234,7 @@ def arg(
     default_param: str = "default_factory" if callable(default) else "default"
     kwargs[default_param] = default
 
-    f: Field = field(metadata=metadata, **kwargs)
+    f: Field = field(metadata=metadata, **kwargs)  # pylint: disable=invalid-field-call
     f.type = _type
 
     return f
@@ -258,7 +257,7 @@ def custom_arg(
         *args,
         _type=type,
         _const=const,
-        _choices=choices,
+        choices=choices,
         _required=required,
         **kwargs,
     )

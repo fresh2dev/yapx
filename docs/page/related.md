@@ -10,6 +10,8 @@
 
 ## [argh](https://github.com/neithere/argh)
 
+## [clize](https://github.com/epsy/clize)
+
 ## [simple-parsing](https://github.com/lebrice/SimpleParsing)
 
 ## [myke](https://github.com/fresh2dev/myke)

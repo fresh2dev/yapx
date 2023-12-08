@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.5.0 - 2023-12-07
+
+### :clap: Features
+
+- `yapx.arg(stdin=...)` to get arg value from stdin stream.
+
+### :fist: Fixes
+
+- *Breaking:* Do not append to default sequence value (addresses https://bugs.python.org/issue16399)
+- Show default values of more types in `--help`
+
+### :point_right: Changes
+
+- *Breaking:* no longer remove commas occurring between sequence parameter values
+
+SLOC Analysis:
+
+| Directory   |   Empty |   Comment |   Docstring |   Code |   Statements |
+|-------------|---------|-----------|-------------|--------|--------------|
+| src/yapx    |     461 |        60 |         591 |   1989 |         1105 |
+| tests       |     385 |       199 |         264 |   1592 |          806 |
+
 ## 0.4.2 - 2023-10-30
 
 ### :clap: Features

@@ -698,7 +698,6 @@ class ArgumentParser(argparse.ArgumentParser):
             if (
                 not required
                 and default is not None
-                and (not hasattr(default, "__len__") or len(default) > 1)
                 and argparse_argument.type is not bool
             ):
                 if isinstance(default, str):
@@ -827,7 +826,7 @@ class ArgumentParser(argparse.ArgumentParser):
             raise_unsupported_type_error(type_container)
 
         if not results:
-            raise TypeError("Too many types in container")
+            raise TypeError(f"Too many types in container: {type_container}")
 
         type_container_subtype_origin = get_type_origin(type_container_subtype)
 
@@ -951,7 +950,7 @@ class ArgumentParser(argparse.ArgumentParser):
     def parse_args(  # type: ignore[override]
         self,
         args: Optional[Sequence[str]] = None,
-        namespace: Optional[argparse.Namespace] = None,
+        namespace: None = None,
     ) -> Namespace:
         try:
             parsed: argparse.Namespace = super().parse_args(
@@ -965,7 +964,7 @@ class ArgumentParser(argparse.ArgumentParser):
     def parse_known_args(  # type: ignore[override]
         self,
         args: Optional[Sequence[str]] = None,
-        namespace: Optional[argparse.Namespace] = None,
+        namespace: None = None,
     ) -> Tuple[Namespace, List[str]]:
         parsed: argparse.Namespace
         unknown: List[str]
@@ -1198,11 +1197,9 @@ class ArgumentParser(argparse.ArgumentParser):
                     option_strings=[],
                 )
 
-        model_inst: Dataclass = (
-            context.parser._parse_args_to_model(  # pylint: disable=protected-access
-                args=model_kwargs,
-                args_model=args_model,
-            )
+        model_inst: Dataclass = context.parser._parse_args_to_model(  # pylint: disable=protected-access
+            args=model_kwargs,
+            args_model=args_model,
         )
 
         func_var_kwargs: Dict[str, Optional[Any]] = vars(model_inst)
@@ -1317,7 +1314,7 @@ class ArgumentParser(argparse.ArgumentParser):
         if args is None:
             args = sys.argv[1:]
 
-        if not args and default_args:
+        if not args and default_args and sys.stdin.isatty():
             args = default_args
 
         known_args: Namespace

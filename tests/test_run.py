@@ -709,19 +709,19 @@ def test_run_multivalue(disable_pydantic: bool):
         "3.19",
         "3.192",
         "--v23",
-        "3.19,",
-        "3.19,",
+        "3.19",
+        "3.19",
         "3.192",
         "--v27",
-        "3.19,",
-        "3.19,",
+        "3.19",
+        "3.19",
         "3.192",
         "--v31",
-        "3.19,",
-        "3.19,",
+        "3.19",
+        "3.19",
         "3.192",
         "--v35",
-        "hello=3.19,",
+        "hello=3.19",
         "world=3.192",
     ]
 
@@ -932,25 +932,25 @@ def test_run_everything(disable_pydantic: bool):
         "--v19",
         "3.192",
         "--v23",
-        "3.19,",
+        "3.19",
         "--v23",
-        "3.19,",
+        "3.19",
         "--v23",
         "3.192",
         "--v27",
-        "3.19,",
+        "3.19",
         "--v27",
-        "3.19,",
+        "3.19",
         "--v27",
         "3.192",
         "--v31",
-        "3.19,",
+        "3.19",
         "--v31",
-        "3.19,",
+        "3.19",
         "--v31",
         "3.192",
         "--v35",
-        "hello=3.19,",
+        "hello=3.19",
         "--v35",
         "world=3.192",
         "purposefully_extra",
@@ -1061,3 +1061,18 @@ def test_run_nested_subcommands(cli_args: List[str], capsys: CaptureFixture):
     assert captured.out
 
     assert [int(x) for x in captured.out.split()] == list(reversed(result))
+
+
+def test_default_sequence_no_append():
+    def _func(
+        text: Annotated[
+            List[str],
+            yapx.unbounded_arg(pos=True, default=lambda: ["default"]),
+        ],
+    ) -> List[str]:
+        return text
+
+    expected: List[str] = ["value1", "value2", "value3"]
+    result: List[str] = yapx.run(_func, args=expected)
+    assert result
+    assert result == expected
