@@ -177,11 +177,15 @@ def cast_type(target_type: Optional[T], value: Any) -> Optional[T]:
     if target_type is bool:
         return cast_bool(value)
 
+    if try_isinstance(value, str) and target_type is not str and not value.strip():
+        return None
+
     if try_issubclass(target_type, Enum):
         try:
             return target_type[value]
         except KeyError as e:
-            raise ValueError(f"Given value '{value}' not one of: {target_type}") from e
+            err: str = f"Given value '{value}' not one of: {target_type}"
+            raise ValueError(err) from e
 
     try:
         return target_type(value)

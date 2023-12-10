@@ -19,6 +19,12 @@ def test_cast_bool_false(x):
     assert yapx.utils.cast_bool(x) is False
 
 
+@pytest.mark.parametrize("x", [int, float])
+@pytest.mark.parametrize("y", [None, "", "  ", "  \n \t  "])
+def test_cast_number_from_empty_string(x, y):
+    assert yapx.utils.cast_type(target_type=x, value=y) is None
+
+
 def test_is_dataclass_type():
     @dataclass
     class Something:
