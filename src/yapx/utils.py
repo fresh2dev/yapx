@@ -153,13 +153,10 @@ def get_action_result(
 
 
 def cast_bool(value: Union[None, str, bool]) -> bool:
-    if isinstance(value, bool):
-        return value
-
     if not isinstance(value, str):
         return bool(value)
 
-    value_lower: str = value.lower()
+    value_lower: str = value.strip().lower()
 
     if value_lower in ("1", "true", "t", "yes", "y", "on"):
         return True
@@ -177,7 +174,7 @@ def cast_type(target_type: Optional[T], value: Any) -> Optional[T]:
     if target_type is bool:
         return cast_bool(value)
 
-    if try_isinstance(value, str) and target_type is not str and not value.strip():
+    if try_isinstance(value, str) and not value.strip():
         return None
 
     if try_issubclass(target_type, Enum):

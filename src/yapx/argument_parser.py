@@ -541,8 +541,11 @@ class ArgumentParser(argparse.ArgumentParser):
                     if argparse_argument.choices:
                         fld_type = type(argparse_argument.choices[0])
                 else:
-                    # this is a type-container (List, Set, Tuple, Dict, ...)
+                    # this is a type-container (List, Set, Tuple, Dict, Enum, ...)
+                    is_sequence_or_dict: bool = False
                     if try_issubclass(fld_type_origin, collections.abc.Mapping):
+                        is_sequence_or_dict = True
+
                         fld_type = cls._extract_type_from_container(
                             fld_type,
                             assert_primitive=True,
@@ -555,6 +558,8 @@ class ArgumentParser(argparse.ArgumentParser):
                         try_issubclass(fld_type_origin, collections.abc.Iterable)
                         or fld_type_origin is set
                     ):
+                        is_sequence_or_dict = True
+
                         fld_type = cls._extract_type_from_container(
                             fld_type,
                             assert_primitive=True,
@@ -569,6 +574,15 @@ class ArgumentParser(argparse.ArgumentParser):
 
                     elif not is_pydantic_available:
                         raise_unsupported_type_error(fld_type)
+
+                    if (
+                        is_sequence_or_dict
+                        and argparse_argument._from_stdin
+                        and isinstance(argparse_argument.default, str)
+                    ):
+                        argparse_argument.default = (
+                            argparse_argument.default.splitlines()
+                        )
 
                     if try_issubclass(fld_type, Enum):
                         argparse_argument.choices = [x.name for x in fld_type]
@@ -650,21 +664,20 @@ class ArgumentParser(argparse.ArgumentParser):
                 kwargs["action"] = FeatureFlagAction
 
             # if given `default` cast it to the expected type.
-            if (
-                fld.default is not MISSING
-                or fld.default_factory is not MISSING
-                or kwargs.get("default") is not None
-            ):
-                if try_issubclass(kwargs.get("action"), PrePostAction):
-                    kwargs["default"] = get_action_result(
-                        action=kwargs["action"],
-                        parser=parser,
-                        dest=kwargs["dest"],
-                        default=kwargs["default"],
-                        option_strings=args,
-                    )
-                elif "type" in kwargs:
-                    kwargs["default"] = kwargs["type"](kwargs["default"])
+            if kwargs.get("default") is not None:
+                try:
+                    if try_issubclass(kwargs.get("action"), PrePostAction):
+                        kwargs["default"] = get_action_result(
+                            action=kwargs["action"],
+                            parser=parser,
+                            dest=kwargs["dest"],
+                            default=kwargs["default"],
+                            option_strings=args,
+                        )
+                    elif "type" in kwargs:
+                        kwargs["default"] = kwargs["type"](kwargs["default"])
+                except ValueError as e:
+                    parser.error(f"Invalid value for parameter '{kwargs['dest']}': {e}")
 
                 # validate parsed default against 'choices'
                 if kwargs.get("choices"):
