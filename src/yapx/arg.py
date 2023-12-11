@@ -17,8 +17,6 @@ from typing import (
     get_type_hints,
 )
 
-import yapx  # pylint: disable=unused-import # noqa: F401
-
 from .context import Context
 from .types import Dataclass
 
@@ -95,6 +93,7 @@ class ArgparseArg:
     metavar: Optional[str] = None
     pos: Optional[bool] = False
     _env_var: Union[None, str, Sequence[str]] = None
+    _from_stdin: bool = False
 
     def __post_init__(self) -> None:
         self.set_dest(self.dest)
@@ -128,7 +127,7 @@ def arg(
     default: Optional[Any] = MISSING,
     env: Union[None, str, Sequence[str]] = None,
     pos: Optional[bool] = False,
-    stdin: bool = False,
+    stdin: Union[None, bool, str] = None,
     group: Optional[str] = None,
     exclusive: Optional[bool] = False,
     help: Optional[str] = None,  # pylint: disable=redefined-builtin # noqa: A002
@@ -147,7 +146,7 @@ def arg(
         default: default value for the argument. Argument is required if no default is given.
         env: list of environment variables that will provide the argument value.
         pos: if True, argument is positional (no flags).
-        stdin: if True, argument can get its value from stdin.
+        stdin: if True, argument can get its value from stdin. If a `str`, mock stdin with this value.
         group: group for the argument.
         exclusive: if True, this arg cannot be specified along with another exclusive arg in the same group.
         help: help text / description
@@ -200,8 +199,12 @@ def arg(
                         default = value_from_file
                         break
 
-    if stdin and not sys.stdin.isatty():
-        default = " ".join(sys.stdin)
+    if stdin:
+        if isinstance(stdin, bool):
+            if stdin is True and not sys.stdin.isatty():
+                default = "".join(sys.stdin)
+        else:
+            default = stdin
 
     if _required is None:
         _required = default is MISSING
@@ -224,9 +227,10 @@ def arg(
             help=help,
             metavar=metavar,
             nargs=nargs,
-            _env_var=env,
             const=_const,
             choices=choices,
+            _env_var=env,
+            _from_stdin=bool(stdin),
         ),
     }
 

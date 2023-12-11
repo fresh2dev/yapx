@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.5.1 - 2023-12-10
+
+### :clap: Features
+
+- Allow stdin input for any type
+
+### :point_right: Changes
+
+- *Breaking:* When casting from `str`, return `None` if blank
+
+SLOC Analysis:
+
+| Directory   |   Empty |   Comment |   Docstring |   Code |   Statements |
+|-------------|---------|-----------|-------------|--------|--------------|
+| src/yapx    |     466 |        60 |         596 |   2008 |         1120 |
+| tests       |     392 |       199 |         275 |   1636 |          820 |
+
 ## 0.5.0 - 2023-12-07
 
 ### :clap: Features

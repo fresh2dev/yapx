@@ -3,6 +3,7 @@ import re
 from enum import Enum, auto
 from ipaddress import IPv4Address
 from pathlib import Path
+from textwrap import dedent
 from typing import Any, Dict, List, Optional, Pattern, Sequence, Set, Tuple
 
 import pytest
@@ -1063,7 +1064,8 @@ def test_run_nested_subcommands(cli_args: List[str], capsys: CaptureFixture):
     assert [int(x) for x in captured.out.split()] == list(reversed(result))
 
 
-def test_default_sequence_no_append():
+@pytest.mark.parametrize("disable_pydantic", [False, True])
+def test_default_sequence_no_append(disable_pydantic: bool):
     def _func(
         text: Annotated[
             List[str],
@@ -1073,6 +1075,59 @@ def test_default_sequence_no_append():
         return text
 
     expected: List[str] = ["value1", "value2", "value3"]
-    result: List[str] = yapx.run(_func, args=expected)
+    result: List[str] = yapx.run_patched(
+        _func,
+        args=expected,
+        disable_pydantic=disable_pydantic,
+    )
     assert result
     assert result == expected
+
+
+@pytest.mark.parametrize("disable_pydantic", [False, True])
+def test_stdin(disable_pydantic: bool):
+    stdin_input: str = dedent(
+        r"""
+    test
+    this
+    out
+    one=1
+    two=2
+    three=3
+    """.strip(os.linesep),
+    )
+
+    def _func(
+        text: Annotated[str, yapx.arg(stdin=stdin_input)],
+        text_seq: Annotated[Sequence[str], yapx.arg(stdin=stdin_input)],
+        text_list: Annotated[List[str], yapx.arg(stdin=stdin_input)],
+        text_set: Annotated[Set[str], yapx.arg(stdin=stdin_input)],
+        text_tuple: Annotated[Tuple[str, ...], yapx.arg(stdin=stdin_input)],
+        text_dict: Annotated[Dict[str, Optional[int]], yapx.arg(stdin=stdin_input)],
+    ) -> Tuple[Any, ...]:
+        return (
+            text,
+            text_seq,
+            text_list,
+            text_set,
+            text_tuple,
+            text_dict,
+        )
+
+    result: Tuple[Any, ...] = yapx.run_patched(
+        _func,
+        disable_pydantic=disable_pydantic,
+        args=[],
+    )
+
+    assert result[0] == stdin_input
+    assert result[1] == stdin_input.splitlines()
+    assert result[2] == stdin_input.splitlines()
+    assert result[3] == set(stdin_input.splitlines())
+    assert result[4] == tuple(stdin_input.splitlines())
+    assert result[5] == {
+        **{k: None for k in stdin_input.splitlines()[:-3]},
+        "one": 1,
+        "two": 2,
+        "three": 3,
+    }
