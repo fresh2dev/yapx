@@ -17,6 +17,7 @@ classifiers = [
 dynamic = ["version"]
 dependencies = [
     "typing-extensions; python_version<'3.10'",
+    "importlib-metadata; python_version<'3.8'",
 ]
 
 [project.optional-dependencies]
@@ -218,5 +219,4 @@ recreate = true
 extras = tests
 commands =
     python -m pytest {posargs}
-    python -m pylint --disable=C,R '**/*.py'
 """
