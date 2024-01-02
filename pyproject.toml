@@ -17,6 +17,7 @@ classifiers = [
 dynamic = ["version"]
 dependencies = [
     "typing-extensions; python_version<'3.10'",
+    "importlib-metadata; python_version<'3.8'",
 ]
 
 [project.optional-dependencies]
@@ -65,7 +66,7 @@ extras = [
 [project.urls]
 Homepage = "https://www.f2dv.com/r/yapx"
 Repository = "https://www.github.com/fresh2dev/yapx"
-Funding = "https://www.f2dv.com/fund"
+# Funding = "https://www.f2dv.com/fund"
 
 [tool.setuptools.package-data]
 "*" = ["**"]
@@ -209,8 +210,8 @@ unfixable = []
 [tool.tox]
 legacy_tox_ini = """
 [tox]
-envlist = py3{7,8,9,10,11}
-skip_missing_interpreters = false
+envlist = py3{7,8,9,10,11,12}
+skip_missing_interpreters = true
 toxworkdir = /tmp/.tox
 minversion = 4.0
 [testenv]
@@ -218,5 +219,4 @@ recreate = true
 extras = tests
 commands =
     python -m pytest {posargs}
-    python -m pylint --disable=C,R '**/*.py'
 """

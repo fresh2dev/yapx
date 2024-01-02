@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.2 - 2023-1-1
+
+### :clap: Features
+
+- Python 3.12 compatibility
+
 ## 0.5.1 - 2023-12-10
 
 ### :clap: Features

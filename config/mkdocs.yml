@@ -4,7 +4,7 @@ site_url: !ENV [MKDOCS_SITE_URL, "https://www.f2dv.com/r/yapx"]
 repo_url: "https://www.github.com/fresh2dev/yapx"
 repo_name: "fresh2dev/yapx"
 edit_uri: "edit/main/docs"
-#edit_uri_template: "src/branch/main/docs/{path}"
+# edit_uri_template: "src/branch/main/docs/{path}"
 docs_dir: "../docs"
 site_dir: "../public"
 
@@ -30,8 +30,8 @@ nav:
   - License: license.md
   - Ideas: ideas.md
   - '<- f2dv.com':
-    - '/projects': 'https://www.f2dv.com/projects/'
-    - '/fund': 'https://www.f2dv.com/fund/'
+      - '/projects': 'https://www.f2dv.com/projects/'
+      # - '/fund': 'https://www.f2dv.com/fund/'
 
 watch:
   - ../src

@@ -24,8 +24,6 @@ from typing import (
     Union,
 )
 
-from pkg_resources import get_distribution
-
 from .actions import (
     BooleanOptionalAction,
     CountAction,
@@ -71,6 +69,11 @@ from .utils import (
     try_isinstance,
     try_issubclass,
 )
+
+if sys.version_info >= (3, 8):
+    from importlib.metadata import PackageNotFoundError, version
+else:
+    from importlib_metadata import PackageNotFoundError, version
 
 if sys.version_info >= (3, 9):
     from typing import _AnnotatedAlias
@@ -186,8 +189,8 @@ class ArgumentParser(argparse.ArgumentParser):
                     version_flags = [version_flags]
 
                 if self.prog and not prog_version:
-                    with suppress(Exception):
-                        prog_version = get_distribution(self.prog).version
+                    with suppress(PackageNotFoundError):
+                        prog_version = version(self.prog)
 
                 if prog_version:
                     helpful_arg_group.add_argument(

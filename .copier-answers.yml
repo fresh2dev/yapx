@@ -1,12 +1,11 @@
 # Changes here will be overwritten by Copier
-_commit: fc00b6b
+_commit: edf6c01
 _src_path: ssh://git@git.lokalhost.net:2222/donald/copier-f2dv-project.git
 author_email: hello@f2dv.com
 author_name: Donald Mellenbruch
 ci_domain_name: lokalhost.net
 docs_slides_url: https://www.f2dv.com/s/yapx
 docs_url: https://www.f2dv.com/r/yapx
-funding_url: https://www.f2dv.com/fund
 home_domain: f2dv.com
 home_page: https://www.f2dv.com
 is_minimal: false
